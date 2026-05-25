@@ -415,6 +415,18 @@ function truncate(s, max) {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
+function offsetPt(pt, dx, dy) { return { x: pt.x + dx, y: pt.y + dy }; }
+
+function offsetEdge(e, dx, dy, orig) {
+  const sections = (e.sections || []).map(s => ({
+    ...s,
+    startPoint: offsetPt(s.startPoint, dx, dy),
+    endPoint:   offsetPt(s.endPoint, dx, dy),
+    bendPoints: (s.bendPoints || []).map(p => offsetPt(p, dx, dy)),
+  }));
+  return { ...e, sections, _orig: orig };
+}
+
 function makeSmoothPath(startPoint, bendPoints, endPoint) {
   const pts = [startPoint, ...(bendPoints || []), endPoint];
   if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
@@ -488,17 +500,36 @@ async function layoutGraph(nodes, edges) {
     groups[d].push(n);
   }
 
-  // Compound children: one group per directory
+  // Map each node to its directory group
+  const nodeToDir = {};
+  for (const n of nodes) nodeToDir[n.id] = nodeDir(n);
+
+  // Separate intra-group edges (same dir) from inter-group edges (cross dir).
+  // Intra-group edges go inside the group so ELK gives group-relative coords.
+  // Inter-group edges go at root so ELK gives root-relative (absolute) coords.
+  const intraByDir = {};
+  const interEdges = [];
+  const allElkEdges = edges
+    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
+    .map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to], _orig: e }));
+
+  for (const ee of allElkEdges) {
+    const fd = nodeToDir[ee.sources[0]], td = nodeToDir[ee.targets[0]];
+    if (fd === td) {
+      if (!intraByDir[fd]) intraByDir[fd] = [];
+      intraByDir[fd].push(ee);
+    } else {
+      interEdges.push(ee);
+    }
+  }
+
+  // Build compound children with intra-group edges inside each group
   const elkChildren = Object.entries(groups).map(([dir, groupNodes]) => ({
     id: `grp_${dir}`,
     layoutOptions: { "elk.padding": "[top=28,left=12,right=12,bottom=12]" },
     children: groupNodes.map(n => ({ id: n.id, width: NODE_W, height: NODE_H })),
+    edges: intraByDir[dir] || [],
   }));
-
-  // All edges at root level — ELK routes them through group boundaries
-  const elkEdges = edges
-    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
-    .map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to], _orig: e }));
 
   const graph = {
     id: "root",
@@ -512,15 +543,21 @@ async function layoutGraph(nodes, edges) {
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
     },
     children: elkChildren,
-    edges: elkEdges,
+    edges: interEdges,
   };
 
   const elk = new ELK();
   const laid = await elk.layout(graph);
 
+  // Build edgeDataMap for all edges (intra + inter)
+  const edgeDataMap = {};
+  for (const ee of allElkEdges) edgeDataMap[ee.id] = ee._orig;
+
   // Absolute node positions: group.x + child.x
   const pos = {};
   const grpPos = {};
+  const laidEdges = [];
+
   for (const grp of laid.children) {
     grpPos[grp.id] = { x: grp.x, y: grp.y, w: grp.width, h: grp.height };
     for (const child of (grp.children || [])) {
@@ -531,11 +568,16 @@ async function layoutGraph(nodes, edges) {
         h: child.height,
       };
     }
+    // Intra-group edges: section coords are group-relative; offset to absolute
+    for (const e of (grp.edges || [])) {
+      laidEdges.push(offsetEdge(e, grp.x, grp.y, edgeDataMap[e.id]));
+    }
   }
 
-  const edgeDataMap = {};
-  for (const e of elkEdges) edgeDataMap[e.id] = e._orig;
-  const laidEdges = (laid.edges || []).map(e => ({ ...e, _orig: edgeDataMap[e.id] }));
+  // Inter-group edges: already in root (absolute) coordinate space
+  for (const e of (laid.edges || [])) {
+    laidEdges.push({ ...e, _orig: edgeDataMap[e.id] });
+  }
 
   return { pos, grpPos, laidEdges };
 }
