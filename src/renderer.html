@@ -109,7 +109,6 @@
       <div class="legend-row"><div class="legend-line" style="background:#22c55e"></div>New dependency</div>
       <div class="legend-row"><div class="legend-line" style="background:#ef4444;border-top:2px dashed #ef4444;height:0"></div>Removed dependency</div>
       <div class="legend-row"><div class="legend-line" style="background:#334155"></div>Unchanged import</div>
-      <div class="legend-row"><div class="legend-line" style="background:#4a6080;border-top:2px dashed #4a6080;height:0"></div>Decorator import</div>
     </div>
   </div>
   <div class="card">
@@ -262,7 +261,7 @@ window.GRAPH_DATA = {
     { from: "user_card_component",   to: "user_avatar_component",      kind: "import"           },
     { from: "user_card_component",   to: "user_status_pipe",           kind: "import"           },
     { from: "user_card_component",   to: "user_model",                 kind: "import"           },
-    { from: "user_card_component",   to: "user_detail_component",      kind: "decorator-import" },
+    { from: "user_card_component",   to: "user_detail_component",      kind: "import"           },
 
     { from: "user_filter_component", to: "filter_state_service",       kind: "import"           },
     { from: "user_filter_component", to: "filter_model",               kind: "import"           },
@@ -416,6 +415,18 @@ function truncate(s, max) {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
+function makeSmoothPath(startPoint, bendPoints, endPoint) {
+  const pts = [startPoint, ...(bendPoints || []), endPoint];
+  if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mid = { x: (pts[i].x + pts[i+1].x) / 2, y: (pts[i].y + pts[i+1].y) / 2 };
+    d += ` Q ${pts[i].x} ${pts[i].y}, ${mid.x} ${mid.y}`;
+  }
+  d += ` L ${pts[pts.length-1].x} ${pts[pts.length-1].y}`;
+  return d;
+}
+
 // ─── Filter modes ────────────────────────────────────────────────────────────
 function applyMode(allNodes, allEdges, mode) {
   if (mode === 'all') return { nodes: allNodes, edges: allEdges };
@@ -465,9 +476,26 @@ function applyMode(allNodes, allEdges, mode) {
   }
 }
 
-// ─── ELK layout (flat — all nodes as root children) ──────────────────────────
+// ─── ELK layout (compound — directory groups, all edges at root) ─────────────
 async function layoutGraph(nodes, edges) {
   const nodeIds = new Set(nodes.map(n => n.id));
+
+  // Group nodes by directory
+  const groups = {};
+  for (const n of nodes) {
+    const d = nodeDir(n);
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(n);
+  }
+
+  // Compound children: one group per directory
+  const elkChildren = Object.entries(groups).map(([dir, groupNodes]) => ({
+    id: `grp_${dir}`,
+    layoutOptions: { "elk.padding": "[top=28,left=12,right=12,bottom=12]" },
+    children: groupNodes.map(n => ({ id: n.id, width: NODE_W, height: NODE_H })),
+  }));
+
+  // All edges at root level — ELK routes them through group boundaries
   const elkEdges = edges
     .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
     .map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to], _orig: e }));
@@ -477,40 +505,51 @@ async function layoutGraph(nodes, edges) {
     layoutOptions: {
       "algorithm": "layered",
       "elk.direction": "RIGHT",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "90",
-      "elk.spacing.nodeNode": "22",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "80",
+      "elk.spacing.nodeNode": "20",
       "elk.layered.mergeEdges": "true",
-      "elk.edgeRouting": "ORTHOGONAL",
-      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+      "elk.edgeRouting": "SPLINES",
+      "elk.hierarchyHandling": "INCLUDE_CHILDREN",
     },
-    children: nodes.map(n => ({ id: n.id, width: NODE_W, height: NODE_H })),
+    children: elkChildren,
     edges: elkEdges,
   };
 
   const elk = new ELK();
   const laid = await elk.layout(graph);
 
-  // Build position map (flat graph → absolute coords)
+  // Absolute node positions: group.x + child.x
   const pos = {};
-  for (const n of laid.children) pos[n.id] = { x: n.x, y: n.y, w: n.width, h: n.height };
+  const grpPos = {};
+  for (const grp of laid.children) {
+    grpPos[grp.id] = { x: grp.x, y: grp.y, w: grp.width, h: grp.height };
+    for (const child of (grp.children || [])) {
+      pos[child.id] = {
+        x: grp.x + child.x,
+        y: grp.y + child.y,
+        w: child.width,
+        h: child.height,
+      };
+    }
+  }
 
-  // Merge original edge data back onto laid edges
   const edgeDataMap = {};
   for (const e of elkEdges) edgeDataMap[e.id] = e._orig;
   const laidEdges = (laid.edges || []).map(e => ({ ...e, _orig: edgeDataMap[e.id] }));
 
-  return { pos, laidEdges };
+  return { pos, grpPos, laidEdges };
 }
 
 // ─── SVG drawing ─────────────────────────────────────────────────────────────
-function drawSVG(nodes, edges, pos, laidEdges) {
+function drawSVG(nodes, edges, pos, laidEdges, grpPos) {
   const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
   const isClustered = nodes.every(n => n._cluster);
   const NS = 'http://www.w3.org/2000/svg';
 
-  // Compute SVG bounds
+  // Compute SVG bounds — use group extents when available (groups include padding)
   let maxX = 0, maxY = 0;
-  for (const p of Object.values(pos)) {
+  const boundsSource = (grpPos && Object.keys(grpPos).length) ? Object.values(grpPos) : Object.values(pos);
+  for (const p of boundsSource) {
     if (p.x + p.w > maxX) maxX = p.x + p.w;
     if (p.y + p.h > maxY) maxY = p.y + p.h;
   }
@@ -523,7 +562,7 @@ function drawSVG(nodes, edges, pos, laidEdges) {
 
   // Arrowhead markers for each edge state
   const defs = el(NS, 'defs');
-  for (const [name, color] of [['added','#22c55e'],['removed','#ef4444'],['unchanged','#334155'],['dec','#4a6080']]) {
+  for (const [name, color] of [['added','#22c55e'],['removed','#ef4444'],['unchanged','#334155']]) {
     const m = el(NS, 'marker');
     m.setAttribute('id', `arr-${name}`);
     m.setAttribute('markerWidth', '8'); m.setAttribute('markerHeight', '6');
@@ -537,74 +576,65 @@ function drawSVG(nodes, edges, pos, laidEdges) {
   }
   svg.appendChild(defs);
 
-  // ── Bounding-box groups (skipped in clustered mode — each node is its own dir) ─
-  if (!isClustered) {
-    const bboxes = {};
-    for (const [id, p] of Object.entries(pos)) {
-      const node = nodeMap[id];
-      if (!node) continue;
-      const d = nodeDir(node);
-      if (!bboxes[d]) bboxes[d] = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity, oos: false };
-      const b = bboxes[d];
-      b.x1 = Math.min(b.x1, p.x - PAD);
-      b.y1 = Math.min(b.y1, p.y - PAD - 14); // extra room for label
-      b.x2 = Math.max(b.x2, p.x + p.w + PAD);
-      b.y2 = Math.max(b.y2, p.y + p.h + PAD);
-      if (node.scope === 'out-of-scope') b.oos = true;
+  // ── Directory group boxes (from compound layout — guaranteed non-overlapping) ─
+  if (!isClustered && grpPos) {
+    // Identify out-of-scope groups
+    const oosGroupIds = new Set();
+    for (const n of nodes) {
+      if (n.scope === 'out-of-scope') oosGroupIds.add(`grp_${nodeDir(n)}`);
     }
 
-    // Compute overall out-of-scope envelope
+    // Out-of-scope envelope (wraps all oos groups with a single dashed rect)
     let oosEnv = null;
-    for (const b of Object.values(bboxes)) {
-      if (!b.oos) continue;
-      if (!oosEnv) oosEnv = { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 };
+    for (const [grpId, g] of Object.entries(grpPos)) {
+      if (!oosGroupIds.has(grpId)) continue;
+      if (!oosEnv) oosEnv = { x1: g.x, y1: g.y, x2: g.x + g.w, y2: g.y + g.h };
       else {
-        oosEnv.x1 = Math.min(oosEnv.x1, b.x1); oosEnv.y1 = Math.min(oosEnv.y1, b.y1);
-        oosEnv.x2 = Math.max(oosEnv.x2, b.x2); oosEnv.y2 = Math.max(oosEnv.y2, b.y2);
+        oosEnv.x1 = Math.min(oosEnv.x1, g.x);       oosEnv.y1 = Math.min(oosEnv.y1, g.y);
+        oosEnv.x2 = Math.max(oosEnv.x2, g.x + g.w); oosEnv.y2 = Math.max(oosEnv.y2, g.y + g.h);
       }
     }
-
-    // Draw out-of-scope envelope (behind everything)
     if (oosEnv) {
+      const M = 12;
       const er = el(NS, 'rect');
-      er.setAttribute('x', oosEnv.x1 - 10); er.setAttribute('y', oosEnv.y1 - 18);
-      er.setAttribute('width', oosEnv.x2 - oosEnv.x1 + 20);
-      er.setAttribute('height', oosEnv.y2 - oosEnv.y1 + 28);
+      er.setAttribute('x', oosEnv.x1 - M); er.setAttribute('y', oosEnv.y1 - 20);
+      er.setAttribute('width', oosEnv.x2 - oosEnv.x1 + M * 2);
+      er.setAttribute('height', oosEnv.y2 - oosEnv.y1 + 32);
       er.setAttribute('rx', '6'); er.setAttribute('fill', '#07111f');
       er.setAttribute('stroke', '#1e3a5f'); er.setAttribute('stroke-width', '1');
       er.setAttribute('stroke-dasharray', '6 3');
       svg.appendChild(er);
-      const el2 = document.createElementNS(NS, 'text');
-      el2.setAttribute('x', oosEnv.x1); el2.setAttribute('y', oosEnv.y1 - 5);
-      el2.setAttribute('fill', '#2d5a8e'); el2.setAttribute('font-size', '10');
-      el2.setAttribute('font-family', 'monospace');
-      el2.textContent = 'shared/ — 1-hop context (imports not recursed)';
-      svg.appendChild(el2);
+      const t = el(NS, 'text');
+      t.setAttribute('x', oosEnv.x1 - M + 6); t.setAttribute('y', oosEnv.y1 - 7);
+      t.setAttribute('fill', '#2d5a8e'); t.setAttribute('font-size', '10');
+      t.setAttribute('font-family', 'monospace');
+      t.textContent = 'shared/ — 1-hop context (imports not recursed)';
+      svg.appendChild(t);
     }
 
-    // Draw per-directory boxes for in-scope
-    for (const [d, b] of Object.entries(bboxes)) {
-      if (b.oos) continue;
-    const w = b.x2 - b.x1, h = b.y2 - b.y1;
-    const r = el(NS, 'rect');
-    r.setAttribute('x', b.x1); r.setAttribute('y', b.y1);
-    r.setAttribute('width', w); r.setAttribute('height', h);
-    r.setAttribute('rx', '4');
-    r.setAttribute('fill', 'rgba(30,41,59,0.35)');
-    r.setAttribute('stroke', '#2d3f55');
-    r.setAttribute('stroke-width', '1');
-    svg.appendChild(r);
+    // In-scope directory boxes (directly from compound layout positions)
+    for (const [grpId, g] of Object.entries(grpPos)) {
+      if (oosGroupIds.has(grpId)) continue;
+      const dir = grpId.replace(/^grp_/, '');
+      const r = el(NS, 'rect');
+      r.setAttribute('x', g.x); r.setAttribute('y', g.y);
+      r.setAttribute('width', g.w); r.setAttribute('height', g.h);
+      r.setAttribute('rx', '4');
+      r.setAttribute('fill', 'rgba(30,41,59,0.35)');
+      r.setAttribute('stroke', '#2d3f55');
+      r.setAttribute('stroke-width', '1');
+      svg.appendChild(r);
 
-    const lbl = el(NS, 'text');
-    lbl.setAttribute('x', b.x1 + 6);
-    lbl.setAttribute('y', b.y1 + 11);
-    lbl.setAttribute('fill', '#3d5470');
-    lbl.setAttribute('font-size', '9');
-    lbl.setAttribute('font-family', 'monospace');
-    lbl.textContent = d === '_root' ? 'users/' : d + '/';
-    svg.appendChild(lbl);
+      const lbl = el(NS, 'text');
+      lbl.setAttribute('x', g.x + 6);
+      lbl.setAttribute('y', g.y + 16);
+      lbl.setAttribute('fill', '#3d5470');
+      lbl.setAttribute('font-size', '9');
+      lbl.setAttribute('font-family', 'monospace');
+      lbl.textContent = dir === '_root' ? 'users/' : dir + '/';
+      svg.appendChild(lbl);
+    }
   }
-  } // end if (!isClustered)
 
   // ── Edges ──────────────────────────────────────────────────────────────
   const edgeGroup = el(NS, 'g');
@@ -618,13 +648,9 @@ function drawSVG(nodes, edges, pos, laidEdges) {
 
     const diff = edgeDiff(orig, nodeMap);
     const color = EDGE_COLORS[diff] || EDGE_COLORS.unchanged;
-    const isDec = orig.kind === 'decorator-import';
-    const markerName = isDec ? 'dec' : diff;
 
     const s = laidEdge.sections[0];
-    let d = `M ${s.startPoint.x} ${s.startPoint.y}`;
-    for (const bp of (s.bendPoints || [])) d += ` L ${bp.x} ${bp.y}`;
-    d += ` L ${s.endPoint.x} ${s.endPoint.y}`;
+    const d = makeSmoothPath(s.startPoint, s.bendPoints, s.endPoint);
 
     const path = el(NS, 'path');
     path.setAttribute('d', d);
@@ -632,8 +658,8 @@ function drawSVG(nodes, edges, pos, laidEdges) {
     path.setAttribute('stroke', color);
     path.setAttribute('stroke-width', '1.5');
     path.setAttribute('stroke-opacity', diff === 'unchanged' ? '0.35' : '0.75');
-    path.setAttribute('marker-end', `url(#arr-${markerName})`);
-    if (diff === 'removed' || isDec) path.setAttribute('stroke-dasharray', '4 3');
+    path.setAttribute('marker-end', `url(#arr-${diff})`);
+    if (diff === 'removed') path.setAttribute('stroke-dasharray', '4 3');
     path.setAttribute('data-from', orig.from);
     path.setAttribute('data-to', orig.to);
     path.setAttribute('data-diff', diff);
@@ -801,8 +827,8 @@ async function render(mode) {
   wrap.innerHTML = '<div id="status" style="padding:20px;color:#475569">Laying out graph…</div>';
   const { nodes, edges } = applyMode(GRAPH_DATA.nodes, GRAPH_DATA.edges, mode);
   try {
-    const { pos, laidEdges } = await layoutGraph(nodes, edges);
-    const svg = drawSVG(nodes, edges, pos, laidEdges);
+    const { pos, grpPos, laidEdges } = await layoutGraph(nodes, edges);
+    const svg = drawSVG(nodes, edges, pos, laidEdges, grpPos);
     wrap.innerHTML = '';
     wrap.appendChild(svg);
     setupHover(svg);
