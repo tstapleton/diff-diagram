@@ -14,28 +14,9 @@
     --text: #e2e8f0;
     --text-dim: #64748b;
     --text-muted: #475569;
-
-    --added-fill: #14532d;
-    --added-stroke: #22c55e;
-    --added-text: #86efac;
-    --modified-fill: #78350f;
-    --modified-stroke: #f59e0b;
-    --modified-text: #fcd34d;
-    --removed-fill: #7f1d1d;
-    --removed-stroke: #ef4444;
-    --removed-text: #fca5a5;
-    --unchanged-fill: #1e293b;
-    --unchanged-stroke: #475569;
-    --unchanged-text: #94a3b8;
-    --out-of-scope-fill: #0f1f35;
-    --out-of-scope-stroke: #334155;
-    --out-of-scope-text: #64748b;
-
-    --sidebar-w: 280px;
+    --sidebar-w: 260px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: var(--bg);
     color: var(--text);
@@ -45,7 +26,6 @@
     height: 100vh;
     overflow: hidden;
   }
-
   #sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
@@ -54,462 +34,366 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 16px;
-    gap: 16px;
+    padding: 14px;
+    gap: 12px;
   }
-
   #diagram-area {
     flex: 1;
     overflow: auto;
-    position: relative;
+    background: var(--bg);
+    cursor: default;
   }
-
-  #svg-container {
-    min-width: 100%;
-    min-height: 100%;
-  }
-
-  h1 { font-size: 14px; font-weight: 600; color: var(--text); }
-  h2 { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-
-  .card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
-  }
-
-  .meta-row { display: flex; justify-content: space-between; color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+  #svg-wrap { display: inline-block; padding: 24px; min-width: 100%; min-height: 100%; }
+  h1 { font-size: 14px; font-weight: 600; }
+  h2 { font-size: 10px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  .card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .meta-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); }
   .meta-val { color: var(--text); font-weight: 500; }
-
-  .legend { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .legend-dot {
-    width: 12px; height: 12px; border-radius: 2px; border: 1.5px solid;
-    flex-shrink: 0;
-  }
-  .legend-dot.added { background: var(--added-fill); border-color: var(--added-stroke); }
-  .legend-dot.modified { background: var(--modified-fill); border-color: var(--modified-stroke); }
-  .legend-dot.removed { background: var(--removed-fill); border-color: var(--removed-stroke); }
-  .legend-dot.unchanged { background: var(--unchanged-fill); border-color: var(--unchanged-stroke); }
-  .legend-dot.out-of-scope { background: var(--out-of-scope-fill); border-color: var(--out-of-scope-stroke); }
-
-  .shape-legend { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
-  .shape-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
-
-  .changed-files { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
-  .file-entry {
-    font-size: 11px;
-    font-family: monospace;
-    padding: 3px 6px;
-    border-radius: 3px;
-    border-left: 2px solid;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .file-entry.added { border-color: var(--added-stroke); color: var(--added-text); background: rgba(34,197,94,0.06); }
-  .file-entry.modified { border-color: var(--modified-stroke); color: var(--modified-text); background: rgba(245,158,11,0.06); }
-  .file-entry.removed { border-color: var(--removed-stroke); color: var(--removed-text); background: rgba(239,68,68,0.06); }
-
-  .mode-group { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .mode-group { display: flex; gap: 4px; flex-wrap: wrap; }
   .mode-btn {
-    padding: 4px 10px;
-    font-size: 11px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-    transition: all 0.15s;
+    padding: 4px 10px; font-size: 11px; border-radius: 4px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-dim); cursor: pointer; transition: all 0.12s;
   }
-  .mode-btn.active {
-    background: var(--surface);
-    border-color: #3b82f6;
-    color: #93c5fd;
-  }
+  .mode-btn.active { background: #172554; border-color: #3b82f6; color: #93c5fd; }
   .mode-btn:hover:not(.active) { border-color: var(--text-muted); color: var(--text); }
-
-  #loading {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-dim);
-    font-size: 14px;
+  .legend { display: flex; flex-direction: column; gap: 5px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-dim); }
+  .legend-swatch { width: 28px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .legend-line { width: 28px; height: 2px; flex-shrink: 0; }
+  .changed-files { display: flex; flex-direction: column; gap: 3px; }
+  .file-chip {
+    font-size: 10px; font-family: monospace;
+    padding: 2px 6px; border-radius: 3px; border-left: 2px solid;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-
-  svg text { pointer-events: none; }
-  svg .node-group { cursor: default; }
-  svg .edge { fill: none; stroke: #334155; stroke-width: 1.5; marker-end: url(#arrowhead); }
-  svg .edge.decorator { stroke: #4a6080; stroke-dasharray: 4 3; }
-  svg .subgraph-rect { fill: rgba(30,41,59,0.5); stroke: #334155; stroke-width: 1; }
-  svg .subgraph-label { fill: #475569; font-size: 10px; font-family: monospace; }
-
-  svg .node-rect { stroke-width: 1.5; rx: 3; }
-  svg .node-rect.removed { stroke-dasharray: 5 3; }
-  svg .node-label { font-size: 10px; text-anchor: middle; dominant-baseline: middle; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-  svg .node-type-label { font-size: 8px; text-anchor: middle; dominant-baseline: middle; font-family: monospace; opacity: 0.7; }
+  .file-chip.added   { border-color: #22c55e; color: #86efac; background: rgba(34,197,94,.07); }
+  .file-chip.modified{ border-color: #f59e0b; color: #fcd34d; background: rgba(245,158,11,.07); }
+  .file-chip.removed { border-color: #ef4444; color: #fca5a5; background: rgba(239,68,68,.07); }
+  #status { font-size: 11px; color: var(--text-dim); text-align: center; padding: 8px; }
 </style>
 </head>
 <body>
-
 <div id="sidebar">
   <div>
     <h1>Diff Diagram</h1>
-    <p style="color:var(--text-dim);font-size:11px;margin-top:4px;">Angular architecture · PR overlay</p>
+    <p style="color:var(--text-dim);font-size:10px;margin-top:3px">Angular architecture · PR overlay</p>
   </div>
-
   <div class="card">
     <h2>Scope</h2>
     <div class="meta-row"><span>Directory</span><span class="meta-val" id="meta-scope">—</span></div>
     <div class="meta-row"><span>Nodes</span><span class="meta-val" id="meta-nodes">—</span></div>
     <div class="meta-row"><span>Edges</span><span class="meta-val" id="meta-edges">—</span></div>
-    <div class="meta-row"><span>Generated</span><span class="meta-val" id="meta-ts">—</span></div>
   </div>
-
   <div class="card">
     <h2>View Mode</h2>
     <div class="mode-group">
-      <button class="mode-btn active" data-mode="all" onclick="setMode('all')">All nodes</button>
-      <button class="mode-btn" data-mode="diff" onclick="setMode('diff')">Diff-focused</button>
-      <button class="mode-btn" data-mode="clustered" onclick="setMode('clustered')">Clustered</button>
+      <button class="mode-btn active" data-mode="all"       onclick="setMode('all')">All nodes</button>
+      <button class="mode-btn"       data-mode="diff"      onclick="setMode('diff')">Diff-focused</button>
+      <button class="mode-btn"       data-mode="clustered" onclick="setMode('clustered')">Clustered</button>
     </div>
   </div>
-
   <div class="card">
     <h2>Diff Legend</h2>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot added"></div><span>Added</span></div>
-      <div class="legend-item"><div class="legend-dot modified"></div><span>Modified</span></div>
-      <div class="legend-item"><div class="legend-dot removed"></div><span>Removed (ghost)</span></div>
-      <div class="legend-item"><div class="legend-dot unchanged"></div><span>Unchanged</span></div>
-      <div class="legend-item"><div class="legend-dot out-of-scope"></div><span>Out-of-scope context</span></div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#14532d;border:1.5px solid #22c55e"></div>Added</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#78350f;border:1.5px solid #f59e0b"></div>Modified</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#7f1d1d;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>Out-of-scope (1-hop)</div>
     </div>
   </div>
-
+  <div class="card">
+    <h2>Edge Legend</h2>
+    <div class="legend">
+      <div class="legend-row"><div class="legend-line" style="background:#22c55e"></div>New dependency</div>
+      <div class="legend-row"><div class="legend-line" style="background:#ef4444;border-top:2px dashed #ef4444;height:0"></div>Removed dependency</div>
+      <div class="legend-row"><div class="legend-line" style="background:#334155"></div>Unchanged import</div>
+      <div class="legend-row"><div class="legend-line" style="background:#4a6080;border-top:2px dashed #4a6080;height:0"></div>Decorator import</div>
+    </div>
+  </div>
   <div class="card">
     <h2>Shape Legend</h2>
-    <div class="shape-legend">
-      <div class="shape-row">▭ Component</div>
-      <div class="shape-row">▢ Service / Module</div>
-      <div class="shape-row">◇ Guard / Resolver</div>
-      <div class="shape-row">◯ Pipe</div>
-      <div class="shape-row">⬡ Routing</div>
-      <div class="shape-row">· Model / Constants</div>
+    <div class="legend" style="font-size:11px;color:var(--text-dim)">
+      <div class="legend-row">▭ sharp corners — Component</div>
+      <div class="legend-row">▢ rounded — Service</div>
+      <div class="legend-row">◇ diamond — Guard / Resolver</div>
+      <div class="legend-row">◯ ellipse — Pipe</div>
+      <div class="legend-row">⬡ hexagon — Routing</div>
+      <div class="legend-row">— thin border — Model / Constants</div>
     </div>
   </div>
-
-  <div class="card" id="changed-files-card">
+  <div class="card">
     <h2>Changed Files</h2>
     <div class="changed-files" id="changed-files-list"></div>
   </div>
 </div>
 
 <div id="diagram-area">
-  <div id="loading">Laying out graph…</div>
-  <div id="svg-container"></div>
+  <div id="svg-wrap"><div id="status">Laying out graph…</div></div>
 </div>
 
 <script>
-// ─── Hand-authored graph data ──────────────────────────────────────────────
-// This represents a slice of the fake-angular-app: full users/ feature
-// with 1-hop shared/ context nodes and a diff overlay (fake-complex.patch).
+// ─── Graph data ─────────────────────────────────────────────────────────────
+// Represents fake-angular-app/src/app/features/users/ + shared/ context,
+// with fake-complex.patch diff overlay applied.
+//
+// Edge diff field (optional):
+//   "added"   = new dependency introduced by this PR
+//   "removed" = dependency removed by this PR
+//   absent    = unchanged (default); also auto-derived from node diff if absent
 window.GRAPH_DATA = {
   meta: {
     scopeDir: "fake-angular-app/src/app/features/users",
     generatedAt: "2026-05-25T00:00:00Z",
-    nodeCount: 0,  // filled at runtime
-    edgeCount: 0,
-    diffSha: "fake-complex.patch"
+    diffFile: "fake-complex.patch",
   },
   nodes: [
-    // ── user-list ─────────────────────────────────────────────────────────
-    { id: "users_list_component", label: "UsersListComponent", file: "user-list/users-list.component.ts", type: "component", scope: "in-scope", diff: "modified" },
-    { id: "user_card_component", label: "UserCardComponent", file: "user-list/user-card.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_filter_component", label: "UserFilterComponent", file: "user-list/user-filter.component.ts", type: "component", scope: "in-scope", diff: "modified" },
-    { id: "user_table_header_component", label: "UserTableHeaderComponent", file: "user-list/user-table-header.component.ts", type: "component", scope: "removed-ghost", diff: "removed" },
-    { id: "user_sort_header_component", label: "UserSortHeaderComponent", file: "user-list/user-sort-header.component.ts", type: "component", scope: "in-scope", diff: "added" },
-    { id: "filter_state_service", label: "FilterStateService", file: "user-list/filter-state.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "sort_state_service", label: "SortStateService", file: "user-list/sort-state.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "filter_model", label: "FilterModel", file: "user-list/filter.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "sort_model", label: "SortModel", file: "user-list/sort.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "user_sort_utils", label: "userSortUtils", file: "user-list/user-sort.utils.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-    { id: "user_search_utils", label: "userSearchUtils", file: "user-list/user-search.utils.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-
-    // ── user-detail ───────────────────────────────────────────────────────
-    { id: "user_detail_component", label: "UserDetailComponent", file: "user-detail/user-detail.component.ts", type: "component", scope: "in-scope", diff: "modified" },
-    { id: "user_profile_header_component", label: "UserProfileHeaderComponent", file: "user-detail/user-profile-header.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_activity_log_component", label: "UserActivityLogComponent", file: "user-detail/user-activity-log.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_avatar_component", label: "UserAvatarComponent", file: "user-detail/user-avatar.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_roles_badge_component", label: "UserRolesBadgeComponent", file: "user-detail/user-roles-badge.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_audit_service", label: "UserAuditService", file: "user-detail/user-audit.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "audit_event_model", label: "AuditEventModel", file: "user-detail/audit-event.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-
-    // ── user-edit ─────────────────────────────────────────────────────────
-    { id: "user_edit_dialog_component", label: "UserEditDialogComponent", file: "user-edit/user-edit-dialog.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_create_dialog_component", label: "UserCreateDialogComponent", file: "user-edit/user-create-dialog.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_form_component", label: "UserFormComponent", file: "user-edit/user-form.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "validation_utils", label: "validationUtils", file: "user-edit/validation.utils.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-    { id: "user_format_utils", label: "userFormatUtils", file: "user-edit/user-format.utils.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-
-    // ── user-settings ─────────────────────────────────────────────────────
-    { id: "user_settings_component", label: "UserSettingsComponent", file: "user-settings/user-settings.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_notification_prefs_component", label: "UserNotificationPrefsComponent", file: "user-settings/user-notification-prefs.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_security_component", label: "UserSecurityComponent", file: "user-settings/user-security.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_preferences_service", label: "UserPreferencesService", file: "user-settings/user-preferences.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_settings_service", label: "UserSettingsService", file: "user-settings/user-settings.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_preferences_model", label: "UserPreferencesModel", file: "user-settings/user-preferences.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "notification_model", label: "NotificationModel", file: "user-settings/notification.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-
-    // ── user-permissions ──────────────────────────────────────────────────
-    { id: "user_permissions_component", label: "UserPermissionsComponent", file: "user-permissions/user-permissions.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_bulk_actions_component", label: "UserBulkActionsComponent", file: "user-permissions/user-bulk-actions.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "bulk_action_service", label: "BulkActionService", file: "user-permissions/bulk-action.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_permissions_model", label: "UserPermissionsModel", file: "user-permissions/user-permissions.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "user_permissions_constants", label: "USER_PERMISSIONS", file: "user-permissions/user-permissions.constants.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-
-    // ── user-export ───────────────────────────────────────────────────────
+    // ── user-list ──────────────────────────────────────────────────────────
+    { id: "users_list_component",        label: "UsersListComponent",        file: "user-list/users-list.component.ts",        type: "component", scope: "in-scope",      diff: "modified"  },
+    { id: "user_card_component",         label: "UserCardComponent",         file: "user-list/user-card.component.ts",         type: "component", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_filter_component",       label: "UserFilterComponent",       file: "user-list/user-filter.component.ts",       type: "component", scope: "in-scope",      diff: "modified"  },
+    { id: "user_sort_header_component",  label: "UserSortHeaderComponent",   file: "user-list/user-sort-header.component.ts",  type: "component", scope: "in-scope",      diff: "added"     },
+    { id: "user_table_header_component", label: "UserTableHeaderComponent",  file: "user-list/user-table-header.component.ts", type: "component", scope: "removed-ghost", diff: "removed"   },
+    { id: "user_search_results_component", label: "UserSearchResultsCmp",    file: "user-list/user-search-results.component.ts", type: "component", scope: "removed-ghost", diff: "removed" },
+    { id: "filter_state_service",        label: "FilterStateService",        file: "user-list/filter-state.service.ts",        type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "sort_state_service",          label: "SortStateService",          file: "user-list/sort-state.service.ts",          type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "filter_model",                label: "FilterModel",               file: "user-list/filter.model.ts",                type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "sort_model",                  label: "SortModel",                 file: "user-list/sort.model.ts",                  type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "user_sort_utils",             label: "userSortUtils",             file: "user-list/user-sort.utils.ts",             type: "constants", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_search_utils",           label: "userSearchUtils",           file: "user-list/user-search.utils.ts",           type: "constants", scope: "in-scope",      diff: "unchanged" },
+    // ── user-detail ────────────────────────────────────────────────────────
+    { id: "user_detail_component",       label: "UserDetailComponent",       file: "user-detail/user-detail.component.ts",     type: "component", scope: "in-scope",      diff: "modified"  },
+    { id: "user_profile_header_component", label: "UserProfileHeaderCmp",   file: "user-detail/user-profile-header.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
+    { id: "user_activity_log_component", label: "UserActivityLogComponent",  file: "user-detail/user-activity-log.component.ts", type: "component", scope: "in-scope",  diff: "unchanged" },
+    { id: "user_avatar_component",       label: "UserAvatarComponent",       file: "user-detail/user-avatar.component.ts",     type: "component", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_roles_badge_component",  label: "UserRolesBadgeComponent",   file: "user-detail/user-roles-badge.component.ts", type: "component", scope: "in-scope",   diff: "unchanged" },
+    { id: "user_audit_service",          label: "UserAuditService",          file: "user-detail/user-audit.service.ts",        type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "audit_event_model",           label: "AuditEventModel",           file: "user-detail/audit-event.model.ts",         type: "model",     scope: "in-scope",      diff: "unchanged" },
+    // ── user-edit ──────────────────────────────────────────────────────────
+    { id: "user_edit_dialog_component",  label: "UserEditDialogComponent",   file: "user-edit/user-edit-dialog.component.ts",  type: "component", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_create_dialog_component", label: "UserCreateDialogCmp",      file: "user-edit/user-create-dialog.component.ts", type: "component", scope: "in-scope",   diff: "unchanged" },
+    { id: "user_form_component",         label: "UserFormComponent",         file: "user-edit/user-form.component.ts",         type: "component", scope: "in-scope",      diff: "unchanged" },
+    { id: "validation_utils",            label: "validationUtils",           file: "user-edit/validation.utils.ts",            type: "constants", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_format_utils",           label: "userFormatUtils",           file: "user-edit/user-format.utils.ts",           type: "constants", scope: "in-scope",      diff: "unchanged" },
+    // ── user-settings ──────────────────────────────────────────────────────
+    { id: "user_settings_component",     label: "UserSettingsComponent",     file: "user-settings/user-settings.component.ts", type: "component", scope: "in-scope",     diff: "unchanged" },
+    { id: "user_notification_prefs_component", label: "UserNotificationPrefsCmp", file: "user-settings/user-notification-prefs.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
+    { id: "user_security_component",     label: "UserSecurityComponent",     file: "user-settings/user-security.component.ts", type: "component", scope: "in-scope",     diff: "unchanged" },
+    { id: "user_preferences_service",    label: "UserPreferencesService",    file: "user-settings/user-preferences.service.ts", type: "service",  scope: "in-scope",     diff: "unchanged" },
+    { id: "user_settings_service",       label: "UserSettingsService",       file: "user-settings/user-settings.service.ts",   type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_preferences_model",      label: "UserPreferencesModel",      file: "user-settings/user-preferences.model.ts",  type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "notification_model",          label: "NotificationModel",         file: "user-settings/notification.model.ts",      type: "model",     scope: "in-scope",      diff: "unchanged" },
+    // ── user-permissions ───────────────────────────────────────────────────
+    { id: "user_permissions_component",  label: "UserPermissionsComponent",  file: "user-permissions/user-permissions.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
+    { id: "user_bulk_actions_component", label: "UserBulkActionsComponent",  file: "user-permissions/user-bulk-actions.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
+    { id: "bulk_action_service",         label: "BulkActionService",         file: "user-permissions/bulk-action.service.ts",  type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_permissions_model",      label: "UserPermissionsModel",      file: "user-permissions/user-permissions.model.ts", type: "model",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_permissions_constants",  label: "USER_PERMISSIONS",          file: "user-permissions/user-permissions.constants.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
+    // ── user-export ────────────────────────────────────────────────────────
     { id: "user_export_dialog_component", label: "UserExportDialogComponent", file: "user-export/user-export-dialog.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-    { id: "user_bulk_export_component", label: "UserBulkExportComponent", file: "user-export/user-bulk-export.component.ts", type: "component", scope: "in-scope", diff: "added" },
-    { id: "user_export_service", label: "UserExportService", file: "user-export/user-export.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "export_model", label: "ExportModel", file: "user-export/export.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-
-    // ── data-access ───────────────────────────────────────────────────────
-    { id: "users_service", label: "UsersService", file: "data-access/users.service.ts", type: "service", scope: "in-scope", diff: "modified" },
-    { id: "users_cache_service", label: "UsersCacheService", file: "data-access/users-cache.service.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_api_response_model", label: "UserApiResponseModel", file: "data-access/user-api-response.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-
-    // ── data-access/store ─────────────────────────────────────────────────
-    { id: "user_actions", label: "user.actions", file: "data-access/store/user.actions.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-    { id: "user_reducer", label: "userReducer", file: "data-access/store/user.reducer.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_selectors", label: "userSelectors", file: "data-access/store/user.selectors.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-    { id: "user_effects", label: "UserEffects", file: "data-access/store/user.effects.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_state", label: "UserState", file: "data-access/store/user.state.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "user_filter_actions", label: "user-filter.actions", file: "data-access/store/user-filter.actions.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-    { id: "user_filter_reducer", label: "userFilterReducer", file: "data-access/store/user-filter.reducer.ts", type: "service", scope: "in-scope", diff: "unchanged" },
-    { id: "user_filter_selectors", label: "userFilterSelectors", file: "data-access/store/user-filter.selectors.ts", type: "constants", scope: "in-scope", diff: "unchanged" },
-
-    // ── shared-ui ─────────────────────────────────────────────────────────
-    { id: "user_status_pipe", label: "UserStatusPipe", file: "shared-ui/user-status.pipe.ts", type: "pipe", scope: "in-scope", diff: "unchanged" },
-    { id: "user_role_pipe", label: "UserRolePipe", file: "shared-ui/user-role.pipe.ts", type: "pipe", scope: "in-scope", diff: "unchanged" },
-    { id: "user_initials_pipe", label: "UserInitialsPipe", file: "shared-ui/user-initials.pipe.ts", type: "pipe", scope: "in-scope", diff: "unchanged" },
-    { id: "user_display_name_pipe", label: "UserDisplayNamePipe", file: "shared-ui/user-display-name.pipe.ts", type: "pipe", scope: "in-scope", diff: "unchanged" },
-
-    // ── models ────────────────────────────────────────────────────────────
-    { id: "user_model", label: "UserModel", file: "models/user.model.ts", type: "model", scope: "in-scope", diff: "modified" },
-    { id: "role_model", label: "RoleModel", file: "models/role.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "user_status_model", label: "UserStatusModel", file: "models/user-status.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-    { id: "bulk_action_model", label: "BulkActionModel", file: "models/bulk-action.model.ts", type: "model", scope: "in-scope", diff: "unchanged" },
-
-    // ── top-level ─────────────────────────────────────────────────────────
-    { id: "users_routes", label: "USERS_ROUTES", file: "users.routes.ts", type: "routing", scope: "in-scope", diff: "unchanged" },
-    { id: "users_page_component", label: "UsersPageComponent", file: "users-page.component.ts", type: "component", scope: "in-scope", diff: "unchanged" },
-
-    // ── 1-hop out-of-scope: shared/ ───────────────────────────────────────
-    { id: "api_service", label: "ApiService", file: "shared/api/api.service.ts", type: "service", scope: "out-of-scope", diff: "modified" },
+    { id: "user_bulk_export_component",  label: "UserBulkExportComponent",   file: "user-export/user-bulk-export.component.ts", type: "component", scope: "in-scope",  diff: "added"     },
+    { id: "user_export_service",         label: "UserExportService",         file: "user-export/user-export.service.ts",       type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "export_model",                label: "ExportModel",               file: "user-export/export.model.ts",              type: "model",     scope: "in-scope",      diff: "unchanged" },
+    // ── data-access ────────────────────────────────────────────────────────
+    { id: "users_service",               label: "UsersService",              file: "data-access/users.service.ts",             type: "service",   scope: "in-scope",      diff: "modified"  },
+    { id: "users_cache_service",         label: "UsersCacheService",         file: "data-access/users-cache.service.ts",       type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_api_response_model",     label: "UserApiResponseModel",      file: "data-access/user-api-response.model.ts",   type: "model",     scope: "in-scope",      diff: "unchanged" },
+    // ── store ──────────────────────────────────────────────────────────────
+    { id: "user_actions",                label: "user.actions",              file: "data-access/store/user.actions.ts",        type: "constants", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_reducer",                label: "userReducer",               file: "data-access/store/user.reducer.ts",        type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_selectors",              label: "userSelectors",             file: "data-access/store/user.selectors.ts",      type: "constants", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_effects",                label: "UserEffects",               file: "data-access/store/user.effects.ts",        type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_state",                  label: "UserState",                 file: "data-access/store/user.state.ts",          type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "user_filter_actions",         label: "user-filter.actions",       file: "data-access/store/user-filter.actions.ts", type: "constants", scope: "in-scope",      diff: "unchanged" },
+    { id: "user_filter_reducer",         label: "userFilterReducer",         file: "data-access/store/user-filter.reducer.ts", type: "service",   scope: "in-scope",      diff: "unchanged" },
+    { id: "user_filter_selectors",       label: "userFilterSelectors",       file: "data-access/store/user-filter.selectors.ts", type: "constants", scope: "in-scope",   diff: "unchanged" },
+    // ── shared-ui ──────────────────────────────────────────────────────────
+    { id: "user_status_pipe",            label: "UserStatusPipe",            file: "shared-ui/user-status.pipe.ts",            type: "pipe",      scope: "in-scope",      diff: "unchanged" },
+    { id: "user_role_pipe",              label: "UserRolePipe",              file: "shared-ui/user-role.pipe.ts",              type: "pipe",      scope: "in-scope",      diff: "unchanged" },
+    { id: "user_initials_pipe",          label: "UserInitialsPipe",          file: "shared-ui/user-initials.pipe.ts",          type: "pipe",      scope: "in-scope",      diff: "unchanged" },
+    { id: "user_display_name_pipe",      label: "UserDisplayNamePipe",       file: "shared-ui/user-display-name.pipe.ts",      type: "pipe",      scope: "in-scope",      diff: "unchanged" },
+    // ── models ─────────────────────────────────────────────────────────────
+    { id: "user_model",                  label: "UserModel",                 file: "models/user.model.ts",                     type: "model",     scope: "in-scope",      diff: "modified"  },
+    { id: "role_model",                  label: "RoleModel",                 file: "models/role.model.ts",                     type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "user_status_model",           label: "UserStatusModel",           file: "models/user-status.model.ts",              type: "model",     scope: "in-scope",      diff: "unchanged" },
+    { id: "bulk_action_model",           label: "BulkActionModel",           file: "models/bulk-action.model.ts",              type: "model",     scope: "in-scope",      diff: "unchanged" },
+    // ── top-level ──────────────────────────────────────────────────────────
+    { id: "users_routes",                label: "USERS_ROUTES",              file: "users.routes.ts",                          type: "routing",   scope: "in-scope",      diff: "unchanged" },
+    { id: "users_page_component",        label: "UsersPageComponent",        file: "users-page.component.ts",                  type: "component", scope: "in-scope",      diff: "unchanged" },
+    // ── out-of-scope (shared/ 1-hop context) ──────────────────────────────
+    { id: "api_service",          label: "ApiService",          file: "shared/api/api.service.ts",                 type: "service",   scope: "out-of-scope", diff: "modified"  },
     { id: "pagination_component", label: "PaginationComponent", file: "shared/components/pagination.component.ts", type: "component", scope: "out-of-scope", diff: "unchanged" },
-    { id: "search_component", label: "SearchComponent", file: "shared/components/search.component.ts", type: "component", scope: "out-of-scope", diff: "unchanged" },
-    { id: "form_errors_component", label: "FormErrorsComponent", file: "shared/components/form-errors.component.ts", type: "component", scope: "out-of-scope", diff: "unchanged" },
-    { id: "permissions_service", label: "PermissionsService", file: "shared/services/permissions.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "cache_service", label: "CacheService", file: "shared/services/cache.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "analytics_service", label: "AnalyticsService", file: "shared/services/analytics.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "notification_service", label: "NotificationService", file: "shared/services/notification.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "storage_service", label: "StorageService", file: "shared/services/storage.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "csv_service", label: "CsvService", file: "shared/services/csv.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "auth_service", label: "AuthService", file: "shared/services/auth.service.ts", type: "service", scope: "out-of-scope", diff: "unchanged" },
-    { id: "auth_guard", label: "AuthGuard", file: "shared/guards/auth.guard.ts", type: "guard", scope: "out-of-scope", diff: "unchanged" },
-    { id: "role_guard", label: "RoleGuard", file: "shared/guards/role.guard.ts", type: "guard", scope: "out-of-scope", diff: "unchanged" },
+    // search_component intentionally absent: user-filter dropped its import → no in-scope referrers after patch
+    { id: "form_errors_component",label: "FormErrorsComponent", file: "shared/components/form-errors.component.ts",type: "component", scope: "out-of-scope", diff: "unchanged" },
+    { id: "permissions_service",  label: "PermissionsService",  file: "shared/services/permissions.service.ts",    type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "cache_service",        label: "CacheService",        file: "shared/services/cache.service.ts",          type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "analytics_service",    label: "AnalyticsService",    file: "shared/services/analytics.service.ts",      type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "notification_service", label: "NotificationService", file: "shared/services/notification.service.ts",   type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "storage_service",      label: "StorageService",      file: "shared/services/storage.service.ts",        type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "csv_service",          label: "CsvService",          file: "shared/services/csv.service.ts",            type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "auth_service",         label: "AuthService",         file: "shared/services/auth.service.ts",           type: "service",   scope: "out-of-scope", diff: "unchanged" },
+    { id: "auth_guard",           label: "AuthGuard",           file: "shared/guards/auth.guard.ts",               type: "guard",     scope: "out-of-scope", diff: "unchanged" },
+    { id: "role_guard",           label: "RoleGuard",           file: "shared/guards/role.guard.ts",               type: "guard",     scope: "out-of-scope", diff: "unchanged" },
   ],
   edges: [
-    // users-list → deps
-    { from: "users_list_component", to: "user_card_component", kind: "import" },
-    { from: "users_list_component", to: "user_filter_component", kind: "import" },
-    { from: "users_list_component", to: "user_sort_header_component", kind: "import" },
-    { from: "users_list_component", to: "users_service", kind: "import" },
-    { from: "users_list_component", to: "user_model", kind: "import" },
-    { from: "users_list_component", to: "pagination_component", kind: "import" },
-    { from: "users_list_component", to: "user_settings_service", kind: "import" },
+    // Explicitly diff-tagged edges (patch changes):
+    // Added edges
+    { from: "users_list_component",  to: "user_sort_header_component", kind: "import",           diff: "added"   },
+    { from: "users_list_component",  to: "user_settings_service",      kind: "import",           diff: "added"   },
+    { from: "user_detail_component", to: "analytics_service",          kind: "import",           diff: "added"   },
+    // Removed edges
+    { from: "users_list_component",      to: "user_table_header_component", kind: "import",      diff: "removed" },
+    // user_filter → search_component edge omitted (search_component no longer in graph — no in-scope referrers)
+    { from: "user_table_header_component", to: "sort_state_service",        kind: "import",      diff: "removed" },
+    { from: "user_table_header_component", to: "sort_model",                kind: "import",      diff: "removed" },
+    { from: "user_search_results_component", to: "users_service",           kind: "import",      diff: "removed" },
+    { from: "user_search_results_component", to: "user_model",              kind: "import",      diff: "removed" },
+    { from: "user_search_results_component", to: "user_card_component",     kind: "import",      diff: "removed" },
+    { from: "user_search_results_component", to: "filter_state_service",    kind: "import",      diff: "removed" },
 
-    // user-card → deps
-    { from: "user_card_component", to: "user_avatar_component", kind: "import" },
-    { from: "user_card_component", to: "user_status_pipe", kind: "import" },
-    { from: "user_card_component", to: "user_model", kind: "import" },
-    { from: "user_card_component", to: "user_detail_component", kind: "decorator-import" },
+    // Unchanged edges (diff derived automatically from node state)
+    { from: "users_list_component",  to: "user_card_component",        kind: "import"           },
+    { from: "users_list_component",  to: "user_filter_component",      kind: "import"           },
+    { from: "users_list_component",  to: "users_service",              kind: "import"           },
+    { from: "users_list_component",  to: "user_model",                 kind: "import"           },
+    { from: "users_list_component",  to: "pagination_component",       kind: "import"           },
 
-    // user-filter → deps
-    { from: "user_filter_component", to: "filter_state_service", kind: "import" },
-    { from: "user_filter_component", to: "filter_model", kind: "import" },
+    { from: "user_card_component",   to: "user_avatar_component",      kind: "import"           },
+    { from: "user_card_component",   to: "user_status_pipe",           kind: "import"           },
+    { from: "user_card_component",   to: "user_model",                 kind: "import"           },
+    { from: "user_card_component",   to: "user_detail_component",      kind: "decorator-import" },
 
-    // sort-header → deps
-    { from: "user_sort_header_component", to: "sort_state_service", kind: "import" },
-    { from: "user_sort_header_component", to: "sort_model", kind: "import" },
+    { from: "user_filter_component", to: "filter_state_service",       kind: "import"           },
+    { from: "user_filter_component", to: "filter_model",               kind: "import"           },
 
-    // filter/sort services → models
-    { from: "filter_state_service", to: "filter_model", kind: "import" },
-    { from: "sort_state_service", to: "sort_model", kind: "import" },
+    { from: "user_sort_header_component", to: "sort_state_service",    kind: "import"           },
+    { from: "user_sort_header_component", to: "sort_model",            kind: "import"           },
 
-    // utils
-    { from: "user_sort_utils", to: "sort_model", kind: "import" },
-    { from: "user_search_utils", to: "user_model", kind: "import" },
-    { from: "user_search_utils", to: "filter_model", kind: "import" },
+    { from: "filter_state_service",  to: "filter_model",               kind: "import"           },
+    { from: "sort_state_service",    to: "sort_model",                 kind: "import"           },
+    { from: "user_sort_utils",       to: "sort_model",                 kind: "import"           },
+    { from: "user_search_utils",     to: "user_model",                 kind: "import"           },
+    { from: "user_search_utils",     to: "filter_model",               kind: "import"           },
 
-    // user-detail → deps
-    { from: "user_detail_component", to: "user_avatar_component", kind: "import" },
-    { from: "user_detail_component", to: "user_roles_badge_component", kind: "import" },
-    { from: "user_detail_component", to: "user_profile_header_component", kind: "import" },
-    { from: "user_detail_component", to: "user_activity_log_component", kind: "import" },
-    { from: "user_detail_component", to: "users_service", kind: "import" },
-    { from: "user_detail_component", to: "user_model", kind: "import" },
-    { from: "user_detail_component", to: "analytics_service", kind: "import" },
+    { from: "user_detail_component", to: "user_avatar_component",      kind: "import"           },
+    { from: "user_detail_component", to: "user_roles_badge_component", kind: "import"           },
+    { from: "user_detail_component", to: "user_profile_header_component", kind: "import"        },
+    { from: "user_detail_component", to: "user_activity_log_component", kind: "import"          },
+    { from: "user_detail_component", to: "users_service",              kind: "import"           },
+    { from: "user_detail_component", to: "user_model",                 kind: "import"           },
 
-    { from: "user_profile_header_component", to: "user_model", kind: "import" },
-    { from: "user_profile_header_component", to: "user_avatar_component", kind: "import" },
+    { from: "user_profile_header_component", to: "user_model",         kind: "import"           },
+    { from: "user_profile_header_component", to: "user_avatar_component", kind: "import"        },
 
-    { from: "user_activity_log_component", to: "user_audit_service", kind: "import" },
-    { from: "user_activity_log_component", to: "audit_event_model", kind: "import" },
+    { from: "user_activity_log_component", to: "user_audit_service",   kind: "import"           },
+    { from: "user_activity_log_component", to: "audit_event_model",    kind: "import"           },
 
-    { from: "user_roles_badge_component", to: "role_model", kind: "import" },
+    { from: "user_roles_badge_component", to: "role_model",            kind: "import"           },
 
-    { from: "user_audit_service", to: "user_model", kind: "import" },
-    { from: "user_audit_service", to: "audit_event_model", kind: "import" },
-    { from: "user_audit_service", to: "analytics_service", kind: "import" },
+    { from: "user_audit_service",    to: "user_model",                 kind: "import"           },
+    { from: "user_audit_service",    to: "audit_event_model",          kind: "import"           },
+    { from: "user_audit_service",    to: "analytics_service",          kind: "import"           },
 
-    // user-edit → deps
-    { from: "user_edit_dialog_component", to: "user_form_component", kind: "import" },
-    { from: "user_edit_dialog_component", to: "users_service", kind: "import" },
-    { from: "user_edit_dialog_component", to: "user_model", kind: "import" },
+    { from: "user_edit_dialog_component", to: "user_form_component",   kind: "import"           },
+    { from: "user_edit_dialog_component", to: "users_service",         kind: "import"           },
+    { from: "user_edit_dialog_component", to: "user_model",            kind: "import"           },
+    { from: "user_create_dialog_component", to: "user_form_component", kind: "import"           },
+    { from: "user_create_dialog_component", to: "users_service",       kind: "import"           },
+    { from: "user_form_component",   to: "user_model",                 kind: "import"           },
+    { from: "user_form_component",   to: "validation_utils",           kind: "import"           },
+    { from: "user_form_component",   to: "form_errors_component",      kind: "import"           },
+    { from: "validation_utils",      to: "user_model",                 kind: "import"           },
+    { from: "user_format_utils",     to: "user_model",                 kind: "import"           },
 
-    { from: "user_create_dialog_component", to: "user_form_component", kind: "import" },
-    { from: "user_create_dialog_component", to: "users_service", kind: "import" },
-
-    { from: "user_form_component", to: "user_model", kind: "import" },
-    { from: "user_form_component", to: "validation_utils", kind: "import" },
-    { from: "user_form_component", to: "form_errors_component", kind: "import" },
-
-    { from: "validation_utils", to: "user_model", kind: "import" },
-    { from: "user_format_utils", to: "user_model", kind: "import" },
-
-    // user-settings → deps
-    { from: "user_settings_component", to: "user_preferences_service", kind: "import" },
-    { from: "user_settings_component", to: "user_preferences_model", kind: "import" },
-
+    { from: "user_settings_component", to: "user_preferences_service", kind: "import"           },
+    { from: "user_settings_component", to: "user_preferences_model",   kind: "import"           },
     { from: "user_notification_prefs_component", to: "user_preferences_service", kind: "import" },
-    { from: "user_notification_prefs_component", to: "notification_model", kind: "import" },
-    { from: "user_notification_prefs_component", to: "notification_service", kind: "import" },
+    { from: "user_notification_prefs_component", to: "notification_model",        kind: "import" },
+    { from: "user_notification_prefs_component", to: "notification_service",      kind: "import" },
+    { from: "user_security_component", to: "users_service",            kind: "import"           },
+    { from: "user_security_component", to: "auth_service",             kind: "import"           },
+    { from: "user_preferences_service", to: "user_preferences_model",  kind: "import"           },
+    { from: "user_preferences_service", to: "storage_service",         kind: "import"           },
+    { from: "user_settings_service",    to: "user_preferences_model",  kind: "import"           },
+    { from: "user_settings_service",    to: "api_service",             kind: "import"           },
 
-    { from: "user_security_component", to: "users_service", kind: "import" },
-    { from: "user_security_component", to: "auth_service", kind: "import" },
+    { from: "user_permissions_component", to: "permissions_service",   kind: "import"           },
+    { from: "user_permissions_component", to: "user_permissions_model", kind: "import"          },
+    { from: "user_bulk_actions_component", to: "bulk_action_service",  kind: "import"           },
+    { from: "user_bulk_actions_component", to: "permissions_service",  kind: "import"           },
+    { from: "user_bulk_actions_component", to: "bulk_action_model",    kind: "import"           },
+    { from: "bulk_action_service",    to: "users_service",             kind: "import"           },
+    { from: "bulk_action_service",    to: "user_model",                kind: "import"           },
+    { from: "bulk_action_service",    to: "bulk_action_model",         kind: "import"           },
 
-    { from: "user_preferences_service", to: "user_preferences_model", kind: "import" },
-    { from: "user_preferences_service", to: "storage_service", kind: "import" },
+    { from: "user_export_dialog_component", to: "user_export_service", kind: "import"           },
+    { from: "user_export_dialog_component", to: "export_model",        kind: "import"           },
+    { from: "user_export_dialog_component", to: "user_model",          kind: "import"           },
+    { from: "user_bulk_export_component",   to: "user_export_service", kind: "import"           },
+    { from: "user_bulk_export_component",   to: "export_model",        kind: "import"           },
+    { from: "user_bulk_export_component",   to: "user_model",          kind: "import"           },
+    { from: "user_export_service",          to: "user_model",          kind: "import"           },
+    { from: "user_export_service",          to: "csv_service",         kind: "import"           },
 
-    { from: "user_settings_service", to: "user_preferences_model", kind: "import" },
-    { from: "user_settings_service", to: "api_service", kind: "import" },
+    { from: "users_service",         to: "user_model",                 kind: "import"           },
+    { from: "users_service",         to: "user_api_response_model",    kind: "import"           },
+    { from: "users_service",         to: "api_service",               kind: "import"           },
+    { from: "users_cache_service",   to: "users_service",             kind: "import"           },
+    { from: "users_cache_service",   to: "cache_service",             kind: "import"           },
+    { from: "user_api_response_model", to: "user_model",              kind: "import"           },
 
-    // user-permissions → deps
-    { from: "user_permissions_component", to: "permissions_service", kind: "import" },
-    { from: "user_permissions_component", to: "user_permissions_model", kind: "import" },
+    { from: "user_actions",          to: "user_model",                 kind: "import"           },
+    { from: "user_reducer",          to: "user_actions",               kind: "import"           },
+    { from: "user_reducer",          to: "user_model",                 kind: "import"           },
+    { from: "user_reducer",          to: "user_state",                 kind: "import"           },
+    { from: "user_selectors",        to: "user_model",                 kind: "import"           },
+    { from: "user_selectors",        to: "user_state",                 kind: "import"           },
+    { from: "user_effects",          to: "user_actions",               kind: "import"           },
+    { from: "user_effects",          to: "users_service",              kind: "import"           },
+    { from: "user_state",            to: "user_model",                 kind: "import"           },
+    { from: "user_filter_actions",   to: "filter_model",               kind: "import"           },
+    { from: "user_filter_reducer",   to: "user_filter_actions",        kind: "import"           },
+    { from: "user_filter_reducer",   to: "filter_model",               kind: "import"           },
+    { from: "user_filter_selectors", to: "filter_model",               kind: "import"           },
 
-    { from: "user_bulk_actions_component", to: "bulk_action_service", kind: "import" },
-    { from: "user_bulk_actions_component", to: "permissions_service", kind: "import" },
-    { from: "user_bulk_actions_component", to: "bulk_action_model", kind: "import" },
+    { from: "user_status_pipe",       to: "user_status_model",         kind: "import"           },
+    { from: "user_role_pipe",         to: "role_model",                kind: "import"           },
+    { from: "user_display_name_pipe", to: "user_model",                kind: "import"           },
 
-    { from: "bulk_action_service", to: "users_service", kind: "import" },
-    { from: "bulk_action_service", to: "user_model", kind: "import" },
-    { from: "bulk_action_service", to: "bulk_action_model", kind: "import" },
-
-    // user-export → deps
-    { from: "user_export_dialog_component", to: "user_export_service", kind: "import" },
-    { from: "user_export_dialog_component", to: "export_model", kind: "import" },
-    { from: "user_export_dialog_component", to: "user_model", kind: "import" },
-
-    { from: "user_bulk_export_component", to: "user_export_service", kind: "import" },
-    { from: "user_bulk_export_component", to: "export_model", kind: "import" },
-    { from: "user_bulk_export_component", to: "user_model", kind: "import" },
-
-    { from: "user_export_service", to: "user_model", kind: "import" },
-    { from: "user_export_service", to: "csv_service", kind: "import" },
-
-    // data-access → deps
-    { from: "users_service", to: "user_model", kind: "import" },
-    { from: "users_service", to: "user_api_response_model", kind: "import" },
-    { from: "users_service", to: "api_service", kind: "import" },
-
-    { from: "users_cache_service", to: "users_service", kind: "import" },
-    { from: "users_cache_service", to: "cache_service", kind: "import" },
-
-    { from: "user_api_response_model", to: "user_model", kind: "import" },
-
-    // store → deps
-    { from: "user_actions", to: "user_model", kind: "import" },
-    { from: "user_reducer", to: "user_actions", kind: "import" },
-    { from: "user_reducer", to: "user_model", kind: "import" },
-    { from: "user_reducer", to: "user_state", kind: "import" },
-    { from: "user_selectors", to: "user_model", kind: "import" },
-    { from: "user_selectors", to: "user_state", kind: "import" },
-    { from: "user_effects", to: "user_actions", kind: "import" },
-    { from: "user_effects", to: "users_service", kind: "import" },
-    { from: "user_state", to: "user_model", kind: "import" },
-    { from: "user_filter_actions", to: "filter_model", kind: "import" },
-    { from: "user_filter_reducer", to: "user_filter_actions", kind: "import" },
-    { from: "user_filter_reducer", to: "filter_model", kind: "import" },
-    { from: "user_filter_selectors", to: "filter_model", kind: "import" },
-
-    // shared-ui → models
-    { from: "user_status_pipe", to: "user_status_model", kind: "import" },
-    { from: "user_role_pipe", to: "role_model", kind: "import" },
-    { from: "user_display_name_pipe", to: "user_model", kind: "import" },
-
-    // top-level
-    { from: "users_page_component", to: "users_list_component", kind: "import" },
-    { from: "users_page_component", to: "user_bulk_actions_component", kind: "import" },
-
-    { from: "users_routes", to: "users_page_component", kind: "import" },
-    { from: "users_routes", to: "users_list_component", kind: "import" },
-    { from: "users_routes", to: "user_detail_component", kind: "import" },
-    { from: "users_routes", to: "user_edit_dialog_component", kind: "import" },
-    { from: "users_routes", to: "user_create_dialog_component", kind: "import" },
-    { from: "users_routes", to: "user_settings_component", kind: "import" },
-    { from: "users_routes", to: "user_permissions_component", kind: "import" },
-    { from: "users_routes", to: "auth_guard", kind: "import" },
-    { from: "users_routes", to: "role_guard", kind: "import" },
+    { from: "users_page_component",  to: "users_list_component",       kind: "import"           },
+    { from: "users_page_component",  to: "user_bulk_actions_component", kind: "import"          },
+    { from: "users_routes",          to: "users_page_component",       kind: "import"           },
+    { from: "users_routes",          to: "users_list_component",       kind: "import"           },
+    { from: "users_routes",          to: "user_detail_component",      kind: "import"           },
+    { from: "users_routes",          to: "user_edit_dialog_component", kind: "import"           },
+    { from: "users_routes",          to: "user_create_dialog_component", kind: "import"         },
+    { from: "users_routes",          to: "user_settings_component",    kind: "import"           },
+    { from: "users_routes",          to: "user_permissions_component", kind: "import"           },
+    { from: "users_routes",          to: "auth_guard",                 kind: "import"           },
+    { from: "users_routes",          to: "role_guard",                 kind: "import"           },
   ]
 };
 
-// ─── Renderer ─────────────────────────────────────────────────────────────
-const ELK_CONFIG = {
-  id: "root",
-  layoutOptions: {
-    "algorithm": "layered",
-    "elk.direction": "RIGHT",
-    "elk.layered.spacing.nodeNodeBetweenLayers": "80",
-    "elk.spacing.nodeNode": "25",
-    "elk.layered.mergeEdges": "true",
-    "elk.edgeRouting": "ORTHOGONAL",
-    "elk.layered.unnecessaryBendpoints": "true",
-    "elk.padding": "[top=30,left=20,bottom=20,right=20]",
-  }
-};
+// ─── Constants ───────────────────────────────────────────────────────────────
+const NODE_W = 152, NODE_H = 38;
+const PAD = 16; // padding around bounding-box groups
 
-const NODE_W = 140;
-const NODE_H = 36;
-const SUBGRAPH_PAD = 20;
 const DIFF_COLORS = {
   added:    { fill: "#14532d", stroke: "#22c55e", text: "#86efac" },
   modified: { fill: "#78350f", stroke: "#f59e0b", text: "#fcd34d" },
   removed:  { fill: "#7f1d1d", stroke: "#ef4444", text: "#fca5a5" },
-  unchanged: { fill: "#1e293b", stroke: "#475569", text: "#94a3b8" },
-  null:     { fill: "#1e293b", stroke: "#475569", text: "#94a3b8" },
+  unchanged:{ fill: "#1e293b", stroke: "#475569", text: "#94a3b8" },
 };
-const OOS_COLORS = { fill: "#0f1f35", stroke: "#334155", text: "#64748b" };
+const OOS_COLORS  = { fill: "#0a1829", stroke: "#1e3a5f", text: "#4a7da8" };
+const EDGE_COLORS = {
+  added:    "#22c55e",
+  removed:  "#ef4444",
+  unchanged:"#334155",
+};
 
-let currentMode = 'all';
-let currentGraph = null;
-let elkInstance = null;
-
-function getNodeDir(node) {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function nodeDir(node) {
   const parts = node.file.split('/');
   return parts.length > 1 ? parts[0] : '_root';
 }
@@ -519,419 +403,423 @@ function nodeColors(node) {
   return DIFF_COLORS[node.diff] || DIFF_COLORS.unchanged;
 }
 
-function buildElkGraph(nodes, edges) {
-  // Group nodes by directory
-  const groups = {};
-  for (const n of nodes) {
-    const dir = getNodeDir(n);
-    if (!groups[dir]) groups[dir] = [];
-    groups[dir].push(n);
-  }
-
-  const nodeIds = new Set(nodes.map(n => n.id));
-
-  const children = Object.entries(groups).map(([dir, dirNodes]) => ({
-    id: `grp_${dir}`,
-    layoutOptions: {
-      "elk.padding": `[top=${SUBGRAPH_PAD + 12},left=${SUBGRAPH_PAD},bottom=${SUBGRAPH_PAD},right=${SUBGRAPH_PAD}]`,
-      "elk.spacing.nodeNode": "20",
-    },
-    children: dirNodes.map(n => ({
-      id: n.id,
-      width: NODE_W,
-      height: NODE_H,
-    })),
-    edges: [],
-  }));
-
-  const elkEdges = edges
-    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
-    .map((e, i) => ({
-      id: `e${i}`,
-      sources: [e.from],
-      targets: [e.to],
-      _kind: e.kind,
-    }));
-
-  return {
-    ...ELK_CONFIG,
-    children,
-    edges: elkEdges,
-  };
+function edgeDiff(edge, nodeMap) {
+  if (edge.diff) return edge.diff;
+  const f = nodeMap[edge.from], t = nodeMap[edge.to];
+  if (!f || !t) return 'unchanged';
+  if (f.diff === 'removed' || t.diff === 'removed') return 'removed';
+  if (f.diff === 'added') return 'added';
+  return 'unchanged';
 }
 
-function filterNodesForMode(allNodes, allEdges, mode) {
+function truncate(s, max) {
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+// ─── Filter modes ────────────────────────────────────────────────────────────
+function applyMode(allNodes, allEdges, mode) {
   if (mode === 'all') return { nodes: allNodes, edges: allEdges };
 
   if (mode === 'diff') {
     const changedIds = new Set(allNodes.filter(n => n.diff && n.diff !== 'unchanged').map(n => n.id));
-    // find 1-hop neighbors
-    const neighborIds = new Set(changedIds);
+    const keep = new Set(changedIds);
     for (const e of allEdges) {
-      if (changedIds.has(e.from)) neighborIds.add(e.to);
-      if (changedIds.has(e.to)) neighborIds.add(e.from);
+      if (changedIds.has(e.from)) keep.add(e.to);
+      if (changedIds.has(e.to))   keep.add(e.from);
     }
-    const nodes = allNodes.filter(n => neighborIds.has(n.id));
-    const nodeSet = new Set(nodes.map(n => n.id));
-    const edges = allEdges.filter(e => nodeSet.has(e.from) && nodeSet.has(e.to));
-    return { nodes, edges };
+    const nodes = allNodes.filter(n => keep.has(n.id));
+    const ns = new Set(nodes.map(n => n.id));
+    return { nodes, edges: allEdges.filter(e => ns.has(e.from) && ns.has(e.to)) };
   }
 
   if (mode === 'clustered') {
-    // Collapse each directory to a single summary node
     const groups = {};
     for (const n of allNodes) {
-      const dir = getNodeDir(n);
-      if (!groups[dir]) groups[dir] = { count: 0, diffs: new Set(), scope: n.scope };
-      groups[dir].count++;
-      if (n.diff && n.diff !== 'unchanged') groups[dir].diffs.add(n.diff);
+      const d = nodeDir(n);
+      if (!groups[d]) groups[d] = { count: 0, diffs: new Set(), scope: n.scope };
+      groups[d].count++;
+      if (n.diff && n.diff !== 'unchanged') groups[d].diffs.add(n.diff);
     }
-
-    const summaryNodes = Object.entries(groups).map(([dir, g]) => {
-      const diffPriority = ['removed','added','modified'];
-      const diff = diffPriority.find(d => g.diffs.has(d)) || 'unchanged';
-      return {
-        id: `cluster_${dir}`,
-        label: dir === '_root' ? 'users/' : dir + '/',
-        file: dir,
-        type: 'module',
-        scope: g.scope,
-        diff,
-        _clustered: true,
-        _count: g.count,
-        _diffs: [...g.diffs],
-      };
-    });
-
-    // Build edges between clusters
+    const priority = ['removed','added','modified'];
+    const nodes = Object.entries(groups).map(([d, g]) => ({
+      id: `cluster_${d}`,
+      label: (d === '_root' ? 'users/' : d + '/') + ` (${g.count})`,
+      file: d === '_root' ? '_root' : d,
+      type: 'module',
+      scope: g.scope,
+      diff: priority.find(p => g.diffs.has(p)) || 'unchanged',
+      _cluster: true,
+    }));
     const dirOf = {};
-    for (const n of allNodes) dirOf[n.id] = getNodeDir(n);
-
-    const edgeSet = new Set();
-    const summaryEdges = [];
+    for (const n of allNodes) dirOf[n.id] = nodeDir(n);
+    const seen = new Set();
+    const edges = [];
     for (const e of allEdges) {
-      const fromDir = dirOf[e.from];
-      const toDir = dirOf[e.to];
-      if (fromDir && toDir && fromDir !== toDir) {
-        const key = `cluster_${fromDir}→cluster_${toDir}`;
-        if (!edgeSet.has(key)) {
-          edgeSet.add(key);
-          summaryEdges.push({ from: `cluster_${fromDir}`, to: `cluster_${toDir}`, kind: 'import' });
-        }
+      const fd = dirOf[e.from], td = dirOf[e.to];
+      if (fd && td && fd !== td) {
+        const k = `cluster_${fd}→cluster_${td}`;
+        if (!seen.has(k)) { seen.add(k); edges.push({ from: `cluster_${fd}`, to: `cluster_${td}`, kind: 'import', diff: e.diff }); }
       }
     }
-
-    return { nodes: summaryNodes, edges: summaryEdges };
+    return { nodes, edges };
   }
 }
 
-async function render(mode) {
-  document.getElementById('loading').style.display = 'flex';
+// ─── ELK layout (flat — all nodes as root children) ──────────────────────────
+async function layoutGraph(nodes, edges) {
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const elkEdges = edges
+    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
+    .map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to], _orig: e }));
 
-  const { nodes, edges } = filterNodesForMode(GRAPH_DATA.nodes, GRAPH_DATA.edges, mode);
+  const graph = {
+    id: "root",
+    layoutOptions: {
+      "algorithm": "layered",
+      "elk.direction": "RIGHT",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "90",
+      "elk.spacing.nodeNode": "22",
+      "elk.layered.mergeEdges": "true",
+      "elk.edgeRouting": "ORTHOGONAL",
+      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+    },
+    children: nodes.map(n => ({ id: n.id, width: NODE_W, height: NODE_H })),
+    edges: elkEdges,
+  };
 
-  const elkGraph = buildElkGraph(nodes, edges);
+  const elk = new ELK();
+  const laid = await elk.layout(graph);
 
-  try {
-    const laid = await elkInstance.layout(elkGraph);
-    document.getElementById('loading').style.display = 'none';
-    drawSVG(laid, nodes, edges);
-  } catch (err) {
-    document.getElementById('loading').textContent = 'Layout error: ' + err.message;
-    console.error(err);
-  }
+  // Build position map (flat graph → absolute coords)
+  const pos = {};
+  for (const n of laid.children) pos[n.id] = { x: n.x, y: n.y, w: n.width, h: n.height };
+
+  // Merge original edge data back onto laid edges
+  const edgeDataMap = {};
+  for (const e of elkEdges) edgeDataMap[e.id] = e._orig;
+  const laidEdges = (laid.edges || []).map(e => ({ ...e, _orig: edgeDataMap[e.id] }));
+
+  return { pos, laidEdges };
 }
 
-function findLayoutNode(laid, id) {
-  for (const grp of laid.children || []) {
-    for (const n of grp.children || []) {
-      if (n.id === id) return { node: n, grp };
-    }
-    if (grp.id === id) return { node: grp, grp: null };
+// ─── SVG drawing ─────────────────────────────────────────────────────────────
+function drawSVG(nodes, edges, pos, laidEdges) {
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const isClustered = nodes.every(n => n._cluster);
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // Compute SVG bounds
+  let maxX = 0, maxY = 0;
+  for (const p of Object.values(pos)) {
+    if (p.x + p.w > maxX) maxX = p.x + p.w;
+    if (p.y + p.h > maxY) maxY = p.y + p.h;
   }
-  return null;
-}
+  const W = maxX + 48, H = maxY + 48;
 
-function absPos(grp, node) {
-  const gx = grp ? (grp.x || 0) : 0;
-  const gy = grp ? (grp.y || 0) : 0;
-  return { x: gx + (node.x || 0), y: gy + (node.y || 0) };
-}
-
-function drawSVG(laid, nodes, edges) {
-  const nodeMap = {};
-  for (const n of nodes) nodeMap[n.id] = n;
-
-  // Compute total bounds
-  let maxX = 100, maxY = 100;
-  for (const grp of (laid.children || [])) {
-    const rx = (grp.x || 0) + (grp.width || 0);
-    const ry = (grp.y || 0) + (grp.height || 0);
-    if (rx > maxX) maxX = rx;
-    if (ry > maxY) maxY = ry;
-  }
-  const W = maxX + 40;
-  const H = maxY + 40;
-
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
+  const svg = el(NS, 'svg');
   svg.setAttribute('width', W);
   svg.setAttribute('height', H);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-  // Arrowhead marker
-  const defs = document.createElementNS(svgNS, 'defs');
-  const marker = document.createElementNS(svgNS, 'marker');
-  marker.setAttribute('id', 'arrowhead');
-  marker.setAttribute('markerWidth', '8');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('refX', '7');
-  marker.setAttribute('refY', '3');
-  marker.setAttribute('orient', 'auto');
-  const arrow = document.createElementNS(svgNS, 'polygon');
-  arrow.setAttribute('points', '0 0, 8 3, 0 6');
-  arrow.setAttribute('fill', '#334155');
-  marker.appendChild(arrow);
-
-  const markerDec = document.createElementNS(svgNS, 'marker');
-  markerDec.setAttribute('id', 'arrowhead-dec');
-  markerDec.setAttribute('markerWidth', '8');
-  markerDec.setAttribute('markerHeight', '6');
-  markerDec.setAttribute('refX', '7');
-  markerDec.setAttribute('refY', '3');
-  markerDec.setAttribute('orient', 'auto');
-  const arrowDec = document.createElementNS(svgNS, 'polygon');
-  arrowDec.setAttribute('points', '0 0, 8 3, 0 6');
-  arrowDec.setAttribute('fill', '#4a6080');
-  markerDec.appendChild(arrowDec);
-
-  defs.appendChild(marker);
-  defs.appendChild(markerDec);
+  // Arrowhead markers for each edge state
+  const defs = el(NS, 'defs');
+  for (const [name, color] of [['added','#22c55e'],['removed','#ef4444'],['unchanged','#334155'],['dec','#4a6080']]) {
+    const m = el(NS, 'marker');
+    m.setAttribute('id', `arr-${name}`);
+    m.setAttribute('markerWidth', '8'); m.setAttribute('markerHeight', '6');
+    m.setAttribute('refX', '7'); m.setAttribute('refY', '3');
+    m.setAttribute('orient', 'auto');
+    const poly = el(NS, 'polygon');
+    poly.setAttribute('points', '0 0, 8 3, 0 6');
+    poly.setAttribute('fill', color);
+    m.appendChild(poly);
+    defs.appendChild(m);
+  }
   svg.appendChild(defs);
 
-  // Draw subgraph backgrounds
-  for (const grp of (laid.children || [])) {
-    const r = document.createElementNS(svgNS, 'rect');
-    r.setAttribute('x', grp.x + 20);
-    r.setAttribute('y', grp.y + 20);
-    r.setAttribute('width', (grp.width || 0) - 40);
-    r.setAttribute('height', (grp.height || 0) - 40);
+  // ── Bounding-box groups (skipped in clustered mode — each node is its own dir) ─
+  if (!isClustered) {
+    const bboxes = {};
+    for (const [id, p] of Object.entries(pos)) {
+      const node = nodeMap[id];
+      if (!node) continue;
+      const d = nodeDir(node);
+      if (!bboxes[d]) bboxes[d] = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity, oos: false };
+      const b = bboxes[d];
+      b.x1 = Math.min(b.x1, p.x - PAD);
+      b.y1 = Math.min(b.y1, p.y - PAD - 14); // extra room for label
+      b.x2 = Math.max(b.x2, p.x + p.w + PAD);
+      b.y2 = Math.max(b.y2, p.y + p.h + PAD);
+      if (node.scope === 'out-of-scope') b.oos = true;
+    }
+
+    // Compute overall out-of-scope envelope
+    let oosEnv = null;
+    for (const b of Object.values(bboxes)) {
+      if (!b.oos) continue;
+      if (!oosEnv) oosEnv = { x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 };
+      else {
+        oosEnv.x1 = Math.min(oosEnv.x1, b.x1); oosEnv.y1 = Math.min(oosEnv.y1, b.y1);
+        oosEnv.x2 = Math.max(oosEnv.x2, b.x2); oosEnv.y2 = Math.max(oosEnv.y2, b.y2);
+      }
+    }
+
+    // Draw out-of-scope envelope (behind everything)
+    if (oosEnv) {
+      const er = el(NS, 'rect');
+      er.setAttribute('x', oosEnv.x1 - 10); er.setAttribute('y', oosEnv.y1 - 18);
+      er.setAttribute('width', oosEnv.x2 - oosEnv.x1 + 20);
+      er.setAttribute('height', oosEnv.y2 - oosEnv.y1 + 28);
+      er.setAttribute('rx', '6'); er.setAttribute('fill', '#07111f');
+      er.setAttribute('stroke', '#1e3a5f'); er.setAttribute('stroke-width', '1');
+      er.setAttribute('stroke-dasharray', '6 3');
+      svg.appendChild(er);
+      const el2 = document.createElementNS(NS, 'text');
+      el2.setAttribute('x', oosEnv.x1); el2.setAttribute('y', oosEnv.y1 - 5);
+      el2.setAttribute('fill', '#2d5a8e'); el2.setAttribute('font-size', '10');
+      el2.setAttribute('font-family', 'monospace');
+      el2.textContent = 'shared/ — 1-hop context (imports not recursed)';
+      svg.appendChild(el2);
+    }
+
+    // Draw per-directory boxes for in-scope
+    for (const [d, b] of Object.entries(bboxes)) {
+      if (b.oos) continue;
+    const w = b.x2 - b.x1, h = b.y2 - b.y1;
+    const r = el(NS, 'rect');
+    r.setAttribute('x', b.x1); r.setAttribute('y', b.y1);
+    r.setAttribute('width', w); r.setAttribute('height', h);
     r.setAttribute('rx', '4');
-    r.setAttribute('class', 'subgraph-rect');
+    r.setAttribute('fill', 'rgba(30,41,59,0.35)');
+    r.setAttribute('stroke', '#2d3f55');
+    r.setAttribute('stroke-width', '1');
     svg.appendChild(r);
 
-    // Subgraph label (directory name)
-    const dirId = grp.id.replace(/^grp_/, '');
-    const lbl = document.createElementNS(svgNS, 'text');
-    lbl.setAttribute('x', grp.x + 28);
-    lbl.setAttribute('y', grp.y + 33);
-    lbl.setAttribute('class', 'subgraph-label');
-    lbl.textContent = dirId === '_root' ? 'users/' : dirId + '/';
+    const lbl = el(NS, 'text');
+    lbl.setAttribute('x', b.x1 + 6);
+    lbl.setAttribute('y', b.y1 + 11);
+    lbl.setAttribute('fill', '#3d5470');
+    lbl.setAttribute('font-size', '9');
+    lbl.setAttribute('font-family', 'monospace');
+    lbl.textContent = d === '_root' ? 'users/' : d + '/';
     svg.appendChild(lbl);
   }
+  } // end if (!isClustered)
 
-  // Build absolute position lookup
-  const posMap = {};
-  for (const grp of (laid.children || [])) {
-    for (const n of (grp.children || [])) {
-      posMap[n.id] = { x: (grp.x || 0) + (n.x || 0), y: (grp.y || 0) + (n.y || 0), w: n.width, h: n.height };
-    }
+  // ── Edges ──────────────────────────────────────────────────────────────
+  const edgeGroup = el(NS, 'g');
+  edgeGroup.setAttribute('id', 'edges');
+  svg.appendChild(edgeGroup);
+
+  laidEdges.forEach((laidEdge, i) => {
+    if (!laidEdge.sections?.[0]) return;
+    const orig = laidEdge._orig;
+    if (!orig) return;
+
+    const diff = edgeDiff(orig, nodeMap);
+    const color = EDGE_COLORS[diff] || EDGE_COLORS.unchanged;
+    const isDec = orig.kind === 'decorator-import';
+    const markerName = isDec ? 'dec' : diff;
+
+    const s = laidEdge.sections[0];
+    let d = `M ${s.startPoint.x} ${s.startPoint.y}`;
+    for (const bp of (s.bendPoints || [])) d += ` L ${bp.x} ${bp.y}`;
+    d += ` L ${s.endPoint.x} ${s.endPoint.y}`;
+
+    const path = el(NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('stroke-opacity', diff === 'unchanged' ? '0.35' : '0.75');
+    path.setAttribute('marker-end', `url(#arr-${markerName})`);
+    if (diff === 'removed' || isDec) path.setAttribute('stroke-dasharray', '4 3');
+    path.setAttribute('data-from', orig.from);
+    path.setAttribute('data-to', orig.to);
+    path.setAttribute('data-diff', diff);
+    path.classList.add('edge');
+    edgeGroup.appendChild(path);
+  });
+
+  // ── Nodes ──────────────────────────────────────────────────────────────
+  const nodeGroup = el(NS, 'g');
+  nodeGroup.setAttribute('id', 'nodes');
+  svg.appendChild(nodeGroup);
+
+  for (const node of nodes) {
+    const p = pos[node.id];
+    if (!p) continue;
+    const colors = nodeColors(node);
+    const g = el(NS, 'g');
+    g.setAttribute('data-id', node.id);
+    g.setAttribute('class', 'node');
+    g.style.cursor = 'default';
+
+    const title = el(NS, 'title');
+    title.textContent = `${node.label}\n${node.file}\ntype: ${node.type} | diff: ${node.diff ?? 'none'}`;
+    g.appendChild(title);
+
+    // Shape
+    const shape = makeShape(NS, node, p, colors);
+    g.appendChild(shape);
+
+    // Main label (class/function name, truncated)
+    const lbl = el(NS, 'text');
+    lbl.setAttribute('x', p.x + p.w / 2);
+    lbl.setAttribute('y', p.y + p.h / 2 - 6);
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('dominant-baseline', 'middle');
+    lbl.setAttribute('fill', colors.text);
+    lbl.setAttribute('font-size', '10');
+    lbl.setAttribute('font-family', "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif");
+    lbl.textContent = truncate(node.label, 20);
+    g.appendChild(lbl);
+
+    // Type sub-label
+    const typeLbl = el(NS, 'text');
+    typeLbl.setAttribute('x', p.x + p.w / 2);
+    typeLbl.setAttribute('y', p.y + p.h / 2 + 7);
+    typeLbl.setAttribute('text-anchor', 'middle');
+    typeLbl.setAttribute('dominant-baseline', 'middle');
+    typeLbl.setAttribute('fill', colors.text);
+    typeLbl.setAttribute('font-size', '8');
+    typeLbl.setAttribute('font-family', 'monospace');
+    typeLbl.setAttribute('opacity', '0.6');
+    typeLbl.textContent = node.type;
+    g.appendChild(typeLbl);
+
+    nodeGroup.appendChild(g);
   }
 
-  // Draw edges
-  for (const edge of (laid.edges || [])) {
-    const src = edge.sources?.[0];
-    const tgt = edge.targets?.[0];
-    if (!src || !tgt || !posMap[src] || !posMap[tgt]) continue;
-
-    const isDec = edge._kind === 'decorator-import';
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('class', `edge${isDec ? ' decorator' : ''}`);
-    path.setAttribute('marker-end', isDec ? 'url(#arrowhead-dec)' : 'url(#arrowhead)');
-
-    // Use ELK bend points if available, otherwise straight line
-    if (edge.sections?.[0]) {
-      const s = edge.sections[0];
-      let d = `M ${s.startPoint.x} ${s.startPoint.y}`;
-      for (const bp of (s.bendPoints || [])) d += ` L ${bp.x} ${bp.y}`;
-      d += ` L ${s.endPoint.x} ${s.endPoint.y}`;
-      path.setAttribute('d', d);
-    } else {
-      const sp = posMap[src];
-      const tp = posMap[tgt];
-      const x1 = sp.x + sp.w;
-      const y1 = sp.y + sp.h / 2;
-      const x2 = tp.x;
-      const y2 = tp.y + tp.h / 2;
-      path.setAttribute('d', `M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);
-    }
-    svg.appendChild(path);
-  }
-
-  // Draw nodes
-  for (const grp of (laid.children || [])) {
-    for (const n of (grp.children || [])) {
-      const dataNode = nodeMap[n.id];
-      if (!dataNode) continue;
-      const colors = nodeColors(dataNode);
-      const px = (grp.x || 0) + (n.x || 0);
-      const py = (grp.y || 0) + (n.y || 0);
-      const w = n.width || NODE_W;
-      const h = n.height || NODE_H;
-
-      const g = document.createElementNS(svgNS, 'g');
-      g.setAttribute('class', 'node-group');
-
-      // Title tooltip
-      const title = document.createElementNS(svgNS, 'title');
-      title.textContent = `${dataNode.label}\n${dataNode.file}\ntype: ${dataNode.type} | diff: ${dataNode.diff || 'none'}`;
-      g.appendChild(title);
-
-      const shape = drawNodeShape(svgNS, dataNode, px, py, w, h, colors);
-      g.appendChild(shape);
-
-      // Label (truncate long names)
-      const lbl = document.createElementNS(svgNS, 'text');
-      lbl.setAttribute('x', px + w / 2);
-      lbl.setAttribute('y', py + h / 2 - 5);
-      lbl.setAttribute('class', 'node-label');
-      lbl.setAttribute('fill', colors.text);
-      const maxLen = 18;
-      lbl.textContent = dataNode.label.length > maxLen
-        ? dataNode.label.slice(0, maxLen - 1) + '…'
-        : dataNode.label;
-      g.appendChild(lbl);
-
-      // Type sub-label
-      const typeLbl = document.createElementNS(svgNS, 'text');
-      typeLbl.setAttribute('x', px + w / 2);
-      typeLbl.setAttribute('y', py + h / 2 + 8);
-      typeLbl.setAttribute('class', 'node-type-label');
-      typeLbl.setAttribute('fill', colors.text);
-      typeLbl.textContent = dataNode.type;
-      g.appendChild(typeLbl);
-
-      svg.appendChild(g);
-    }
-  }
-
-  const container = document.getElementById('svg-container');
-  container.innerHTML = '';
-  container.appendChild(svg);
+  return svg;
 }
 
-function drawNodeShape(svgNS, node, x, y, w, h, colors) {
-  const type = node.type;
+function el(ns, tag) { return document.createElementNS(ns, tag); }
+
+function makeShape(NS, node, p, colors) {
+  const { x, y, w, h } = p;
   const isRemoved = node.diff === 'removed';
 
-  if (type === 'pipe') {
-    // Ellipse
-    const el = document.createElementNS(svgNS, 'ellipse');
-    el.setAttribute('cx', x + w / 2);
-    el.setAttribute('cy', y + h / 2);
-    el.setAttribute('rx', w / 2);
-    el.setAttribute('ry', h / 2);
-    el.setAttribute('fill', colors.fill);
-    el.setAttribute('stroke', colors.stroke);
-    el.setAttribute('stroke-width', '1.5');
-    if (isRemoved) el.setAttribute('stroke-dasharray', '5 3');
-    return el;
+  if (node.type === 'pipe') {
+    const e = el(NS, 'ellipse');
+    e.setAttribute('cx', x + w / 2); e.setAttribute('cy', y + h / 2);
+    e.setAttribute('rx', w / 2); e.setAttribute('ry', h / 2);
+    applyFill(e, colors, isRemoved);
+    return e;
   }
-
-  if (type === 'guard' || type === 'resolver') {
-    // Diamond
-    const hw = w / 2, hh = h / 2;
-    const cx = x + hw, cy = y + hh;
-    const poly = document.createElementNS(svgNS, 'polygon');
-    poly.setAttribute('points', `${cx},${cy-hh} ${cx+hw},${cy} ${cx},${cy+hh} ${cx-hw},${cy}`);
-    poly.setAttribute('fill', colors.fill);
-    poly.setAttribute('stroke', colors.stroke);
-    poly.setAttribute('stroke-width', '1.5');
-    if (isRemoved) poly.setAttribute('stroke-dasharray', '5 3');
+  if (node.type === 'guard' || node.type === 'resolver') {
+    const cx = x + w / 2, cy = y + h / 2, hw = w / 2 - 2, hh = h / 2 - 2;
+    const poly = el(NS, 'polygon');
+    poly.setAttribute('points', `${cx},${cy - hh} ${cx + hw},${cy} ${cx},${cy + hh} ${cx - hw},${cy}`);
+    applyFill(poly, colors, isRemoved);
     return poly;
   }
-
-  if (type === 'routing') {
-    // Hexagon
-    const hw = w / 2, hh = h / 2;
-    const cx = x + hw, cy = y + hh;
-    const r = Math.min(hw, hh);
-    const pts = Array.from({length: 6}, (_, i) => {
+  if (node.type === 'routing') {
+    const cx = x + w / 2, cy = y + h / 2;
+    const r = Math.min(w / 2 - 2, h / 2 - 2);
+    const pts = Array.from({ length: 6 }, (_, i) => {
       const a = Math.PI / 3 * i - Math.PI / 6;
       return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
     }).join(' ');
-    const poly = document.createElementNS(svgNS, 'polygon');
+    const poly = el(NS, 'polygon');
     poly.setAttribute('points', pts);
-    poly.setAttribute('fill', colors.fill);
-    poly.setAttribute('stroke', colors.stroke);
-    poly.setAttribute('stroke-width', '1.5');
-    if (isRemoved) poly.setAttribute('stroke-dasharray', '5 3');
+    applyFill(poly, colors, isRemoved);
     return poly;
   }
 
-  // Default: rect (component=sharp corners, service/module=rounded, model/constants=thin border)
-  const rect = document.createElementNS(svgNS, 'rect');
-  rect.setAttribute('x', x);
-  rect.setAttribute('y', y);
-  rect.setAttribute('width', w);
-  rect.setAttribute('height', h);
-  rect.setAttribute('fill', colors.fill);
-  rect.setAttribute('stroke', colors.stroke);
-
-  if (type === 'component') {
-    rect.setAttribute('rx', '2');
-    rect.setAttribute('stroke-width', '1.5');
-  } else if (type === 'service' || type === 'module') {
-    rect.setAttribute('rx', '8');
-    rect.setAttribute('stroke-width', '1.5');
-  } else {
-    // model / constants — thin border, sharper
-    rect.setAttribute('rx', '2');
-    rect.setAttribute('stroke-width', '1');
-    rect.setAttribute('stroke-opacity', '0.6');
-  }
-
-  if (isRemoved) rect.setAttribute('stroke-dasharray', '5 3');
+  // Rect variants
+  const rect = el(NS, 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  if (node.type === 'component')                rect.setAttribute('rx', '2');
+  else if (node.type === 'service' || node.type === 'module') rect.setAttribute('rx', '10');
+  else                                           rect.setAttribute('rx', '3'); // model/constants
+  const thin = node.type === 'model' || node.type === 'constants';
+  rect.setAttribute('stroke-width', thin ? '1' : '1.5');
+  if (thin) rect.setAttribute('stroke-opacity', '0.55');
+  applyFill(rect, colors, isRemoved);
   return rect;
 }
 
-function updateSidebarMeta() {
+function applyFill(shape, colors, isRemoved) {
+  shape.setAttribute('fill', colors.fill);
+  shape.setAttribute('stroke', colors.stroke);
+  if (isRemoved) shape.setAttribute('stroke-dasharray', '5 3');
+}
+
+// ─── Hover highlight ─────────────────────────────────────────────────────────
+function setupHover(svg) {
+  const nodeEls = svg.querySelectorAll('.node');
+  const edgeEls = svg.querySelectorAll('.edge');
+
+  nodeEls.forEach(g => {
+    const id = g.dataset.id;
+    g.addEventListener('mouseenter', () => {
+      const connected = new Set([id]);
+      edgeEls.forEach(e => {
+        if (e.dataset.from === id || e.dataset.to === id) {
+          connected.add(e.dataset.from);
+          connected.add(e.dataset.to);
+        }
+      });
+      nodeEls.forEach(n => n.style.opacity = connected.has(n.dataset.id) ? '1' : '0.15');
+      edgeEls.forEach(e => {
+        const isConnected = e.dataset.from === id || e.dataset.to === id;
+        e.style.strokeOpacity = isConnected ? '1' : '0.05';
+        e.style.strokeWidth = isConnected ? '2.5' : '1';
+      });
+    });
+    g.addEventListener('mouseleave', () => {
+      nodeEls.forEach(n => { n.style.opacity = ''; });
+      edgeEls.forEach(e => { e.style.strokeOpacity = ''; e.style.strokeWidth = ''; });
+    });
+  });
+}
+
+// ─── Sidebar population ──────────────────────────────────────────────────────
+function populateSidebar() {
   const g = GRAPH_DATA;
-  document.getElementById('meta-scope').textContent = g.meta.scopeDir.split('/').pop();
+  document.getElementById('meta-scope').textContent = g.meta.scopeDir.split('/').at(-1);
   document.getElementById('meta-nodes').textContent = g.nodes.length;
   document.getElementById('meta-edges').textContent = g.edges.length;
-  document.getElementById('meta-ts').textContent = new Date(g.meta.generatedAt).toLocaleDateString();
-
-  const changed = g.nodes.filter(n => n.diff && n.diff !== 'unchanged');
   const list = document.getElementById('changed-files-list');
   list.innerHTML = '';
-  for (const n of changed) {
-    const el = document.createElement('div');
-    el.className = `file-entry ${n.diff}`;
-    el.title = n.file;
-    el.textContent = (n.diff === 'added' ? '+ ' : n.diff === 'removed' ? '- ' : '~ ') + n.label;
-    list.appendChild(el);
+  for (const n of g.nodes.filter(n => n.diff && n.diff !== 'unchanged')) {
+    const chip = document.createElement('div');
+    chip.className = `file-chip ${n.diff}`;
+    chip.title = n.file;
+    chip.textContent = (n.diff === 'added' ? '+ ' : n.diff === 'removed' ? '− ' : '~ ') + n.label;
+    list.appendChild(chip);
+  }
+}
+
+// ─── Main render ─────────────────────────────────────────────────────────────
+let currentMode = 'all';
+
+async function render(mode) {
+  const wrap = document.getElementById('svg-wrap');
+  wrap.innerHTML = '<div id="status" style="padding:20px;color:#475569">Laying out graph…</div>';
+  const { nodes, edges } = applyMode(GRAPH_DATA.nodes, GRAPH_DATA.edges, mode);
+  try {
+    const { pos, laidEdges } = await layoutGraph(nodes, edges);
+    const svg = drawSVG(nodes, edges, pos, laidEdges);
+    wrap.innerHTML = '';
+    wrap.appendChild(svg);
+    setupHover(svg);
+  } catch (err) {
+    wrap.innerHTML = `<div style="padding:20px;color:#ef4444">Layout error: ${err.message}</div>`;
+    console.error(err);
   }
 }
 
 async function setMode(mode) {
   currentMode = mode;
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
-  });
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   await render(mode);
 }
 
-async function init() {
-  elkInstance = new ELK();
-  updateSidebarMeta();
-  await render(currentMode);
-}
-
-init().catch(err => {
-  document.getElementById('loading').textContent = 'Init error: ' + err.message;
-  console.error(err);
-});
+populateSidebar();
+render('all');
 </script>
 </body>
 </html>
