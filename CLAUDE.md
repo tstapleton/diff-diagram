@@ -11,14 +11,21 @@ npm install
 ## Usage
 
 ```bash
-# Phase 2 (current): open renderer directly in browser
+# Open renderer prototype in browser (hand-crafted data)
 open src/renderer.html
 
-# Phase 5 (planned): full CLI
+# Full CLI (fake app with patch overlay)
 node src/cli.js \
   --patch fake-angular-app/fake-complex.patch \
+  --repo-root fake-angular-app \
   --out-dir dist \
   fake-angular-app/src/app/features/users
+
+# Full CLI (real Angular repo — auto-detects .git root)
+node src/cli.js \
+  --patch path/to/changes.patch \
+  --out-dir dist \
+  path/to/src/app/features/my-feature
 ```
 
 ## Count nodes in any Angular feature directory
@@ -37,8 +44,10 @@ No barrel files. No `.spec.ts` files.
 fake-angular-app/src/app/features/users/   ← scope directory (59 .ts files)
 fake-angular-app/src/app/shared/           ← 1-hop context targets (18 .ts files)
 fake-angular-app/fake-simple.patch         ← 3-change diff for basic testing
-fake-angular-app/fake-complex.patch        ← 8-change diff covering all scenarios
+fake-angular-app/fake-complex.patch        ← 10-change diff covering all scenarios
 ```
+
+Note: `--repo-root fake-angular-app` is needed for the fake app because the fake app has no `.git` of its own — patch paths are relative to `fake-angular-app/`, not to the outer `diff-diagram/` repo root. Real Angular projects auto-detect via `.git`.
 
 ## Architecture
 
@@ -46,10 +55,10 @@ fake-angular-app/fake-complex.patch        ← 8-change diff covering all scenar
 |---|---|---|
 | 0 | package.json, .npmrc | done |
 | 1 | fake-angular-app/ | done |
-| 2 | src/renderer.html | in progress |
-| 3 | src/analyzer.js | not started |
-| 4 | src/diff-parser.js | not started |
-| 5 | src/cli.js | not started |
+| 2 | src/renderer.html | done |
+| 3 | src/analyzer.js + src/filter.js | done |
+| 4 | src/diff-parser.js | done |
+| 5 | src/cli.js | done |
 
 ## Graph schema
 
@@ -62,7 +71,7 @@ nodes[]: { id, label, file, type, scope, diff }
   diff:  added | modified | removed | unchanged | null
 
 edges[]: { from, to, kind, diff? }
-  kind:  import | decorator-import
+  kind:  import
   diff:  added | removed | unchanged (optional; derived from node diff if absent)
 ```
 
