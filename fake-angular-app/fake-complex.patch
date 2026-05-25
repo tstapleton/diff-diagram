@@ -1,0 +1,211 @@
+diff --git a/src/app/features/users/user-export/user-bulk-export.component.ts b/src/app/features/users/user-export/user-bulk-export.component.ts
+new file mode 100644
+index 0000000..a1b2c3d
+--- /dev/null
++++ b/src/app/features/users/user-export/user-bulk-export.component.ts
+@@ -0,0 +1,38 @@
++import { Component, Input } from '@angular/core';
++import { CommonModule } from '@angular/common';
++import { UserExportService } from './user-export.service';
++import { ExportModel } from './export.model';
++import { UserModel } from '../models/user.model';
++
++@Component({
++  selector: 'app-user-bulk-export',
++  standalone: true,
++  imports: [CommonModule],
++  template: `
++    <div class="bulk-export">
++      <button (click)="exportAll()">Export All ({{ users.length }})</button>
++      <button (click)="exportSelected()" [disabled]="!selectedIds.length">
++        Export Selected ({{ selectedIds.length }})
++      </button>
++    </div>
++  `,
++})
++export class UserBulkExportComponent {
++  @Input() users: UserModel[] = [];
++  @Input() selectedIds: string[] = [];
++
++  constructor(private exportService: UserExportService) {}
++
++  exportAll(): void {
++    const config: ExportModel = { format: 'csv', fields: ['id', 'email', 'firstName', 'lastName'], filename: 'all-users.csv' };
++    this.exportService.export(this.users, config).subscribe();
++  }
++
++  exportSelected(): void {
++    const selected = this.users.filter(u => this.selectedIds.includes(u.id));
++    const config: ExportModel = { format: 'csv', fields: ['id', 'email', 'firstName', 'lastName'], filename: 'selected-users.csv' };
++    this.exportService.export(selected, config).subscribe();
++  }
++}
+diff --git a/src/app/features/users/user-list/users-list.component.ts b/src/app/features/users/user-list/users-list.component.ts
+index 5678901..6789012 100644
+--- a/src/app/features/users/user-list/users-list.component.ts
++++ b/src/app/features/users/user-list/users-list.component.ts
+@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
+ import { UserCardComponent } from './user-card.component';
+ import { UserFilterComponent } from './user-filter.component';
+ import { UserTableHeaderComponent } from './user-table-header.component';
++import { UserSettingsService } from '../user-settings/user-settings.service';
+ import { UsersService } from '../data-access/users.service';
+ import { UserModel } from '../models/user.model';
+ import { PaginationComponent } from '../../../shared/components/pagination.component';
+@@ -30,9 +31,11 @@ import { PaginationComponent } from '../../../shared/components/pagination.compo
+ export class UsersListComponent implements OnInit {
+   users: UserModel[] = [];
+   page = 1;
+   totalPages = 1;
++  defaultPageSize = 20;
+
+-  constructor(private usersService: UsersService) {}
++  constructor(private usersService: UsersService, private settingsService: UserSettingsService) {}
+
+   ngOnInit(): void {
+     this.usersService.getAll().subscribe(users => {
+diff --git a/src/app/features/users/data-access/users.service.ts b/src/app/features/users/data-access/users.service.ts
+index 1234567..2345678 100644
+--- a/src/app/features/users/data-access/users.service.ts
++++ b/src/app/features/users/data-access/users.service.ts
+@@ -20,4 +20,12 @@ export class UsersService {
+   delete(id: string): Observable<void> {
+     return this.api.delete<void>(`${this.base}/${id}`);
+   }
++
++  bulkUpdate(ids: string[], partial: Partial<UserModel>): Observable<UserModel[]> {
++    return this.api.post<UserModel[]>(`${this.base}/bulk`, { ids, data: partial });
++  }
++
++  search(query: string): Observable<UserModel[]> {
++    return this.api.get<UserModel[]>(`${this.base}?q=${encodeURIComponent(query)}`);
++  }
+ }
+diff --git a/src/app/features/users/models/user.model.ts b/src/app/features/users/models/user.model.ts
+index 3456789..4567890 100644
+--- a/src/app/features/users/models/user.model.ts
++++ b/src/app/features/users/models/user.model.ts
+@@ -7,4 +7,6 @@ export interface UserModel {
+   statusId: string;
+   createdAt: string;
+   updatedAt: string;
++  lastLoginAt: string | null;
++  mfaEnabled: boolean;
+ }
+diff --git a/src/app/features/users/user-list/user-search-results.component.ts b/src/app/features/users/user-list/user-search-results.component.ts
+deleted file mode 100644
+index 9012345..0000000
+--- a/src/app/features/users/user-list/user-search-results.component.ts
++++ /dev/null
+@@ -1,30 +0,0 @@
+-import { Component, OnInit } from '@angular/core';
+-import { CommonModule } from '@angular/common';
+-import { UsersService } from '../data-access/users.service';
+-import { UserModel } from '../models/user.model';
+-import { UserCardComponent } from './user-card.component';
+-import { FilterStateService } from './filter-state.service';
+-import { matchesFilter } from './user-search.utils';
+-
+-@Component({
+-  selector: 'app-user-search-results',
+-  standalone: true,
+-  imports: [CommonModule, UserCardComponent],
+-  template: `
+-    <div class="search-results">
+-      <app-user-card *ngFor="let user of results" [user]="user" />
+-    </div>
+-  `,
+-})
+-export class UserSearchResultsComponent implements OnInit {
+-  results: UserModel[] = [];
+-
+-  constructor(private users: UsersService, private filterState: FilterStateService) {}
+-
+-  ngOnInit(): void {
+-    this.users.getAll().subscribe(all => {
+-      this.filterState.filter$.subscribe(f => {
+-        this.results = all.filter(u => matchesFilter(u, f));
+-      });
+-    });
+-  }
+-}
+diff --git a/src/app/features/users/user-detail/user-detail.component.ts b/src/app/features/users/user-detail/user-detail.component.ts
+index 2233445..3344556 100644
+--- a/src/app/features/users/user-detail/user-detail.component.ts
++++ b/src/app/features/users/user-detail/user-detail.component.ts
+@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
+ import { UserAvatarComponent } from './user-avatar.component';
+ import { UserRolesBadgeComponent } from './user-roles-badge.component';
+ import { UserProfileHeaderComponent } from './user-profile-header.component';
++import { AnalyticsService } from '../../../shared/services/analytics.service';
+ import { UserActivityLogComponent } from './user-activity-log.component';
+ import { UsersService } from '../data-access/users.service';
+ import { UserModel } from '../models/user.model';
+@@ -22,9 +23,11 @@ import { UserModel } from '../models/user.model';
+ export class UserDetailComponent implements OnInit {
+   user: UserModel | null = null;
+
+-  constructor(private route: ActivatedRoute, private usersService: UsersService) {}
++  constructor(private route: ActivatedRoute, private usersService: UsersService, private analytics: AnalyticsService) {}
+
+   ngOnInit(): void {
+     const id = this.route.snapshot.paramMap.get('id') ?? '';
+     this.usersService.getById(id).subscribe(u => {
+       this.user = u;
++      this.analytics.page(`user-detail:${id}`);
+     });
+   }
+ }
+diff --git a/src/app/features/users/user-list/user-filter.component.ts b/src/app/features/users/user-list/user-filter.component.ts
+index 4455667..5566778 100644
+--- a/src/app/features/users/user-list/user-filter.component.ts
++++ b/src/app/features/users/user-list/user-filter.component.ts
+@@ -1,7 +1,6 @@
+ import { Component, OnInit } from '@angular/core';
+ import { CommonModule } from '@angular/common';
+ import { FilterStateService } from './filter-state.service';
+ import { FilterModel } from './filter.model';
+-import { SearchComponent } from '../../../shared/components/search.component';
+
+ @Component({
+   selector: 'app-user-filter',
+   standalone: true,
+-  imports: [CommonModule, SearchComponent],
++  imports: [CommonModule],
+   template: `
+     <div class="user-filter">
+-      <app-search [query]="filter.query" (queryChange)="onQueryChange($event)" />
++      <input type="search" [value]="filter.query" (input)="onQueryChange($any($event.target).value)" placeholder="Search users..." />
+     </div>
+   `,
+ })
+diff --git a/src/app/shared/api/api.service.ts b/src/app/shared/api/api.service.ts
+index 6677889..7788990 100644
+--- a/src/app/shared/api/api.service.ts
++++ b/src/app/shared/api/api.service.ts
+@@ -12,4 +12,8 @@ export class ApiService {
+   delete<T>(url: string): Observable<T> {
+     return this.http.delete<T>(url);
+   }
++
++  patch<T>(url: string, body: unknown): Observable<T> {
++    return this.http.patch<T>(url, body);
++  }
+ }
+diff --git a/src/app/features/users/user-list/user-table-header.component.ts b/src/app/features/users/user-list/user-sort-header.component.ts
+similarity index 82%
+rename from src/app/features/users/user-list/user-table-header.component.ts
+rename to src/app/features/users/user-list/user-sort-header.component.ts
+index 8899001..9900112 100644
+--- a/src/app/features/users/user-list/user-table-header.component.ts
++++ b/src/app/features/users/user-list/user-sort-header.component.ts
+@@ -1,7 +1,7 @@
+ import { Component } from '@angular/core';
+ import { CommonModule } from '@angular/common';
+ import { SortStateService } from './sort-state.service';
+ import { SortModel } from './sort.model';
+
+ @Component({
+-  selector: 'app-user-table-header',
++  selector: 'app-user-sort-header',
+   standalone: true,

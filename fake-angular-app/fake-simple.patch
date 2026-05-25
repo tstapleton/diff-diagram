@@ -1,0 +1,70 @@
+diff --git a/src/app/features/users/user-export/user-bulk-export.component.ts b/src/app/features/users/user-export/user-bulk-export.component.ts
+new file mode 100644
+index 0000000..a1b2c3d
+--- /dev/null
++++ b/src/app/features/users/user-export/user-bulk-export.component.ts
+@@ -0,0 +1,28 @@
++import { Component, Input } from '@angular/core';
++import { CommonModule } from '@angular/common';
++import { UserExportService } from './user-export.service';
++import { ExportModel } from './export.model';
++import { UserModel } from '../models/user.model';
++
++@Component({
++  selector: 'app-user-bulk-export',
++  standalone: true,
++  imports: [CommonModule],
++  template: `
++    <div class="bulk-export">
++      <button (click)="exportAll()">Export All ({{ users.length }})</button>
++      <button (click)="exportSelected()" [disabled]="!selectedIds.length">
++        Export Selected ({{ selectedIds.length }})
++      </button>
++    </div>
++  `,
++})
++export class UserBulkExportComponent {
++  @Input() users: UserModel[] = [];
++  @Input() selectedIds: string[] = [];
++
++  constructor(private exportService: UserExportService) {}
++
++  exportAll(): void {
++    const config: ExportModel = { format: 'csv', fields: ['id', 'email', 'firstName', 'lastName'], filename: 'all-users.csv' };
++    this.exportService.export(this.users, config).subscribe();
++  }
++
++  exportSelected(): void {
++    const selected = this.users.filter(u => this.selectedIds.includes(u.id));
++    const config: ExportModel = { format: 'csv', fields: ['id', 'email', 'firstName', 'lastName'], filename: 'selected-users.csv' };
++    this.exportService.export(selected, config).subscribe();
++  }
++}
+diff --git a/src/app/features/users/data-access/users.service.ts b/src/app/features/users/data-access/users.service.ts
+index 1234567..2345678 100644
+--- a/src/app/features/users/data-access/users.service.ts
++++ b/src/app/features/users/data-access/users.service.ts
+@@ -20,4 +20,12 @@ export class UsersService {
+   delete(id: string): Observable<void> {
+     return this.api.delete<void>(`${this.base}/${id}`);
+   }
++
++  bulkUpdate(ids: string[], partial: Partial<UserModel>): Observable<UserModel[]> {
++    return this.api.post<UserModel[]>(`${this.base}/bulk`, { ids, data: partial });
++  }
++
++  search(query: string): Observable<UserModel[]> {
++    return this.api.get<UserModel[]>(`${this.base}?q=${encodeURIComponent(query)}`);
++  }
+ }
+diff --git a/src/app/features/users/models/user.model.ts b/src/app/features/users/models/user.model.ts
+index 3456789..4567890 100644
+--- a/src/app/features/users/models/user.model.ts
++++ b/src/app/features/users/models/user.model.ts
+@@ -7,4 +7,6 @@ export interface UserModel {
+   statusId: string;
+   createdAt: string;
+   updatedAt: string;
++  lastLoginAt: string | null;
++  mfaEnabled: boolean;
+ }

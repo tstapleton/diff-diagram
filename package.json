@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "scripts": {
+    "analyze": "node src/cli.js"
+  },
+  "dependencies": {
+    "elkjs": "0.11.1",
+    "ts-morph": "28.0.0"
+  }
+}
