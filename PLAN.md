@@ -22,30 +22,29 @@ User priorities:
 find <scope-dir> -name "*.ts" ! -name "*.spec.ts" | wc -l
 ```
 
-**File type classification** (determines node shape and grouping — NOT color; color is reserved for diff state):
+**File type classification** (determines border style and grouping — NOT color; color is reserved for diff state):
 
-| Type | Detection | SVG shape |
+| Type | Detection | Border style |
 |---|---|---|
-| `component` | `@Component(...)` decorator | rectangle |
-| `service` | `@Injectable(...)` + not guard/resolver/interceptor | rounded rect |
-| `pipe` | `@Pipe(...)` decorator | ellipse |
-| `guard` | `@Injectable` + `*.guard.ts` filename | diamond |
-| `resolver` | `@Injectable` + `*.resolver.ts` filename | diamond |
-| `interceptor` | `@Injectable` + `*.interceptor.ts` filename | diamond |
-| `routing` | `*.routes.ts` filename | hexagon |
-| `module` | `@NgModule(...)` decorator (legacy) | rounded rect |
-| `model` | No decorator, `*.model.ts` / `*.interface.ts` / only `interface`/`type` exports | plain rect (thin border) |
-| `constants` | No decorator, only constant/function exports | plain rect (thin border) |
+| `component` | `@Component(...)` decorator | rect, normal border |
+| `service` | `@Injectable(...)` + not guard/resolver/interceptor | rect, normal border |
+| `pipe` | `@Pipe(...)` decorator | rect, normal border |
+| `guard` | `@Injectable` + `*.guard.ts` filename | rect, normal border |
+| `resolver` | `@Injectable` + `*.resolver.ts` filename | rect, normal border |
+| `interceptor` | `@Injectable` + `*.interceptor.ts` filename | rect, normal border |
+| `routing` | `*.routes.ts` filename | rect, normal border |
+| `module` | `@NgModule(...)` decorator (legacy) | rect, normal border |
+| `model` | No decorator, `*.model.ts` / `*.interface.ts` / only `interface`/`type` exports | rect, thin border |
+| `constants` | No decorator, only constant/function exports | rect, thin border |
 
 **Visual encoding:**
 - **Color** = diff state only: green (added), amber (modified), red (removed), dim gray (unchanged)
-- **Shape** = file type (see table)
+- **Border** = thin for model/constants; normal for everything else
 - **Subgraph** = directory grouping within scope
 
 **Standalone Angular specifics:**
 - `@Component({ standalone: true, imports: [OtherComponent, SomePipe] })` — the `imports` array is a runtime dependency list distinct from TypeScript-level imports
-- Both layers captured: TypeScript imports (graph edges) + decorator `imports` array (edge kind: `decorator-import`)
-- Decorator import identifiers resolved to file paths via ts-morph symbol lookup
+- Both layers captured: TypeScript imports + decorator `imports` array — both represented as `kind: "import"` edges (no distinction between the two)
 
 **1-hop context — exact definition:**
 Everything inside the scope directory is shown. Those files import other files outside the scope directory. Show those external targets as context nodes. Do NOT recurse into their imports — stop at one level outside.
@@ -108,7 +107,7 @@ diff-diagram/
   edges: [{
     from: "users_list_component",
     to: "user_card_component",
-    kind: "import"                     // "import" | "decorator-import"
+    kind: "import"
   }]
 }
 ```
@@ -345,7 +344,7 @@ These are the scale strategies — not separate datasets. The same ~85-node fake
 
 **Gate 1 — open `src/renderer.html` in browser:**
 
-✅ Pass: `All nodes` mode shows all ~85 nodes without catastrophic overlap; `Diff-focused` mode is clearly more readable than `All nodes` for a PR review context; diff colors are distinguishable; node shapes are recognizable
+✅ Pass: `All nodes` mode shows all ~85 nodes without catastrophic overlap; `Diff-focused` mode is clearly more readable than `All nodes` for a PR review context; diff colors are distinguishable; out-of-scope nodes are visually distinct from in-scope nodes
 
 ❌ Fail options (try in order):
 1. Tune `elk.layered.spacing` — increase padding until labels stop overlapping
@@ -364,7 +363,7 @@ ts-morph based file parser. ESM module.
 2. Add scope files: `project.addSourceFilesAtPaths(scopeDir + '/**/*.ts')`, remove `.spec.ts`
 3. Classify each file by decorator + filename pattern (see table above)
 4. Extract imports: use ts-morph's `getModuleSpecifierSourceFile()` per import declaration — this handles relative paths, `baseUrl`, `paths` aliases, and barrel resolution transparently
-5. Extract decorator `imports` array: for `@Component` classes, read `imports: [...]`, resolve identifier names to source files via symbol lookup
+5. Extract decorator `imports` array: for `@Component` classes, read `imports: [...]`, resolve identifier names to source files via symbol lookup; all edges use `kind: "import"`
 6. Return raw JSON graph (in-scope nodes + edges only)
 
 `src/filter.js`: follows all in-scope import targets that resolve outside the scope directory; adds them as 1-hop context nodes; does NOT recurse.
@@ -374,10 +373,10 @@ ts-morph based file parser. ESM module.
 node src/analyzer.js fake-angular-app/src/app/features/users
 ```
 
-✅ Pass: node count matches `find` output; every node has a valid `type`; specific edges verified (e.g. `UsersListComponent` → `UserCardComponent`, `UsersService`, `UserModel`); shared context nodes present
+✅ Pass: node count matches `find` output (spec and `.d.ts` files excluded); every node has a valid `type`; specific edges verified (e.g. `UsersListComponent` → `UserCardComponent`, `UsersService`, `UserModel`); shared context nodes present; no `node_modules` nodes
 
 ❌ Fail options:
-- Symbol resolution fails for decorator imports → mark as `decorator-import-unresolved`, keep the edge
+- Symbol resolution fails for decorator imports → keep the edge with `kind: "import"`, skip unresolved
 - Classifier wrong → filename pattern takes priority over decorator detection
 - ts-morph parse errors → add `skipFilesWithErrors: true`
 

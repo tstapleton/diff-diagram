@@ -75,6 +75,12 @@ edges[]: { from, to, kind, diff? }
   diff:  added | removed | unchanged (optional; derived from node diff if absent)
 ```
 
+## Development workflow
+
+- Each commit must complete exactly one task from `TASKS.md` and mark it done (`- [x]`) in the same commit.
+- Before asking the user to review output, read through the relevant code and check for obvious bugs.
+- Bug fixes: do not add features, refactoring, or cleanup beyond fixing the stated bug.
+
 ## Validation gates
 
 Each phase has a gate. **If a gate fails, change approach — do not skip.**
