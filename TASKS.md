@@ -11,7 +11,7 @@ Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests ass
 
 ## Unit Tests (write these first — they will be red until bug fixes land)
 
-- [ ] Tests: `src/diff-parser.test.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes; include cases that expose known bugs (non-.ts ghost nodes, removed-ghost type)
+- [x] Tests: `src/diff-parser.test.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes; include cases that expose known bugs (non-.ts ghost nodes, removed-ghost type)
 - [ ] Tests: `src/analyzer.test.js` — `toNodeId()`, `labelFromFile()`, `classifyFile()` by filename and decorator; include cases that expose known bugs (node_modules inclusion, spec/.d.ts exclusion)
 - [ ] Tests: `src/filter.test.js` — `addContext()`, out-of-scope node creation, edge deduplication
 
