@@ -12,7 +12,7 @@ Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests ass
 ## Unit Tests (write these first — they will be red until bug fixes land)
 
 - [x] Tests: `src/diff-parser.test.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes; include cases that expose known bugs (non-.ts ghost nodes, removed-ghost type)
-- [ ] Tests: `src/analyzer.test.js` — `toNodeId()`, `labelFromFile()`, `classifyFile()` by filename and decorator; include cases that expose known bugs (node_modules inclusion, spec/.d.ts exclusion)
+- [x] Tests: `src/analyzer.test.js` — `toNodeId()`, `labelFromFile()`, `classifyFile()` by filename and decorator; include cases that expose known bugs (node_modules inclusion, spec/.d.ts exclusion)
 - [ ] Tests: `src/filter.test.js` — `addContext()`, out-of-scope node creation, edge deduplication
 
 ## Renderer Refactor
@@ -27,6 +27,7 @@ Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests ass
 - [ ] Fix: non-.ts files (`.md`, `.json`, etc.) appear in diagram — `src/diff-parser.js` `applyDiff()` doesn't filter by extension
 - [ ] Fix: `node_modules` files included in diagram — `src/analyzer.js` glob patterns don't exclude `node_modules/`
 - [ ] Fix: removed-ghost nodes always typed as `component` — `src/diff-parser.js` hardcodes type instead of calling `classifyByFilename()`
+- [ ] Fix: `labelFromFile` splits only on `-` not `.` — `user-list.component.ts` produces `UserList.component` instead of `UserListComponent`
 - [ ] Fix: edges/lines overlap in rendered diagram — ELK layout options lack overlap-prevention settings
 
 ## Low Priority

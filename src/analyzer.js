@@ -3,15 +3,21 @@ import { Project } from 'ts-morph';
 
 // ─── File type classification ─────────────────────────────────────────────────
 
-function classifyFile(sourceFile) {
-  const base = path.basename(sourceFile.getFilePath());
-
-  // Filename-pattern rules take priority
+// Pure filename-pattern classifier. Returns the type if the filename matches a
+// known pattern, or null if the file needs decorator/export inspection.
+export function classifyByFilename(filePath) {
+  const base = path.basename(filePath);
   if (base.endsWith('.routes.ts'))      return 'routing';
   if (base.endsWith('.guard.ts'))       return 'guard';
   if (base.endsWith('.resolver.ts'))    return 'resolver';
   if (base.endsWith('.interceptor.ts')) return 'interceptor';
   if (base.endsWith('.model.ts') || base.endsWith('.interface.ts')) return 'model';
+  return null;
+}
+
+function classifyFile(sourceFile) {
+  const byFilename = classifyByFilename(sourceFile.getFilePath());
+  if (byFilename) return byFilename;
 
   for (const cls of sourceFile.getClasses()) {
     for (const dec of cls.getDecorators()) {
