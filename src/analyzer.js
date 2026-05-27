@@ -93,15 +93,18 @@ export async function analyze(scopeDir, { repoRoot, tsConfigPath } = {}) {
 
   if (!tsConfigPath) tsConfigPath = await findTsConfig(scopeDir);
 
-  const project = new Project(
-    tsConfigPath
-      ? { tsConfigFilePath: tsConfigPath, skipFilesWithErrors: true }
-      : { skipAddingFilesFromTsConfig: true, skipFilesWithErrors: true }
-  );
+  // Always skip tsconfig file discovery — we add scope files explicitly.
+  // tsConfigFilePath is still used for compiler settings (path aliases etc).
+  const project = new Project({
+    ...(tsConfigPath ? { tsConfigFilePath: tsConfigPath } : {}),
+    skipAddingFilesFromTsConfig: true,
+    skipFilesWithErrors: true,
+  });
 
   project.addSourceFilesAtPaths([
     path.join(scopeDir, '**/*.ts'),
     `!${path.join(scopeDir, '**/*.spec.ts')}`,
+    `!${path.join(scopeDir, '**/*.d.ts')}`,
   ]);
 
   const nodes = [];

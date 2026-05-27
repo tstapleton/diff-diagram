@@ -100,7 +100,7 @@
       <div class="legend-row"><div class="legend-swatch" style="background:#78350f;border:1.5px solid #f59e0b"></div>Modified</div>
       <div class="legend-row"><div class="legend-swatch" style="background:#7f1d1d;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
       <div class="legend-row"><div class="legend-swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
-      <div class="legend-row"><div class="legend-swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>Out-of-scope (1-hop)</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#0a1829;border:1.5px solid #2563eb"></div>External (1-hop context)</div>
     </div>
   </div>
   <div class="card">
@@ -112,14 +112,11 @@
     </div>
   </div>
   <div class="card">
-    <h2>Shape Legend</h2>
+    <h2>Node Types</h2>
     <div class="legend" style="font-size:11px;color:var(--text-dim)">
-      <div class="legend-row">▭ sharp corners — Component</div>
-      <div class="legend-row">▢ rounded — Service</div>
-      <div class="legend-row">◇ diamond — Guard / Resolver</div>
-      <div class="legend-row">◯ ellipse — Pipe</div>
-      <div class="legend-row">⬡ hexagon — Routing</div>
-      <div class="legend-row">— thin border — Model / Constants</div>
+      <div class="legend-row">thick border — Component / Service / etc.</div>
+      <div class="legend-row">thin border — Model / Constants</div>
+      <div class="legend-row">blue border — External (1-hop context)</div>
     </div>
   </div>
   <div class="card">
@@ -384,7 +381,7 @@ const DIFF_COLORS = {
   removed:  { fill: "#7f1d1d", stroke: "#ef4444", text: "#fca5a5" },
   unchanged:{ fill: "#1e293b", stroke: "#475569", text: "#94a3b8" },
 };
-const OOS_COLORS  = { fill: "#0a1829", stroke: "#1e3a5f", text: "#4a7da8" };
+const OOS_COLORS  = { fill: "#0a1829", stroke: "#2563eb", text: "#60a5fa" };
 const EDGE_COLORS = {
   added:    "#22c55e",
   removed:  "#ef4444",
@@ -392,8 +389,24 @@ const EDGE_COLORS = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Works for both short (scope-relative) and long (repo-relative) file paths.
+// For in-scope nodes: strips the scopeDir prefix, returns the first subdirectory.
+// For out-of-scope nodes: returns the first path segment that diverges from scopeDir.
 function nodeDir(node) {
-  const parts = node.file.split('/');
+  const file = node.file;
+  const scopeDir = GRAPH_DATA.meta.scopeDir || '';
+
+  if (node.scope === 'out-of-scope') {
+    const sp = scopeDir.split('/'), fp = file.split('/');
+    let i = 0;
+    while (i < sp.length && i < fp.length && sp[i] === fp[i]) i++;
+    return fp[i] || fp[0] || '_oos';
+  }
+
+  const prefix = scopeDir ? scopeDir + '/' : '';
+  const rel = (prefix && file.startsWith(prefix)) ? file.slice(prefix.length) : file;
+  const parts = rel.split('/');
   return parts.length > 1 ? parts[0] : '_root';
 }
 
@@ -753,7 +766,9 @@ function drawSVG(nodes, edges, pos, laidEdges, grpPos) {
     typeLbl.setAttribute('font-size', '8');
     typeLbl.setAttribute('font-family', 'monospace');
     typeLbl.setAttribute('opacity', '0.6');
-    typeLbl.textContent = node.type;
+    typeLbl.textContent = node.scope === 'out-of-scope'
+      ? nodeDir(node) + '/ ' + node.type
+      : node.type;
     g.appendChild(typeLbl);
 
     nodeGroup.appendChild(g);
@@ -767,44 +782,13 @@ function el(ns, tag) { return document.createElementNS(ns, tag); }
 function makeShape(NS, node, p, colors) {
   const { x, y, w, h } = p;
   const isRemoved = node.diff === 'removed';
-
-  if (node.type === 'pipe') {
-    const e = el(NS, 'ellipse');
-    e.setAttribute('cx', x + w / 2); e.setAttribute('cy', y + h / 2);
-    e.setAttribute('rx', w / 2); e.setAttribute('ry', h / 2);
-    applyFill(e, colors, isRemoved);
-    return e;
-  }
-  if (node.type === 'guard' || node.type === 'resolver') {
-    const cx = x + w / 2, cy = y + h / 2, hw = w / 2 - 2, hh = h / 2 - 2;
-    const poly = el(NS, 'polygon');
-    poly.setAttribute('points', `${cx},${cy - hh} ${cx + hw},${cy} ${cx},${cy + hh} ${cx - hw},${cy}`);
-    applyFill(poly, colors, isRemoved);
-    return poly;
-  }
-  if (node.type === 'routing') {
-    const cx = x + w / 2, cy = y + h / 2;
-    const r = Math.min(w / 2 - 2, h / 2 - 2);
-    const pts = Array.from({ length: 6 }, (_, i) => {
-      const a = Math.PI / 3 * i - Math.PI / 6;
-      return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
-    }).join(' ');
-    const poly = el(NS, 'polygon');
-    poly.setAttribute('points', pts);
-    applyFill(poly, colors, isRemoved);
-    return poly;
-  }
-
-  // Rect variants
   const rect = el(NS, 'rect');
   rect.setAttribute('x', x); rect.setAttribute('y', y);
   rect.setAttribute('width', w); rect.setAttribute('height', h);
-  if (node.type === 'component')                rect.setAttribute('rx', '2');
-  else if (node.type === 'service' || node.type === 'module') rect.setAttribute('rx', '10');
-  else                                           rect.setAttribute('rx', '3'); // model/constants
+  rect.setAttribute('rx', '3');
   const thin = node.type === 'model' || node.type === 'constants';
   rect.setAttribute('stroke-width', thin ? '1' : '1.5');
-  if (thin) rect.setAttribute('stroke-opacity', '0.55');
+  if (thin) rect.setAttribute('stroke-opacity', '0.6');
   applyFill(rect, colors, isRemoved);
   return rect;
 }
