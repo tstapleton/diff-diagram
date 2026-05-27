@@ -2,26 +2,32 @@
 
 Each commit must complete exactly one task from this list and mark it done (`- [x]`).
 
-## Bug Fixes
+Approach: TDD (red-green). Write failing tests first that expose the bugs, then fix the code to make them pass.
+Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests assert expected output — not implementation details.
 
-- [ ] Fix: non-.ts files (`.md`, `.json`, etc.) appear in diagram — `diff-parser.js` `applyDiff()` doesn't filter by extension before creating ghost nodes
-- [ ] Fix: `node_modules` files included in diagram — `analyzer.js` glob patterns don't exclude `node_modules/`
-- [ ] Fix: removed-ghost nodes always typed as `component` — `diff-parser.js` line 127 hardcodes type instead of calling `classifyByFilename()`
-- [ ] Fix: edges/lines overlap in rendered diagram — ELK layout options lack overlap-prevention settings (spacing, spline mode)
+## Unit Test Setup
 
-## Unit Tests
+- [ ] Setup: add vitest, configure `package.json` test script
 
-- [ ] Setup: add vitest, configure `package.json` test script, add `tests/` directory
-- [ ] Tests: `diff-parser.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes
-- [ ] Tests: `analyzer.js` — file classification, `toNodeId()`, `labelFromFile()`, exclusion of spec/d.ts/node_modules files
-- [ ] Tests: `filter.js` — `addContext()`, out-of-scope node creation, edge deduplication
+## Unit Tests (write these first — they will be red until bug fixes land)
+
+- [ ] Tests: `src/diff-parser.test.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes; include cases that expose known bugs (non-.ts ghost nodes, removed-ghost type)
+- [ ] Tests: `src/analyzer.test.js` — `toNodeId()`, `labelFromFile()`, `classifyFile()` by filename and decorator; include cases that expose known bugs (node_modules inclusion, spec/.d.ts exclusion)
+- [ ] Tests: `src/filter.test.js` — `addContext()`, out-of-scope node creation, edge deduplication
 
 ## Renderer Refactor
 
-- [ ] Extract renderer logic from `renderer.html` into `src/renderer/` modules: `layout.js` (elkjs wrapper, pure), `draw.js` (SVG generation, pure), `graph-data.js` (data access helpers)
+- [ ] Extract renderer logic from `renderer.html` into modules: `src/renderer/layout.js` (elkjs wrapper, pure), `src/renderer/draw.js` (SVG generation, pure), `src/renderer/graph-helpers.js` (node/edge data helpers, pure)
+- [ ] Tests: `src/renderer/layout.test.js` — ELK input construction, coordinate offset, intra/inter edge separation
+- [ ] Tests: `src/renderer/draw.test.js` — node color selection, edge path generation, label truncation
 - [ ] Rewrite `renderer.html` as a thin shell that imports those modules
-- [ ] Tests: `renderer/layout.js` — ELK input construction, coordinate offset logic, intra/inter edge separation
-- [ ] Tests: `renderer/draw.js` — node color selection, edge path generation, label truncation
+
+## Bug Fixes (make red tests green)
+
+- [ ] Fix: non-.ts files (`.md`, `.json`, etc.) appear in diagram — `src/diff-parser.js` `applyDiff()` doesn't filter by extension
+- [ ] Fix: `node_modules` files included in diagram — `src/analyzer.js` glob patterns don't exclude `node_modules/`
+- [ ] Fix: removed-ghost nodes always typed as `component` — `src/diff-parser.js` hardcodes type instead of calling `classifyByFilename()`
+- [ ] Fix: edges/lines overlap in rendered diagram — ELK layout options lack overlap-prevention settings
 
 ## Low Priority
 
