@@ -7,7 +7,7 @@ Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests ass
 
 ## Unit Test Setup
 
-- [ ] Setup: add vitest, configure `package.json` test script
+- [x] Setup: add vitest, configure `package.json` test script
 
 ## Unit Tests (write these first — they will be red until bug fixes land)
 
