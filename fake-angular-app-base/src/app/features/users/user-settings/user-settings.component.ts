@@ -3,13 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserPreferencesService } from './user-preferences.service';
 import { UserPreferencesModel } from './user-preferences.model';
-import { UserSecurityComponent } from './user-security.component';
-import { UserNotificationPrefsComponent } from './user-notification-prefs.component';
 
 @Component({
   selector: 'app-user-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, UserSecurityComponent, UserNotificationPrefsComponent],
+  imports: [CommonModule, FormsModule],
   template: `
     <div *ngIf="prefs" class="user-settings">
       <label>Theme
@@ -19,8 +17,6 @@ import { UserNotificationPrefsComponent } from './user-notification-prefs.compon
           <option value="system">System</option>
         </select>
       </label>
-      <app-user-security [userId]="userId" />
-      <app-user-notification-prefs [userId]="userId" />
     </div>
   `,
 })

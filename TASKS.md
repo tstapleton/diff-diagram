@@ -32,8 +32,8 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 ## 6. Edge-Level Diff
 
 - [x] Implement src/diff-parser.ts diffGraphs(base: Graph, current: Graph): Graph — diffs node sets and edge sets; nodes in current only → added; nodes in base only → removed-ghost; edges in current only → added; edges in base only → removed; matched nodes with import set changes → modified
-- [ ] Create fake-angular-app-base/ — base state fixture; update fake-angular-app/ to represent the after state with meaningful differences (added files, modified files, changed imports, new out-of-scope deps)
-- [ ] Integration tests: run full pipeline with --base-dir fake-angular-app-base, verify node diff states and edge diff states
+- [x] Create fake-angular-app-base/ — base state fixture; update fake-angular-app/ to represent the after state with meaningful differences (added files, modified files, changed imports, new out-of-scope deps)
+- [x] Integration tests: run full pipeline with --base-dir fake-angular-app-base, verify node diff states and edge diff states
 
 ## 7. Renderer Modules
 

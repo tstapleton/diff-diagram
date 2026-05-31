@@ -3,18 +3,19 @@ import { CommonModule } from '@angular/common';
 import { UserCardComponent } from './user-card.component';
 import { UserFilterComponent } from './user-filter.component';
 import { UserTableHeaderComponent } from './user-table-header.component';
+import { UserSearchResultsComponent } from './user-search-results.component';
 import { UsersService } from '../data-access/users.service';
 import { UserModel } from '../models/user.model';
 import { PaginationComponent } from '../../../shared/components/pagination.component';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
 
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule, UserCardComponent, UserFilterComponent, UserTableHeaderComponent, PaginationComponent],
+  imports: [CommonModule, UserCardComponent, UserFilterComponent, UserTableHeaderComponent, UserSearchResultsComponent, PaginationComponent],
   template: `
     <div class="users-list">
       <app-user-filter />
+      <app-user-search-results />
       <table>
         <app-user-table-header />
         <tbody>
@@ -32,7 +33,7 @@ export class UsersListComponent implements OnInit {
   page = 1;
   totalPages = 1;
 
-  constructor(private usersService: UsersService, private analytics: AnalyticsService) {}
+  constructor(private usersService: UsersService) {}
 
   ngOnInit(): void {
     this.usersService.getAll().subscribe(users => {
