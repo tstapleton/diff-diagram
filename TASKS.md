@@ -42,7 +42,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 - [x] Extract src/renderer/layout.ts — computeLayout(nodes, edges): elkjs wrapper; returns node positions and edge bend points; pure function; runs in Node only
 - [x] Tests: src/renderer/layout.test.ts — ELK input construction, output shape
 - [x] Extract src/renderer/draw.ts — toSvg(layout, nodes, edges): generates SVG string from pre-computed layout; pure function; no DOM
-- [ ] Tests: src/renderer/draw.test.ts — node color selection, edge path generation, label truncation
+- [x] Tests: src/renderer/draw.test.ts — node color selection, edge path generation, label truncation
 
 ## 8. CLI Rewrite
 
