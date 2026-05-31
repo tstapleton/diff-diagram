@@ -17,7 +17,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 ## 3. TypeScript Setup
 
-- [ ] Add TypeScript: tsconfig.json, update package.json build + test scripts, convert existing .test.js files to .test.ts
+- [x] Add TypeScript: tsconfig.json, update package.json build + test scripts, convert existing .test.js files to .test.ts
 
 ## 4. Shared Types
 

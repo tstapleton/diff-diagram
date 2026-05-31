@@ -3,7 +3,7 @@ import { addContext } from './filter.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeGraph({ nodes = [], edges = [], oosEdges = [] } = {}) {
+function makeGraph({ nodes = [], edges = [], oosEdges = [] }: { nodes?: any[]; edges?: any[]; oosEdges?: any[] } = {}) {
   return {
     meta: {
       repoRoot: '/repo',
@@ -17,7 +17,7 @@ function makeGraph({ nodes = [], edges = [], oosEdges = [] } = {}) {
   };
 }
 
-function makeNode(file, overrides = {}) {
+function makeNode(file: string, overrides: Record<string, unknown> = {}) {
   const base = file.split('/').at(-1).replace(/\.ts$/, '');
   return {
     id: base.replace(/[^a-zA-Z0-9]/g, '_'),

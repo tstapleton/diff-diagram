@@ -3,7 +3,7 @@ import { parseDiffOutput, applyDiff } from './diff-parser.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeGraph(scopeDir, nodes = [], edges = []) {
+function makeGraph(scopeDir: string, nodes: any[] = [], edges: any[] = []) {
   return {
     meta: { repoRoot: '/repo', scopeDir, nodeCount: nodes.length, edgeCount: edges.length },
     nodes,
@@ -11,7 +11,7 @@ function makeGraph(scopeDir, nodes = [], edges = []) {
   };
 }
 
-function makeNode(file, overrides = {}) {
+function makeNode(file: string, overrides: Record<string, unknown> = {}) {
   const base = file.split('/').at(-1).replace(/\.ts$/, '');
   return {
     id: base.replace(/[^a-zA-Z0-9]/g, '_'),
