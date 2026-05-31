@@ -1,5 +1,5 @@
 import { classifyByFilename, labelFromFile } from './analyzer.js';
-import type { Graph, GraphNode, NodeType } from './types.js';
+import type { Graph, GraphEdge, GraphNode, NodeType } from './types.js';
 
 // ─── Status code mapping ──────────────────────────────────────────────────────
 
@@ -117,6 +117,103 @@ function classifyByFilenameFallback(filePath: string): NodeType {
   if (base.endsWith('.component.ts')) return 'component';
   if (base.endsWith('.pipe.ts'))      return 'pipe';
   return 'constants';
+}
+
+// ─── diffGraphs ───────────────────────────────────────────────────────────────
+// Compares two fully-expanded graphs (base vs current) and produces a single
+// diffed graph where every node and edge carries a diff state.
+
+export function diffGraphs(base: Graph, current: Graph): Graph {
+  // Canonical key for a node: its file path (repo-relative, same structure in both)
+  const baseByFile = new Map(base.nodes.map(n => [n.file, n]));
+  const currentByFile = new Map(current.nodes.map(n => [n.file, n]));
+
+  // Map node id → file path for edge lookups
+  const baseIdToFile = new Map(base.nodes.map(n => [n.id, n.file]));
+  const currentIdToFile = new Map(current.nodes.map(n => [n.id, n.file]));
+
+  // Edge sets keyed by "fromFile→toFile" for cross-graph comparison
+  const baseEdgeKeys = new Set<string>();
+  for (const e of base.edges) {
+    const f = baseIdToFile.get(e.from), t = baseIdToFile.get(e.to);
+    if (f && t) baseEdgeKeys.add(`${f}→${t}`);
+  }
+  const currentEdgeKeys = new Set<string>();
+  for (const e of current.edges) {
+    const f = currentIdToFile.get(e.from), t = currentIdToFile.get(e.to);
+    if (f && t) currentEdgeKeys.add(`${f}→${t}`);
+  }
+
+  // ── Diff nodes ────────────────────────────────────────────────────────────
+  const diffedNodes: GraphNode[] = [];
+
+  for (const node of current.nodes) {
+    if (!baseByFile.has(node.file)) {
+      diffedNodes.push({ ...node, diff: 'added' });
+    } else {
+      const baseNode = baseByFile.get(node.file)!;
+
+      const outgoingAdded = current.edges
+        .filter(e => e.from === node.id)
+        .some(e => {
+          const toFile = currentIdToFile.get(e.to);
+          return toFile && !baseEdgeKeys.has(`${node.file}→${toFile}`);
+        });
+
+      const outgoingRemoved = base.edges
+        .filter(e => e.from === baseNode.id)
+        .some(e => {
+          const toFile = baseIdToFile.get(e.to);
+          return toFile && !currentEdgeKeys.has(`${node.file}→${toFile}`);
+        });
+
+      diffedNodes.push({ ...node, diff: outgoingAdded || outgoingRemoved ? 'modified' : 'unchanged' });
+    }
+  }
+
+  // Ghost nodes for removed in-scope files (not out-of-scope — those just disappear)
+  for (const node of base.nodes) {
+    if (node.scope === 'out-of-scope') continue;
+    if (!currentByFile.has(node.file)) {
+      diffedNodes.push({ ...node, scope: 'removed-ghost', diff: 'removed' });
+    }
+  }
+
+  // ── Diff edges ────────────────────────────────────────────────────────────
+  const diffedEdges: GraphEdge[] = [];
+
+  for (const e of current.edges) {
+    const fromFile = currentIdToFile.get(e.from);
+    const toFile = currentIdToFile.get(e.to);
+    const key = fromFile && toFile ? `${fromFile}→${toFile}` : null;
+    diffedEdges.push({ ...e, diff: key && baseEdgeKeys.has(key) ? 'unchanged' : 'added' });
+  }
+
+  // Removed edges: in base but not in current — rendered using current/ghost node ids
+  const currentFileToId = new Map(current.nodes.map(n => [n.file, n.id]));
+  const ghostFileToId = new Map(
+    diffedNodes.filter(n => n.scope === 'removed-ghost').map(n => [n.file, n.id]),
+  );
+
+  for (const e of base.edges) {
+    const fromFile = baseIdToFile.get(e.from);
+    const toFile = baseIdToFile.get(e.to);
+    if (!fromFile || !toFile) continue;
+    if (currentEdgeKeys.has(`${fromFile}→${toFile}`)) continue;
+
+    const fromId = currentFileToId.get(fromFile) ?? ghostFileToId.get(fromFile);
+    const toId = currentFileToId.get(toFile) ?? ghostFileToId.get(toFile);
+    if (fromId && toId) {
+      diffedEdges.push({ from: fromId, to: toId, kind: e.kind, diff: 'removed' });
+    }
+  }
+
+  return {
+    ...current,
+    meta: { ...current.meta, nodeCount: diffedNodes.length, edgeCount: diffedEdges.length },
+    nodes: diffedNodes,
+    edges: diffedEdges,
+  };
 }
 
 function normalizePath(p: string): string {
