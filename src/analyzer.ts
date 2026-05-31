@@ -1,11 +1,10 @@
 import path from 'path';
-import { Project } from 'ts-morph';
+import { Project, SourceFile } from 'ts-morph';
+import type { Graph, GraphNode, GraphEdge, NodeType } from './types.js';
 
 // ─── File type classification ─────────────────────────────────────────────────
 
-// Pure filename-pattern classifier. Returns the type if the filename matches a
-// known pattern, or null if the file needs decorator/export inspection.
-export function classifyByFilename(filePath) {
+export function classifyByFilename(filePath: string): NodeType | null {
   const base = path.basename(filePath);
   if (base.endsWith('.routes.ts'))      return 'routing';
   if (base.endsWith('.guard.ts'))       return 'guard';
@@ -15,7 +14,7 @@ export function classifyByFilename(filePath) {
   return null;
 }
 
-function classifyFile(sourceFile) {
+function classifyFile(sourceFile: SourceFile): NodeType {
   const byFilename = classifyByFilename(sourceFile.getFilePath());
   if (byFilename) return byFilename;
 
@@ -29,7 +28,6 @@ function classifyFile(sourceFile) {
     }
   }
 
-  // No Angular decorator — check if only interfaces/types exported
   const exported = [...sourceFile.getExportedDeclarations().values()].flat();
   if (exported.length > 0 && exported.every(
     d => d.getKindName().includes('Interface') || d.getKindName().includes('TypeAlias')
@@ -40,7 +38,7 @@ function classifyFile(sourceFile) {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-export function toNodeId(filePath, repoRoot) {
+export function toNodeId(filePath: string, repoRoot: string): string {
   return path.relative(repoRoot, filePath)
     .replace(/\.ts$/, '')
     .replace(/[^a-zA-Z0-9]/g, '_')
@@ -48,22 +46,22 @@ export function toNodeId(filePath, repoRoot) {
     .replace(/^_|_$/g, '');
 }
 
-export function labelFromFile(filePath) {
+export function labelFromFile(filePath: string): string {
   return path.basename(filePath, '.ts')
-    .split('-')
+    .split(/[-.]/)
     .map(p => p.charAt(0).toUpperCase() + p.slice(1))
     .join('');
 }
 
 // ─── Decorator imports extraction ────────────────────────────────────────────
 
-function extractDecoratorImports(cls) {
-  const paths = [];
+function extractDecoratorImports(cls: ReturnType<SourceFile['getClasses']>[number]): string[] {
+  const paths: string[] = [];
   for (const dec of cls.getDecorators()) {
     if (dec.getName() !== 'Component') continue;
     const args = dec.getArguments();
     if (!args.length) continue;
-    const objLit = args[0];
+    const objLit = args[0] as any;
     if (!objLit.getProperties) continue;
     for (const prop of objLit.getProperties()) {
       if (!prop.getName?.() || prop.getName() !== 'imports') continue;
@@ -80,7 +78,7 @@ function extractDecoratorImports(cls) {
 
 // ─── Auto-detect tsconfig ────────────────────────────────────────────────────
 
-async function findTsConfig(startDir) {
+async function findTsConfig(startDir: string): Promise<string | null> {
   const { access } = await import('fs/promises');
   let dir = startDir;
   while (dir !== path.dirname(dir)) {
@@ -93,57 +91,55 @@ async function findTsConfig(startDir) {
 
 // ─── Main analyzer ────────────────────────────────────────────────────────────
 
-export async function analyze(scopeDir, { repoRoot, tsConfigPath } = {}) {
+export async function analyze(
+  scopeDir: string,
+  { repoRoot, tsConfigPath }: { repoRoot?: string; tsConfigPath?: string | null } = {},
+): Promise<Graph> {
   scopeDir = path.resolve(scopeDir);
-  repoRoot = repoRoot ? path.resolve(repoRoot) : path.dirname(scopeDir);
+  const resolvedRoot = repoRoot ? path.resolve(repoRoot) : path.dirname(scopeDir);
 
   if (!tsConfigPath) tsConfigPath = await findTsConfig(scopeDir);
 
-  // Always skip tsconfig file discovery — we add scope files explicitly.
-  // tsConfigFilePath is still used for compiler settings (path aliases etc).
   const project = new Project({
     ...(tsConfigPath ? { tsConfigFilePath: tsConfigPath } : {}),
     skipAddingFilesFromTsConfig: true,
-    skipFilesWithErrors: true,
   });
 
   project.addSourceFilesAtPaths([
     path.join(scopeDir, '**/*.ts'),
     `!${path.join(scopeDir, '**/*.spec.ts')}`,
     `!${path.join(scopeDir, '**/*.d.ts')}`,
+    `!${path.join(scopeDir, '**/node_modules/**')}`,
   ]);
 
-  const nodes = [];
-  const edges = [];
-  // Out-of-scope edges: { from: nodeId, toFile: absolutePath }
-  const oosEdges = [];
-  const nodeIdByFile = new Map(); // absolutePath → nodeId (in-scope only)
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
+  const oosEdges: Array<{ from: string; toFile: string }> = [];
+  const nodeIdByFile = new Map<string, string>();
 
-  // First pass: register all in-scope nodes
   for (const sf of project.getSourceFiles()) {
     if (!sf.getFilePath().startsWith(scopeDir)) continue;
     const fp = sf.getFilePath();
-    const id = toNodeId(fp, repoRoot);
+    const id = toNodeId(fp, resolvedRoot);
     nodeIdByFile.set(fp, id);
     nodes.push({
       id,
       label: labelFromFile(fp),
-      file: path.relative(repoRoot, fp),
+      file: path.relative(resolvedRoot, fp),
       type: classifyFile(sf),
       scope: 'in-scope',
       diff: null,
     });
   }
 
-  // Second pass: extract edges
   for (const sf of project.getSourceFiles()) {
     if (!sf.getFilePath().startsWith(scopeDir)) continue;
-    const fromId = nodeIdByFile.get(sf.getFilePath());
+    const fromId = nodeIdByFile.get(sf.getFilePath())!;
 
-    const addEdge = (targetPath, kind) => {
+    const addEdge = (targetPath: string) => {
       const toId = nodeIdByFile.get(targetPath);
       if (toId) {
-        if (toId !== fromId) edges.push({ from: fromId, to: toId, kind });
+        if (toId !== fromId) edges.push({ from: fromId, to: toId, kind: 'import' });
       } else if (!targetPath.startsWith(scopeDir)) {
         oosEdges.push({ from: fromId, toFile: targetPath });
       }
@@ -151,18 +147,17 @@ export async function analyze(scopeDir, { repoRoot, tsConfigPath } = {}) {
 
     for (const imp of sf.getImportDeclarations()) {
       const target = imp.getModuleSpecifierSourceFile();
-      if (target) addEdge(target.getFilePath(), 'import');
+      if (target) addEdge(target.getFilePath());
     }
 
     for (const cls of sf.getClasses()) {
       for (const targetPath of extractDecoratorImports(cls)) {
-        addEdge(targetPath, 'import');
+        addEdge(targetPath);
       }
     }
   }
 
-  // Deduplicate edges
-  const edgeSet = new Set();
+  const edgeSet = new Set<string>();
   const dedupedEdges = edges.filter(e => {
     const k = `${e.from}→${e.to}:${e.kind}`;
     return edgeSet.has(k) ? false : (edgeSet.add(k), true);
@@ -170,8 +165,8 @@ export async function analyze(scopeDir, { repoRoot, tsConfigPath } = {}) {
 
   return {
     meta: {
-      scopeDir: path.relative(repoRoot, scopeDir),
-      repoRoot,
+      scopeDir: path.relative(resolvedRoot, scopeDir),
+      repoRoot: resolvedRoot,
       generatedAt: new Date().toISOString(),
       nodeCount: nodes.length,
       edgeCount: dedupedEdges.length,
@@ -179,6 +174,6 @@ export async function analyze(scopeDir, { repoRoot, tsConfigPath } = {}) {
     },
     nodes,
     edges: dedupedEdges,
-    _oosEdges: oosEdges, // consumed by filter.js
+    _oosEdges: oosEdges,
   };
 }
