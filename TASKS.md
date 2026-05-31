@@ -21,7 +21,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 ## 4. Shared Types
 
-- [ ] Define src/types.ts — GraphNode, GraphEdge, Graph, GraphMeta, DiffState, NodeScope, NodeType, EdgeKind
+- [x] Define src/types.ts — GraphNode, GraphEdge, Graph, GraphMeta, DiffState, NodeScope, NodeType, EdgeKind
 
 ## 5. Core Module Conversion (JS → TS + bug fixes)
 
