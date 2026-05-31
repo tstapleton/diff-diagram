@@ -10,7 +10,8 @@ export type NodeType =
   | 'routing'
   | 'module'
   | 'model'
-  | 'constants';
+  | 'constants'
+  | 'stub';
 export type EdgeKind = 'import';
 
 export interface GraphNode {

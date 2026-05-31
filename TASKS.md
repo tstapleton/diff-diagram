@@ -37,7 +37,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 ## 7. Renderer Modules
 
-- [ ] Extract src/renderer/graph-helpers.ts — computeViewNodes(graph, mode): returns nodes and edges for a given view mode; implements collapse rules (in-scope unchanged subdirs → stubs; out-of-scope unchanged parent groups → stubs; partially-changed dirs → fully expanded; stubs preserve edges)
+- [x] Extract src/renderer/graph-helpers.ts — computeViewNodes(graph, mode): returns nodes and edges for a given view mode; implements collapse rules (in-scope unchanged subdirs → stubs; out-of-scope unchanged parent groups → stubs; partially-changed dirs → fully expanded; stubs preserve edges)
 - [ ] Tests: src/renderer/graph-helpers.test.ts — collapse rules, stub creation, edge preservation, partial change expansion
 - [ ] Extract src/renderer/layout.ts — computeLayout(nodes, edges): elkjs wrapper; returns node positions and edge bend points; pure function; runs in Node only
 - [ ] Tests: src/renderer/layout.test.ts — ELK input construction, output shape
