@@ -51,5 +51,5 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 ## 9. Documentation
 
-- [ ] README.md — what it does, installation, CLI usage, output description, how to integrate with CI
-- [ ] Document internal architecture for agents: how the pipeline flows, module responsibilities, how to add a new view mode
+- [x] README.md — what it does, installation, CLI usage, output description, how to integrate with CI
+- [x] Document internal architecture for agents: how the pipeline flows, module responsibilities, how to add a new view mode
