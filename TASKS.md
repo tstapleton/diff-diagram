@@ -2,35 +2,54 @@
 
 Each commit must complete exactly one task from this list and mark it done (`- [x]`).
 
-Approach: TDD (red-green). Write failing tests first that expose the bugs, then fix the code to make them pass.
-Test files live next to their source (e.g. `src/diff-parser.test.js`). Tests assert expected output — not implementation details.
+Approach: TDD where practical. Tests assert expected output — not implementation details.
+Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
-## Unit Test Setup
+## 1. Documentation (do this first — locks in decisions before code changes)
 
-- [x] Setup: add vitest, configure `package.json` test script
+- [x] Update PLAN.md to reflect final architecture ← done in grill session; verify accuracy
+- [x] Update CLAUDE.md — architecture overview, CLI flags, agent context
+- [x] Add PLAN.md section: Clustered mode future consideration (description, benefits, how it would work)
 
-## Unit Tests (write these first — they will be red until bug fixes land)
+## 2. Fix Test Infrastructure
 
-- [x] Tests: `src/diff-parser.test.js` — `parseDiffOutput()`, `applyDiff()`, path normalization, all diff status codes; include cases that expose known bugs (non-.ts ghost nodes, removed-ghost type)
-- [x] Tests: `src/analyzer.test.js` — `toNodeId()`, `labelFromFile()`, `classifyFile()` by filename and decorator; include cases that expose known bugs (node_modules inclusion, spec/.d.ts exclusion)
-- [x] Tests: `src/filter.test.js` — `addContext()`, out-of-scope node creation, edge deduplication
+- [x] Fix: vitest/rollup missing native binary — delete node_modules + package-lock.json, reinstall; verify `npm test` runs all existing tests
 
-## Renderer Refactor
+## 3. TypeScript Setup
 
-- [ ] Extract renderer logic from `renderer.html` into modules: `src/renderer/layout.js` (elkjs wrapper, pure), `src/renderer/draw.js` (SVG generation, pure), `src/renderer/graph-helpers.js` (node/edge data helpers, pure)
-- [ ] Tests: `src/renderer/layout.test.js` — ELK input construction, coordinate offset, intra/inter edge separation
-- [ ] Tests: `src/renderer/draw.test.js` — node color selection, edge path generation, label truncation
-- [ ] Rewrite `renderer.html` as a thin shell that imports those modules
+- [ ] Add TypeScript: tsconfig.json, update package.json build + test scripts, convert existing .test.js files to .test.ts
 
-## Bug Fixes (make red tests green)
+## 4. Shared Types
 
-- [ ] Fix: non-.ts files (`.md`, `.json`, etc.) appear in diagram — `src/diff-parser.js` `applyDiff()` doesn't filter by extension
-- [ ] Fix: `node_modules` files included in diagram — `src/analyzer.js` glob patterns don't exclude `node_modules/`
-- [ ] Fix: removed-ghost nodes always typed as `component` — `src/diff-parser.js` hardcodes type instead of calling `classifyByFilename()`
-- [ ] Fix: `labelFromFile` splits only on `-` not `.` — `user-list.component.ts` produces `UserList.component` instead of `UserListComponent`
-- [ ] Fix: edges/lines overlap in rendered diagram — ELK layout options lack overlap-prevention settings
+- [ ] Define src/types.ts — GraphNode, GraphEdge, Graph, GraphMeta, DiffState, NodeScope, NodeType, EdgeKind
 
-## Low Priority
+## 5. Core Module Conversion (JS → TS + bug fixes)
 
-- [ ] Fix: edge rendering failures are silent — add `console.warn` when `laidEdge.sections` is missing
-- [ ] Fix: hover doesn't improve edge visibility when edges overlap (depends on layout fix above)
+- [ ] Convert src/analyzer.js → src/analyzer.ts; fix: node_modules glob exclusion; fix: labelFromFile splits on `.` as well as `-` (e.g. `user-list.component.ts` → `UserListComponent`)
+- [ ] Convert src/filter.js → src/filter.ts; remove duplicate classifyByFilename (import from analyzer)
+- [ ] Convert src/diff-parser.js → src/diff-parser.ts; fix: non-.ts files must not produce ghost nodes; fix: removed-ghost nodes must call classifyByFilename not hardcode `component`; remove applyDiff (replaced by graph diffing in step 6)
+
+## 6. Edge-Level Diff
+
+- [ ] Implement src/diff-parser.ts diffGraphs(base: Graph, current: Graph): Graph — diffs node sets and edge sets; nodes in current only → added; nodes in base only → removed-ghost; edges in current only → added; edges in base only → removed; matched nodes with import set changes → modified
+- [ ] Create fake-angular-app-base/ — base state fixture; update fake-angular-app/ to represent the after state with meaningful differences (added files, modified files, changed imports, new out-of-scope deps)
+- [ ] Integration tests: run full pipeline with --base-dir fake-angular-app-base, verify node diff states and edge diff states
+
+## 7. Renderer Modules
+
+- [ ] Extract src/renderer/graph-helpers.ts — computeViewNodes(graph, mode): returns nodes and edges for a given view mode; implements collapse rules (in-scope unchanged subdirs → stubs; out-of-scope unchanged parent groups → stubs; partially-changed dirs → fully expanded; stubs preserve edges)
+- [ ] Tests: src/renderer/graph-helpers.test.ts — collapse rules, stub creation, edge preservation, partial change expansion
+- [ ] Extract src/renderer/layout.ts — computeLayout(nodes, edges): elkjs wrapper; returns node positions and edge bend points; pure function; runs in Node only
+- [ ] Tests: src/renderer/layout.test.ts — ELK input construction, output shape
+- [ ] Extract src/renderer/draw.ts — toSvg(layout, nodes, edges): generates SVG string from pre-computed layout; pure function; no DOM
+- [ ] Tests: src/renderer/draw.test.ts — node color selection, edge path generation, label truncation
+
+## 8. CLI Rewrite
+
+- [ ] Rewrite src/cli.ts — replace --patch with --base-dir; run analyze() twice (base + current); call diffGraphs(); compute layouts for each view mode; write diagram.svg (diff-focused), diagram.html (all layouts embedded), graph.json
+- [ ] Rewrite renderer.html as thin shell — reads pre-computed layout JSON embedded by CLI; no elkjs CDN; handles hover interactions, mode switching (All nodes / Diff-focused), sidebar
+
+## 9. Documentation
+
+- [ ] README.md — what it does, installation, CLI usage, output description, how to integrate with CI
+- [ ] Document internal architecture for agents: how the pipeline flows, module responsibilities, how to add a new view mode
