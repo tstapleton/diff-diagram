@@ -27,7 +27,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 - [x] Convert src/analyzer.js → src/analyzer.ts; fix: node_modules glob exclusion; fix: labelFromFile splits on `.` as well as `-` (e.g. `user-list.component.ts` → `UserListComponent`)
 - [x] Convert src/filter.js → src/filter.ts; remove duplicate classifyByFilename (import from analyzer)
-- [ ] Convert src/diff-parser.js → src/diff-parser.ts; fix: non-.ts files must not produce ghost nodes; fix: removed-ghost nodes must call classifyByFilename not hardcode `component`; remove applyDiff (replaced by graph diffing in step 6)
+- [x] Convert src/diff-parser.js → src/diff-parser.ts; fix: non-.ts files must not produce ghost nodes; fix: removed-ghost nodes must call classifyByFilename not hardcode `component`; applyDiff kept until diffGraphs lands in step 6
 
 ## 6. Edge-Level Diff
 
