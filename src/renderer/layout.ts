@@ -1,6 +1,9 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
-import type { ElkNode } from 'elkjs/lib/elk-api.js';
+import { createRequire } from 'module';
+import type { ElkNode, ELK as ELKInstance, ElkExtendedEdge } from 'elkjs/lib/elk-api.js';
 import type { GraphNode, GraphEdge } from '../types.js';
+
+const _require = createRequire(import.meta.url);
+const ELKClass = _require('elkjs/lib/elk.bundled.js') as { new(): ELKInstance };
 
 // ─── Output types ─────────────────────────────────────────────────────────────
 
@@ -56,7 +59,7 @@ export async function computeLayout(
   nodes: GraphNode[],
   edges: GraphEdge[],
 ): Promise<Layout> {
-  const elk = new ELK();
+  const elk = new ELKClass();
 
   const elkNodes: ElkNode[] = nodes.map(n => ({
     id: n.id,
@@ -87,7 +90,7 @@ export async function computeLayout(
 
   const result = await elk.layout(graph);
 
-  const layoutNodes: LayoutNode[] = (result.children ?? []).map(c => ({
+  const layoutNodes: LayoutNode[] = (result.children ?? []).map((c: ElkNode) => ({
     id: c.id,
     x: c.x ?? 0,
     y: c.y ?? 0,
@@ -95,10 +98,11 @@ export async function computeLayout(
     height: c.height ?? NODE_HEIGHT,
   }));
 
-  const layoutEdges: LayoutEdge[] = (result.edges ?? []).map(e => {
-    const from = (e as any).sources?.[0] ?? '';
-    const to = (e as any).targets?.[0] ?? '';
-    const sections: LayoutEdgeSection[] = ((e as any).sections ?? []).map((s: any) => ({
+  const layoutEdges: LayoutEdge[] = (result.edges ?? []).map((e: ElkExtendedEdge) => {
+    const ext = e as ElkExtendedEdge & { sources?: string[]; targets?: string[] };
+    const from = ext.sources?.[0] ?? '';
+    const to = ext.targets?.[0] ?? '';
+    const sections: LayoutEdgeSection[] = (ext.sections ?? []).map(s => ({
       startPoint: s.startPoint,
       endPoint: s.endPoint,
       ...(s.bendPoints ? { bendPoints: s.bendPoints } : {}),

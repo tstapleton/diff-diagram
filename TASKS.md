@@ -46,8 +46,8 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 ## 8. CLI Rewrite
 
-- [ ] Rewrite src/cli.ts — replace --patch with --base-dir; run analyze() twice (base + current); call diffGraphs(); compute layouts for each view mode; write diagram.svg (diff-focused), diagram.html (all layouts embedded), graph.json
-- [ ] Rewrite renderer.html as thin shell — reads pre-computed layout JSON embedded by CLI; no elkjs CDN; handles hover interactions, mode switching (All nodes / Diff-focused), sidebar
+- [x] Rewrite src/cli.ts — replace --patch with --base-dir; run analyze() twice (base + current); call diffGraphs(); compute layouts for each view mode; write diagram.svg (diff-focused), diagram.html (all layouts embedded), graph.json
+- [x] Rewrite renderer.html as thin shell — reads pre-computed layout JSON embedded by CLI; no elkjs CDN; handles hover interactions, mode switching (All nodes / Diff-focused), sidebar
 
 ## 9. Documentation
 
