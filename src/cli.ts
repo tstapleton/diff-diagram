@@ -53,6 +53,7 @@ interface ModeData {
   edges: Array<{ from: string; to: string; sections: Layout['edges'][number]['sections']; diff?: string }>;
   width: number;
   height: number;
+  container?: { x: number; y: number; width: number; height: number };
 }
 
 interface DiagramData {
@@ -84,7 +85,7 @@ function buildModeData(
     return ge?.diff ? { ...le, diff: ge.diff } : { ...le };
   });
 
-  return { nodes, edges, width: layout.width, height: layout.height };
+  return { nodes, edges, width: layout.width, height: layout.height, container: layout.container };
 }
 
 // ─── HTML builder ────────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ async function main(): Promise<void> {
   await mkdir(outDir, { recursive: true });
 
   // diagram.svg — diff-focused, real layout
-  const svg = toSvg(diffLayout, diffView.nodes, diffView.edges);
+  const svg = toSvg(diffLayout, diffView.nodes, diffView.edges, path.basename(scopeDir));
   const svgPath = path.join(outDir, 'diagram.svg');
   await writeFile(svgPath, svg);
   console.log(`Wrote ${svgPath}`);

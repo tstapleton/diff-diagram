@@ -54,8 +54,8 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
 
 function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: number): string {
   const { fill, stroke } = nodeColor(node);
-  const label = truncateLabel(node.label, lw);
   const isStub = node.type === 'stub';
+  const label = isStub ? truncateLabel(node.label, lw) : node.label;
 
   if (isStub) {
     const cy = ly + lh / 2;
@@ -115,9 +115,9 @@ export function toSvg(
   layout: Layout,
   nodes: GraphNode[],
   edges: GraphEdge[],
+  featureLabel?: string,
 ): string {
   const nodeById = new Map(nodes.map(n => [n.id, n]));
-  const layoutById = new Map(layout.nodes.map(n => [n.id, n]));
 
   // Build edge lookup by from→to for diff state retrieval
   const edgeByKey = new Map(edges.map(e => [`${e.from}→${e.to}`, e]));
@@ -133,12 +133,23 @@ export function toSvg(
     return [renderEdge(le, graphEdge)];
   });
 
+  // Container box: ELK compound layout positions __scope__ precisely; use it directly
+  let containerRect = '';
+  if (featureLabel !== undefined && layout.container) {
+    const { x: cx, y: cy, width: cw, height: ch } = layout.container;
+    containerRect = [
+      `  <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>`,
+      `  <text x="${cx + 10}" y="${cy + 13}" font-family="monospace" font-size="9" fill="#475569">${featureLabel}</text>`,
+    ].join('\n');
+  }
+
   const { width, height } = layout;
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
     `<defs>${arrowMarkers()}</defs>`,
     `<rect width="${width}" height="${height}" fill="#0f172a"/>`,
+    ...(containerRect ? [containerRect] : []),
     ...renderedEdges,
     ...renderedNodes,
     `</svg>`,

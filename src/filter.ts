@@ -20,7 +20,7 @@ export function addContext(graph: Graph): Graph {
   const newEdges: GraphEdge[] = [];
 
   for (const { from, toFile } of oosEdges) {
-    if (!toFile || !path.isAbsolute(toFile)) continue;
+    if (!toFile || !path.isAbsolute(toFile) || toFile.endsWith('.d.ts')) continue;
 
     const id = toNodeId(toFile, repoRoot);
     if (!contextById.has(id)) {

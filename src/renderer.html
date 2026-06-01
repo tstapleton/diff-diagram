@@ -119,11 +119,20 @@ function buildPath(section) {
 }
 
 function renderSvg(mode) {
-  const { nodes, edges, width, height } = DIFF_DIAGRAM.modes[mode];
+  const { nodes, edges, width, height, container } = DIFF_DIAGRAM.modes[mode];
 
   const markers = Object.entries(EDGE_STROKE).map(([state, color]) =>
     `<marker id="a-${state}" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="${color}"/></marker>`
   ).join('');
+
+  // Container box: positioned by ELK compound layout, not derived from node bounds
+  let containerSvg = '';
+  if (container) {
+    const scopeDir = (DIFF_DIAGRAM.meta && DIFF_DIAGRAM.meta.scopeDir) || '';
+    const featureLabel = scopeDir.split('/').pop() || scopeDir;
+    containerSvg = `<rect x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>
+<text x="${container.x + 10}" y="${container.y + 13}" font-family="monospace" font-size="9" fill="#475569">${featureLabel}</text>`;
+  }
 
   const edgePaths = edges.map(e => {
     const color = edgeColor(e.diff);
@@ -138,9 +147,9 @@ function renderSvg(mode) {
   const nodeElems = nodes.map(n => {
     const fill   = nodeFill(n);
     const stroke = nodeStroke(n);
-    const label  = truncate(n.label, n.width);
     const isStub = n.type === 'stub';
     const isOos  = n.scope === 'out-of-scope';
+    const label  = isStub ? truncate(n.label, n.width) : n.label;
     const dash   = (isStub || n.diff === 'removed') ? ' stroke-dasharray="4,2"' : '';
     const sw     = isOos ? '1' : '1.5';
 
@@ -160,6 +169,7 @@ function renderSvg(mode) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 <defs>${markers}</defs>
 <rect width="${width}" height="${height}" fill="#0f172a"/>
+${containerSvg}
 ${edgePaths}
 ${nodeElems}
 </svg>`;
