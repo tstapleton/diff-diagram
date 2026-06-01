@@ -108,7 +108,11 @@ export async function computeLayout(
       ...(usePartitions ? { 'elk.partitioning.activate': 'true' } : {}),
       'elk.spacing.nodeNode': '20',
       'elk.layered.spacing.nodeNodeBetweenLayers': '40',
-      'elk.padding': '[top=20, left=20, bottom=20, right=20]',
+      // When partitioning, top needs 55px so the container label (minY − 35) stays above y=0.
+      // Left needs 40px so the container left edge (minX − 15) isn't cramped.
+      'elk.padding': usePartitions
+        ? '[top=55, left=40, bottom=35, right=35]'
+        : '[top=20, left=20, bottom=20, right=20]',
     },
     children: elkNodes,
     edges: elkEdges,
