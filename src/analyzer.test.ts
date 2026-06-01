@@ -49,6 +49,10 @@ describe('labelFromFile', () => {
   it('handles deeply nested paths', () => {
     expect(labelFromFile('/deep/a/b/c/user-status.pipe.ts')).toBe('UserStatusPipe');
   });
+
+  it('uses parent directory name for barrel index files', () => {
+    expect(labelFromFile('/src/app/shared/lookup-entity/index.ts')).toBe('LookupEntity');
+  });
 });
 
 // ─── classifyByFilename ──────────────────────────────────────────────────────

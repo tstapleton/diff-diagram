@@ -47,7 +47,9 @@ export function toNodeId(filePath: string, repoRoot: string): string {
 }
 
 export function labelFromFile(filePath: string): string {
-  return path.basename(filePath, '.ts')
+  const base = path.basename(filePath, '.ts');
+  const name = base === 'index' ? path.basename(path.dirname(filePath)) : base;
+  return name
     .split(/[-.]/)
     .map(p => p.charAt(0).toUpperCase() + p.slice(1))
     .join('');
