@@ -143,6 +143,34 @@ describe('diffGraphs integration — edge diff states', () => {
   });
 });
 
+// ─── barrel resolution ───────────────────────────────────────────────────────
+
+describe('barrel file resolution', () => {
+  it('barrel index.ts is not a node — resolved through to actual source file', () => {
+    const barrel = diffed.nodes.find(n => n.file.endsWith('shared/services/index.ts'));
+    expect(barrel).toBeUndefined();
+  });
+
+  it('only the imported symbol is resolved, not all barrel exports', () => {
+    // barrel exports both AnalyticsService and NotificationService,
+    // but only AnalyticsService is imported — no edge to notification.service.ts
+    const e = edgeBetween(
+      'user-list/users-list.component.ts',
+      'shared/services/notification.service.ts',
+    );
+    expect(e).toBeUndefined();
+  });
+
+  it('edge users-list → analytics.service is added (barrel-resolved, same as direct import)', () => {
+    const e = edgeBetween(
+      'user-list/users-list.component.ts',
+      'shared/services/analytics.service.ts',
+    );
+    expect(e).toBeDefined();
+    expect(e?.diff).toBe('added');
+  });
+});
+
 // ─── meta ────────────────────────────────────────────────────────────────────
 
 describe('diffGraphs integration — meta', () => {

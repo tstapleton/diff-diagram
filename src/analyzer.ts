@@ -149,7 +149,26 @@ export async function analyze(
 
     for (const imp of sf.getImportDeclarations()) {
       const target = imp.getModuleSpecifierSourceFile();
-      if (target) addEdge(target.getFilePath());
+      if (!target) continue;
+      const targetPath = target.getFilePath();
+
+      // Barrel resolution: when the import resolves to an index.ts, follow each
+      // named import to its actual declaration file instead of pointing at the barrel.
+      if (path.basename(targetPath) === 'index.ts') {
+        const namedImports = imp.getNamedImports();
+        if (namedImports.length > 0) {
+          const barrelExports = target.getExportedDeclarations();
+          for (const named of namedImports) {
+            const exportName = named.getNameNode().getText();
+            const decls = barrelExports.get(exportName);
+            const resolved = decls?.find(d => d.getSourceFile().getFilePath() !== targetPath);
+            addEdge(resolved ? resolved.getSourceFile().getFilePath() : targetPath);
+          }
+          continue;
+        }
+      }
+
+      addEdge(targetPath);
     }
 
     for (const cls of sf.getClasses()) {

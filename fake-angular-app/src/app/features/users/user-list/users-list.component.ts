@@ -6,7 +6,7 @@ import { UserTableHeaderComponent } from './user-table-header.component';
 import { UsersService } from '../data-access/users.service';
 import { UserModel } from '../models/user.model';
 import { PaginationComponent } from '../../../shared/components/pagination.component';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { AnalyticsService } from '../../../shared/services';
 
 @Component({
   selector: 'app-users-list',
