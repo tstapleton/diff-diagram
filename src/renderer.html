@@ -63,7 +63,7 @@
       <div class="legend-row"><div class="swatch" style="background:#78350f;border:1.5px solid #f59e0b"></div>Modified</div>
       <div class="legend-row"><div class="swatch" style="background:#7f1d1d;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
       <div class="legend-row"><div class="swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
-      <div class="legend-row"><div class="swatch" style="background:#0a1829;border:1.5px solid #2563eb"></div>External (1-hop)</div>
+      <div class="legend-row"><div class="swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>External (1-hop)</div>
       <div class="legend-row"><div class="swatch" style="background:#0f172a;border:1px dashed #334155"></div>Collapsed dir</div>
     </div>
   </div>
@@ -96,7 +96,7 @@ const NODE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444',
 const EDGE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#475569' };
 
 function nodeFill(n)   { if (n.scope==='out-of-scope') return '#0a1829'; if (n.type==='stub') return '#0f172a'; return NODE_FILL[n.diff]  || NODE_FILL.unchanged; }
-function nodeStroke(n) { if (n.scope==='out-of-scope') return '#2563eb'; if (n.type==='stub') return '#334155'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
+function nodeStroke(n) { if (n.scope==='out-of-scope') return '#1e3a5f'; if (n.type==='stub') return '#334155'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
 function edgeColor(d)  { return EDGE_STROKE[d] || EDGE_STROKE.unchanged; }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
