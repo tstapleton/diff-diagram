@@ -31,46 +31,37 @@ npm run build
 
 ```bash
 node dist/cli.js \
-  --base-dir <base-scope-dir> \
-  --base-repo-root <base-repo-root> \
   --repo-root <repo-root> \
-  --out-dir dist \
-  <scope-dir>
+  --base-repo-root <base-repo-root> \
+  <feature-dir>
 ```
 
-| Flag | Description | Default |
+| Arg / Flag | Description | Default |
 |---|---|---|
-| `<scope-dir>` | Feature directory to diagram (required) | — |
-| `--base-dir` | Same feature dir on the base branch (pre-checked-out) | no diff mode |
-| `--base-repo-root` | Repo root for base dir (auto-derived if omitted) | computed from depth |
-| `--repo-root` | Repo root for current (auto-detected via `.git`) | auto |
+| `<feature-dir>` | Feature directory to diagram, relative to `--repo-root` (required) | — |
+| `--repo-root` | Repo root for the current branch | auto-detected via `.git` |
+| `--base-repo-root` | Repo root for a pre-checked-out base branch | no diff mode |
 | `--out-dir` | Output directory | `dist` |
-| `--tsconfig` | Path to tsconfig.json (auto-detected) | auto |
+| `--tsconfig` | Path to tsconfig.json | auto-detected |
+| `--source-root` | Source root prefix for label derivation | `src/app` |
 
 ### Example: fake Angular app (development)
 
 ```bash
 node dist/cli.js \
-  --base-dir fake-angular-app-base/src/app/features/users \
-  --base-repo-root fake-angular-app-base \
   --repo-root fake-angular-app \
-  --out-dir dist \
-  fake-angular-app/src/app/features/users
+  --base-repo-root fake-angular-app-base \
+  src/app/features/users
 ```
 
 ### Example: real Angular repo in CI
 
-In CI, check out the base branch files to a temp directory, then run:
+Check out the base branch to a worktree, then run:
 
 ```bash
-# CI workflow (conceptual)
-git checkout $BASE_SHA -- src/app/features/my-feature
-mkdir -p /tmp/base && mv src/app/features/my-feature /tmp/base/src/app/features/
-
 node dist/cli.js \
-  --base-dir /tmp/base/src/app/features/my-feature \
   --repo-root . \
-  --out-dir dist \
+  --base-repo-root /tmp/base \
   src/app/features/my-feature
 ```
 
