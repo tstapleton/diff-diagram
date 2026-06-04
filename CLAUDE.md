@@ -15,18 +15,22 @@ npm test        # runs vitest
 ```bash
 # Run against fake app fixtures (base vs current)
 node dist/cli.js \
-  --base-dir fake-angular-app-base \
-  --out-dir dist \
-  fake-angular-app/src/app/features/users
+  --repo-root fake-angular-app \
+  --base-repo-root fake-angular-app-base \
+  src/app/features/users
 
 # Run against a real Angular repo
 node dist/cli.js \
-  --base-dir /tmp/base-checkout \
-  --out-dir dist \
-  path/to/src/app/features/my-feature
+  --repo-root /path/to/repo \
+  --base-repo-root /tmp/base-checkout \
+  src/app/features/my-feature
 ```
 
-The `--base-dir` flag points to a directory containing the base branch files. The caller (e.g., a CI workflow) is responsible for materializing this directory (e.g., via `git worktree add`). This CLI does not manage git state.
+`--repo-root` is the working-tree repo root; `<scope-dir>` is a path relative to it.
+`--base-repo-root` points to a materialized base-branch checkout (e.g., via `git worktree add`).
+The CLI does not manage git state.
+
+Optional flags: `--out-dir <dir>` (default `dist`), `--tsconfig <file>`, `--source-root <dir>` (default `src/app`).
 
 ## Count nodes in any Angular feature directory
 
@@ -120,6 +124,6 @@ Node `label` is the filename (no extension, no path) converted from kebab-case t
 **If a gate fails, change approach — do not skip.**
 
 - Gate 1: `npm test` — all tests pass
-- Gate 2: `node dist/cli.js --base-dir fake-angular-app-base --out-dir dist fake-angular-app/src/app/features/users` — node count correct, edge diff states correct, no node_modules nodes, labels correct (PascalCase)
+- Gate 2: `node dist/cli.js --repo-root fake-angular-app --base-repo-root fake-angular-app-base src/app/features/users` — node count correct, edge diff states correct, no node_modules nodes, labels correct (PascalCase)
 - Gate 3: open `dist/diagram.html` in browser — both view modes render, hover highlights edges, diff colors correct
 - Gate 4: inspect `dist/diagram.svg` — real graph layout with edges, not a list of boxes

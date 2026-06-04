@@ -14,7 +14,6 @@ import type { Layout } from './renderer/layout.js';
 // ─── Args ─────────────────────────────────────────────────────────────────────
 
 interface Args {
-  baseDir: string | null;
   baseRepoRoot: string | null;
   outDir: string;
   tsConfig: string | null;
@@ -24,9 +23,8 @@ interface Args {
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { baseDir: null, baseRepoRoot: null, outDir: 'dist', tsConfig: null, repoRoot: null, scopeDir: null, sourceRoot: 'src/app' };
+  const args: Args = { baseRepoRoot: null, outDir: 'dist', tsConfig: null, repoRoot: null, scopeDir: null, sourceRoot: 'src/app' };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--base-dir')        { args.baseDir      = argv[++i]; continue; }
     if (argv[i] === '--base-repo-root')  { args.baseRepoRoot = argv[++i]; continue; }
     if (argv[i] === '--out-dir')         { args.outDir       = argv[++i]; continue; }
     if (argv[i] === '--tsconfig')        { args.tsConfig     = argv[++i]; continue; }
@@ -106,13 +104,14 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   if (!args.scopeDir) {
-    console.error('Usage: node dist/cli.js [--base-dir <path>] [--base-repo-root <path>] [--repo-root <path>] [--out-dir <dir>] [--tsconfig <file>] <scope-dir>');
+    console.error('Usage: node dist/cli.js --repo-root <path> [--base-repo-root <path>] [--out-dir <dir>] [--tsconfig <file>] [--source-root <dir>] <scope-dir>');
+    console.error('  <scope-dir>  path relative to --repo-root, e.g. src/app/features/users');
     process.exit(1);
   }
 
-  const scopeDir  = path.resolve(args.scopeDir);
+  const repoRoot  = args.repoRoot ? path.resolve(args.repoRoot) : process.cwd();
+  const scopeDir  = path.resolve(repoRoot, args.scopeDir);
   const outDir    = path.resolve(args.outDir);
-  const repoRoot  = args.repoRoot ? path.resolve(args.repoRoot) : detectRepoRoot(scopeDir);
 
   console.log(`Analyzing ${path.relative(repoRoot, scopeDir)} ...`);
   const current = addContext(await analyze(scopeDir, { repoRoot, tsConfigPath: args.tsConfig }));
@@ -121,18 +120,9 @@ async function main(): Promise<void> {
 
   let diffed: Graph = current;
 
-  if (args.baseDir) {
-    const baseScopeDir = path.resolve(args.baseDir);
-
-    // Derive base repo root: strip the same number of path segments as scopeDir is from repoRoot
-    let baseRepoRoot: string;
-    if (args.baseRepoRoot) {
-      baseRepoRoot = path.resolve(args.baseRepoRoot);
-    } else {
-      const depth = path.relative(repoRoot, scopeDir).split(path.sep).length;
-      baseRepoRoot = baseScopeDir;
-      for (let i = 0; i < depth; i++) baseRepoRoot = path.dirname(baseRepoRoot);
-    }
+  if (args.baseRepoRoot) {
+    const baseRepoRoot = path.resolve(args.baseRepoRoot);
+    const baseScopeDir = path.resolve(baseRepoRoot, args.scopeDir);
 
     console.log(`Analyzing base at ${path.relative(baseRepoRoot, baseScopeDir)} ...`);
     const base = addContext(await analyze(baseScopeDir, { repoRoot: baseRepoRoot, tsConfigPath: args.tsConfig }));
