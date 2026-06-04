@@ -132,16 +132,23 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
   const baseIdToFile = new Map(base.nodes.map(n => [n.id, n.file]));
   const currentIdToFile = new Map(current.nodes.map(n => [n.id, n.file]));
 
-  // Edge sets keyed by "fromFile→toFile" for cross-graph comparison
-  const baseEdgeKeys = new Set<string>();
+  // Edge maps keyed by "fromFile→toFile" → set of imported names
+  const baseEdgeNames = new Map<string, Set<string>>();
   for (const e of base.edges) {
     const f = baseIdToFile.get(e.from), t = baseIdToFile.get(e.to);
-    if (f && t) baseEdgeKeys.add(`${f}→${t}`);
+    if (f && t) baseEdgeNames.set(`${f}→${t}`, new Set(e.importedNames ?? ['*']));
   }
-  const currentEdgeKeys = new Set<string>();
+  const currentEdgeNames = new Map<string, Set<string>>();
   for (const e of current.edges) {
     const f = currentIdToFile.get(e.from), t = currentIdToFile.get(e.to);
-    if (f && t) currentEdgeKeys.add(`${f}→${t}`);
+    if (f && t) currentEdgeNames.set(`${f}→${t}`, new Set(e.importedNames ?? ['*']));
+  }
+
+  // Helper: compare two name sets — returns true if they are identical
+  function nameSetsEqual(a: Set<string>, b: Set<string>): boolean {
+    if (a.size !== b.size) return false;
+    for (const v of a) if (!b.has(v)) return false;
+    return true;
   }
 
   // ── Diff nodes ────────────────────────────────────────────────────────────
@@ -153,21 +160,26 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
     } else {
       const baseNode = baseByFile.get(node.file)!;
 
-      const outgoingAdded = current.edges
+      const outgoingChanged = current.edges
         .filter(e => e.from === node.id)
         .some(e => {
           const toFile = currentIdToFile.get(e.to);
-          return toFile && !baseEdgeKeys.has(`${node.file}→${toFile}`);
+          if (!toFile) return false;
+          const key = `${node.file}→${toFile}`;
+          const baseNames = baseEdgeNames.get(key);
+          if (!baseNames) return true; // added edge
+          const currentNames = currentEdgeNames.get(key)!;
+          return !nameSetsEqual(baseNames, currentNames); // modified edge
         });
 
       const outgoingRemoved = base.edges
         .filter(e => e.from === baseNode.id)
         .some(e => {
           const toFile = baseIdToFile.get(e.to);
-          return toFile && !currentEdgeKeys.has(`${node.file}→${toFile}`);
+          return toFile && !currentEdgeNames.has(`${node.file}→${toFile}`);
         });
 
-      diffedNodes.push({ ...node, diff: outgoingAdded || outgoingRemoved ? 'modified' : 'unchanged' });
+      diffedNodes.push({ ...node, diff: outgoingChanged || outgoingRemoved ? 'modified' : 'unchanged' });
     }
   }
 
@@ -186,7 +198,18 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
     const fromFile = currentIdToFile.get(e.from);
     const toFile = currentIdToFile.get(e.to);
     const key = fromFile && toFile ? `${fromFile}→${toFile}` : null;
-    diffedEdges.push({ ...e, diff: key && baseEdgeKeys.has(key) ? 'unchanged' : 'added' });
+    if (!key) {
+      diffedEdges.push({ ...e, diff: 'added' });
+      continue;
+    }
+    const baseNames = baseEdgeNames.get(key);
+    if (!baseNames) {
+      diffedEdges.push({ ...e, diff: 'added' });
+    } else {
+      const currentNames = currentEdgeNames.get(key)!;
+      const edgeDiff = nameSetsEqual(baseNames, currentNames) ? 'unchanged' : 'modified';
+      diffedEdges.push({ ...e, diff: edgeDiff });
+    }
   }
 
   // Removed edges: in base but not in current — rendered using current/ghost node ids
@@ -199,7 +222,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
     const fromFile = baseIdToFile.get(e.from);
     const toFile = baseIdToFile.get(e.to);
     if (!fromFile || !toFile) continue;
-    if (currentEdgeKeys.has(`${fromFile}→${toFile}`)) continue;
+    if (currentEdgeNames.has(`${fromFile}→${toFile}`)) continue;
 
     const fromId = currentFileToId.get(fromFile) ?? ghostFileToId.get(fromFile);
     const toId = currentFileToId.get(toFile) ?? ghostFileToId.get(toFile);

@@ -139,10 +139,15 @@ export async function analyze(
     if (!sf.getFilePath().startsWith(scopeDir)) continue;
     const fromId = nodeIdByFile.get(sf.getFilePath())!;
 
-    const addEdge = (targetPath: string) => {
+    const addEdge = (targetPath: string, names: string[] = []) => {
       const toId = nodeIdByFile.get(targetPath);
       if (toId) {
-        if (toId !== fromId) edges.push({ from: fromId, to: toId, kind: 'import' });
+        if (toId !== fromId) edges.push({
+          from: fromId,
+          to: toId,
+          kind: 'import',
+          ...(names.length ? { importedNames: names } : {}),
+        });
       } else if (!targetPath.startsWith(scopeDir)) {
         oosEdges.push({ from: fromId, toFile: targetPath });
       }
@@ -163,27 +168,41 @@ export async function analyze(
             const exportName = named.getNameNode().getText();
             const decls = barrelExports.get(exportName);
             const resolved = decls?.find(d => d.getSourceFile().getFilePath() !== targetPath);
-            addEdge(resolved ? resolved.getSourceFile().getFilePath() : targetPath);
+            addEdge(resolved ? resolved.getSourceFile().getFilePath() : targetPath, [exportName]);
           }
           continue;
         }
       }
 
-      addEdge(targetPath);
+      const namedImports = imp.getNamedImports();
+      const names = namedImports.length > 0
+        ? namedImports.map(n => n.getName())
+        : ['*'];
+      addEdge(targetPath, names);
     }
 
     for (const cls of sf.getClasses()) {
       for (const targetPath of extractDecoratorImports(cls)) {
-        addEdge(targetPath);
+        addEdge(targetPath, ['*']);
       }
     }
   }
 
-  const edgeSet = new Set<string>();
-  const dedupedEdges = edges.filter(e => {
-    const k = `${e.from}→${e.to}:${e.kind}`;
-    return edgeSet.has(k) ? false : (edgeSet.add(k), true);
-  });
+  // Dedup edges by from→to, merging importedNames by union
+  const edgeMap = new Map<string, GraphEdge>();
+  for (const e of edges) {
+    const k = `${e.from}→${e.to}`;
+    const existing = edgeMap.get(k);
+    if (existing) {
+      if (e.importedNames) {
+        const merged = new Set([...(existing.importedNames ?? []), ...e.importedNames]);
+        existing.importedNames = [...merged];
+      }
+    } else {
+      edgeMap.set(k, { ...e });
+    }
+  }
+  const dedupedEdges = [...edgeMap.values()];
 
   return {
     meta: {

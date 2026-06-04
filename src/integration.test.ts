@@ -190,4 +190,10 @@ describe('diffGraphs integration — meta', () => {
   it('edgeCount reflects all edges including removed', () => {
     expect(diffed.meta.edgeCount).toBe(diffed.edges.length);
   });
+
+  it('no duplicate edges (each from→to pair appears at most once)', () => {
+    const keys = diffed.edges.map(e => `${e.from}→${e.to}`);
+    const unique = new Set(keys);
+    expect(keys.length).toBe(unique.size);
+  });
 });

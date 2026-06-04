@@ -265,10 +265,15 @@ function gNode(file: string, overrides: Record<string, unknown> = {}) {
   return { id, label: id, file, type: 'component', scope: 'in-scope', diff: null, ...overrides };
 }
 
-function gEdge(fromFile: string, toFile: string) {
+function gEdge(fromFile: string, toFile: string, importedNames?: string[]) {
   const fromId = fromFile.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
   const toId = toFile.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
-  return { from: fromId, to: toId, kind: 'import' as const };
+  return {
+    from: fromId,
+    to: toId,
+    kind: 'import' as const,
+    ...(importedNames ? { importedNames } : {}),
+  };
 }
 
 describe('diffGraphs', () => {
@@ -381,5 +386,54 @@ describe('diffGraphs', () => {
       expect(base.nodes[0].diff).toBeNull();
       expect(current.nodes[0].diff).toBeNull();
     });
+  });
+});
+
+// ─── diffGraphs — edge modified state ────────────────────────────────────────
+
+describe('diffGraphs — edge modified state', () => {
+  const foo = gNode('src/users/foo.component.ts');
+  const bar = gNode('src/users/bar.component.ts');
+
+  it('edge with same importedNames in both graphs is unchanged', () => {
+    const e = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A']);
+    const base = makeFullGraph('src/users', [foo, bar], [e]);
+    const current = makeFullGraph('src/users', [foo, bar], [e]);
+    const result = diffGraphs(base, current);
+    expect(result.edges[0].diff).toBe('unchanged');
+  });
+
+  it('edge with different importedNames (base [A], current [A, B]) is modified', () => {
+    const eBase = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A']);
+    const eCurrent = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A', 'B']);
+    const base = makeFullGraph('src/users', [foo, bar], [eBase]);
+    const current = makeFullGraph('src/users', [foo, bar], [eCurrent]);
+    const result = diffGraphs(base, current);
+    expect(result.edges[0].diff).toBe('modified');
+  });
+
+  it('edge only in current is added', () => {
+    const eCurrent = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A']);
+    const base = makeFullGraph('src/users', [foo, bar], []);
+    const current = makeFullGraph('src/users', [foo, bar], [eCurrent]);
+    const result = diffGraphs(base, current);
+    expect(result.edges[0].diff).toBe('added');
+  });
+
+  it('edge only in base is removed', () => {
+    const eBase = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A']);
+    const base = makeFullGraph('src/users', [foo, bar], [eBase]);
+    const current = makeFullGraph('src/users', [foo, bar], []);
+    const result = diffGraphs(base, current);
+    expect(result.edges.find(e => e.diff === 'removed')).toBeDefined();
+  });
+
+  it('node whose only outgoing edge changed importedNames gets diff modified', () => {
+    const eBase = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A']);
+    const eCurrent = gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts', ['A', 'B']);
+    const base = makeFullGraph('src/users', [foo, bar], [eBase]);
+    const current = makeFullGraph('src/users', [foo, bar], [eCurrent]);
+    const result = diffGraphs(base, current);
+    expect(result.nodes.find(n => n.file === 'src/users/foo.component.ts')?.diff).toBe('modified');
   });
 });

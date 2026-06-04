@@ -28,6 +28,7 @@ export interface GraphEdge {
   to: string;
   kind: EdgeKind;
   diff?: DiffState;
+  importedNames?: string[];
 }
 
 export interface GraphMeta {
