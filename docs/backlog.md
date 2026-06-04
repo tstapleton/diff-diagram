@@ -253,3 +253,60 @@ Instead of background rectangles, render a small subdir label near each node
 but zero layout coupling.
 
 ---
+
+## Run CLI Without a Build Step
+
+### Request
+The current workflow requires `npm run build` (tsc → dist/) before running the CLI. It would be preferable to run TypeScript source directly so developers don't need to remember to rebuild.
+
+### Why deferred
+The CLI uses ESM and ts-morph, both of which work fine after a tsc compile. Running TypeScript directly requires either:
+
+**Option A: Node.js type stripping (`--experimental-strip-types`, Node 22+)**  
+Node 22 can strip TypeScript type annotations without a type checker. Run with: `node --experimental-strip-types src/cli.ts`. Does not perform type checking — errors only surface at runtime or via a separate `tsc --noEmit`. The `import './foo.js'` extension convention required by our ESM setup may conflict.
+
+**Option B: tsx**  
+`tsx` (or `ts-node/esm`) transpiles TypeScript on the fly. Well-tested with ESM. Adds a devDependency and changes the entry point.
+
+### Recommended starting point
+Try Option A first (zero new dependencies). If import extension issues arise, evaluate Option B. Keep `npm run build` for CI and `npm run verify` for type checking.
+
+---
+
+## Developer Tooling Setup
+
+### Request
+Add standard developer tooling to improve code quality and consistency: ESLint, strict TypeScript configuration extending shared defaults, and Prettier.
+
+### Why deferred
+The initial focus was on implementing the core pipeline. Tooling setup is mechanical but valuable for maintenance.
+
+### Implementation sketch
+1. **Strict TypeScript**: update `tsconfig.json` with `"strict": true` and any shared-config base (e.g. `@tsconfig/strictest`)
+2. **ESLint**: add `eslint`, `@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`; configure to extend recommended rules; add `lint` npm script
+3. **Prettier**: add `prettier`; add `.prettierrc`; add `format` npm script; optionally add a `format:check` script for CI
+4. Add `lint` and `format:check` to the `verify` script
+
+---
+
+## Fixture Coverage Review
+
+### Request
+Review the code and tests to identify scenarios that should be represented in the fixture apps but currently aren't. Ensure the fixtures provide complete coverage of interesting cases.
+
+### Why deferred
+Fixtures were built to cover the primary diff scenarios (added, removed, modified nodes and edges). Edge cases in the fixture data may be missing.
+
+### What to look for
+Examples of cases that could be added:
+- A file that removes an external (out-of-scope) dependency between base and current
+- A file that gains a new out-of-scope dependency
+- A file that has a `.spec.ts` sidecar file (tests marker)
+- A file that has a `.stories.ts` sidecar file (stories marker)
+- A routing module that changed
+- A model/interface file that changed
+- An in-scope file that both gained and lost imports in the same PR
+
+After identifying gaps, add the corresponding files to `fake-angular-app/` and `fake-angular-app-base/` and update integration tests to assert the new cases.
+
+---
