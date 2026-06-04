@@ -77,7 +77,7 @@ Algorithm:
 7. Current edges in base → `diff: 'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
 
-**`applyDiff`** — legacy function kept for backward compatibility. Will be removed after all callers migrate to `diffGraphs`.
+**`applyDiff`** — legacy function, no production callers. Exported for backward compatibility; safe to remove.
 
 ### `src/renderer/graph-helpers.ts`
 
@@ -150,9 +150,9 @@ Hover: `mouseover` on `[data-id]` → highlight connected edges (strokeWidth: 3)
 
 Orchestrates the full pipeline. Entry point: `node dist/cli.js`.
 
-Key flags: `--base-dir`, `--base-repo-root`, `--repo-root`, `--out-dir`, `--tsconfig`, positional `<scope-dir>`.
+Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--tsconfig`, `--source-root`, positional `<feature-dir>`.
 
-Base repo root derivation (when `--base-repo-root` is omitted): counts depth of `scopeDir` relative to `repoRoot`, then walks up the same number of levels from `--base-dir`.
+When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs current-branch-only analysis.
 
 Writes three files:
 - `diagram.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout
