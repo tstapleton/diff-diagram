@@ -4,14 +4,21 @@
     "build": "tsc",
     "start": "node dist/cli.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:visual": "vitest run --config vitest.visual.config.ts",
+    "test:visual:approve": "UPDATE_SNAPSHOTS=1 vitest run --config vitest.visual.config.ts"
   },
   "dependencies": {
     "elkjs": "0.11.1",
     "ts-morph": "28.0.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
     "@types/node": "22.15.21",
+    "@types/pixelmatch": "5.2.6",
+    "@types/pngjs": "6.0.5",
+    "pixelmatch": "7.2.0",
+    "pngjs": "7.0.0",
     "typescript": "5.8.3",
     "vitest": "3.2.3"
   }

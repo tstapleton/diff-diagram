@@ -53,3 +53,7 @@ Test files live next to their source (e.g. `src/analyzer.test.ts`).
 
 - [x] README.md — what it does, installation, CLI usage, output description, how to integrate with CI
 - [x] Document internal architecture for agents: how the pipeline flows, module responsibilities, how to add a new view mode
+
+## 10. Visual Regression Tests
+
+- [x] Add pixel-level visual regression tests using resvg-js + pixelmatch + pngjs + git LFS; separate npm scripts (test:visual, test:visual:approve); excluded from normal npm test run
