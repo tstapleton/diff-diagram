@@ -209,14 +209,12 @@ function attachHover(svgEl) {
     const id = g.dataset.id;
     svgEl.querySelectorAll('path[data-from], path[data-to]').forEach(p => {
       const active = p.dataset.from === id || p.dataset.to === id;
-      p.style.strokeWidth = active ? '3' : '1';
-      p.style.opacity     = active ? '1' : '0.25';
+      p.style.opacity = active ? '1' : '0.2';
     });
   });
   svgEl.addEventListener('mouseleave', () => {
     svgEl.querySelectorAll('path[data-from], path[data-to]').forEach(p => {
-      p.style.strokeWidth = '';
-      p.style.opacity     = '';
+      p.style.opacity = '';
     });
   });
 }
