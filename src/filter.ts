@@ -19,7 +19,8 @@ export function addContext(graph: Graph): Graph {
   const contextById = new Map<string, GraphNode>();
   const newEdges: GraphEdge[] = [];
 
-  for (const { from, toFile } of oosEdges) {
+  for (const oe of oosEdges) {
+    const { from, toFile } = oe;
     if (!toFile || !path.isAbsolute(toFile) || toFile.endsWith('.d.ts')) continue;
 
     const id = toNodeId(toFile, repoRoot);
@@ -34,7 +35,7 @@ export function addContext(graph: Graph): Graph {
       });
     }
 
-    newEdges.push({ from, to: id, kind: 'import' });
+    newEdges.push({ from, to: id, kind: 'import', ...(oe.typeOnly ? { typeOnly: true } : {}) });
   }
 
   const edgeSet = new Set<string>(graph.edges.map(e => `${e.from}→${e.to}:${e.kind}`));
@@ -42,6 +43,14 @@ export function addContext(graph: Graph): Graph {
     const k = `${e.from}→${e.to}:${e.kind}`;
     return edgeSet.has(k) ? false : (edgeSet.add(k), true);
   });
+
+  // Compute typeOnly for OOS context nodes: every incoming edge must be type-only
+  for (const [id, node] of contextById) {
+    const incoming = [...graph.edges, ...dedupedNew].filter(e => e.to === id);
+    if (incoming.length > 0 && incoming.every(e => e.typeOnly === true)) {
+      node.typeOnly = true;
+    }
+  }
 
   const allNodes = [...graph.nodes, ...contextById.values()];
   const allEdges = [...graph.edges, ...dedupedNew];

@@ -68,6 +68,23 @@ function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: num
 
   const isOos = node.scope === 'out-of-scope';
 
+  if (node.typeOnly) {
+    const typeOnlyFill = '#0d1f3c';
+    if (isOos) {
+      const dirPath = path.dirname(node.file);
+      return [
+        `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
+        `  <text x="${lx + 8}" y="${ly + 15}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
+        `  <text x="${lx + 8}" y="${ly + 27}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+      ].join('\n');
+    }
+    const cy = ly + lh / 2 + 4;
+    return [
+      `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
+      `  <text x="${lx + 8}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
+    ].join('\n');
+  }
+
   if (isOos) {
     const dirPath = path.dirname(node.file);
     return [

@@ -186,3 +186,61 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
     expect(files.every(f => !f.endsWith('.stories.ts'))).toBe(true);
   });
 });
+
+// ─── analyze() — type-only imports ──────────────────────────────────────────
+
+describe('analyze (type-only imports)', { timeout: 15000 }, () => {
+  let tmpRoot2;
+  let scopeDir2;
+
+  beforeAll(() => {
+    tmpRoot2 = mkdtempSync(path.join(tmpdir(), 'diff-diagram-typeonly-'));
+    scopeDir2 = path.join(tmpRoot2, 'src', 'app', 'features', 'users');
+    mkdirSync(scopeDir2, { recursive: true });
+
+    writeFileSync(
+      path.join(scopeDir2, 'user.model.ts'),
+      'export interface UserModel { id: string; }',
+    );
+    writeFileSync(
+      path.join(scopeDir2, 'uses-type-only.ts'),
+      "import type { UserModel } from './user.model';\nexport const x = 1;",
+    );
+    writeFileSync(
+      path.join(scopeDir2, 'uses-value.ts'),
+      "import { x } from './uses-type-only';\nexport const y = x;",
+    );
+  });
+
+  afterAll(() => {
+    rmSync(tmpRoot2, { recursive: true, force: true });
+  });
+
+  it('edge from type-only import has typeOnly: true', async () => {
+    const graph = await analyze(scopeDir2, { repoRoot: tmpRoot2 });
+    const usesTypeOnlyId = graph.nodes.find(n => n.file.includes('uses-type-only'))?.id;
+    const userModelId = graph.nodes.find(n => n.file.includes('user.model'))?.id;
+    const e = graph.edges.find(e => e.from === usesTypeOnlyId && e.to === userModelId);
+    expect(e?.typeOnly).toBe(true);
+  });
+
+  it('node reached only by type-only imports has typeOnly: true', async () => {
+    const graph = await analyze(scopeDir2, { repoRoot: tmpRoot2 });
+    const node = graph.nodes.find(n => n.file.includes('user.model'));
+    expect(node?.typeOnly).toBe(true);
+  });
+
+  it('edge from value import does not have typeOnly', async () => {
+    const graph = await analyze(scopeDir2, { repoRoot: tmpRoot2 });
+    const usesValueId = graph.nodes.find(n => n.file.includes('uses-value'))?.id;
+    const usesTypeOnlyId = graph.nodes.find(n => n.file.includes('uses-type-only'))?.id;
+    const e = graph.edges.find(e => e.from === usesValueId && e.to === usesTypeOnlyId);
+    expect(e?.typeOnly).toBeUndefined();
+  });
+
+  it('node with a value import incoming is not type-only', async () => {
+    const graph = await analyze(scopeDir2, { repoRoot: tmpRoot2 });
+    const node = graph.nodes.find(n => n.file.includes('uses-type-only'));
+    expect(node?.typeOnly).toBeUndefined();
+  });
+});

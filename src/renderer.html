@@ -157,6 +157,18 @@ function renderSvg(mode) {
     if (isStub) {
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>
 <text x="${n.x + n.width/2}" y="${n.y + n.height/2 + 4}" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8">${label}</text>`;
+    } else if (n.typeOnly) {
+      const typeOnlyFill = '#0d1f3c';
+      if (isOos) {
+        const dirPath = (n.file || '').split('/').slice(0, -1).join('/');
+        inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
+<text x="${n.x + PAD}" y="${n.y + 15}" font-family="monospace" font-size="11" font-style="italic" fill="#e2e8f0">${label}</text>
+<text x="${n.x + PAD}" y="${n.y + 27}" font-family="monospace" font-size="8" fill="#64748b">${dirPath}</text>`;
+      } else {
+        const cy = n.y + n.height / 2 + 4;
+        inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
+<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="#e2e8f0">${label}</text>`;
+      }
     } else if (isOos) {
       const dirPath = (n.file || '').split('/').slice(0, -1).join('/');
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>

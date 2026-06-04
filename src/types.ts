@@ -21,6 +21,7 @@ export interface GraphNode {
   type: NodeType;
   scope: NodeScope;
   diff: DiffState | null;
+  typeOnly?: boolean;
 }
 
 export interface GraphEdge {
@@ -29,6 +30,7 @@ export interface GraphEdge {
   kind: EdgeKind;
   diff?: DiffState;
   importedNames?: string[];
+  typeOnly?: boolean;
 }
 
 export interface GraphMeta {
@@ -44,5 +46,5 @@ export interface Graph {
   meta: GraphMeta;
   nodes: GraphNode[];
   edges: GraphEdge[];
-  _oosEdges?: Array<{ from: string; toFile: string }>;
+  _oosEdges?: Array<{ from: string; toFile: string; typeOnly?: boolean }>;
 }

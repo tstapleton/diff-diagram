@@ -117,7 +117,7 @@ export async function analyze(
 
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
-  const oosEdges: Array<{ from: string; toFile: string }> = [];
+  const oosEdges: Array<{ from: string; toFile: string; typeOnly?: boolean }> = [];
   const nodeIdByFile = new Map<string, string>();
 
   for (const sf of project.getSourceFiles()) {
@@ -139,7 +139,7 @@ export async function analyze(
     if (!sf.getFilePath().startsWith(scopeDir)) continue;
     const fromId = nodeIdByFile.get(sf.getFilePath())!;
 
-    const addEdge = (targetPath: string, names: string[] = []) => {
+    const addEdge = (targetPath: string, names: string[] = [], typeOnly = false) => {
       const toId = nodeIdByFile.get(targetPath);
       if (toId) {
         if (toId !== fromId) edges.push({
@@ -147,9 +147,10 @@ export async function analyze(
           to: toId,
           kind: 'import',
           ...(names.length ? { importedNames: names } : {}),
+          ...(typeOnly ? { typeOnly: true } : {}),
         });
       } else if (!targetPath.startsWith(scopeDir)) {
-        oosEdges.push({ from: fromId, toFile: targetPath });
+        oosEdges.push({ from: fromId, toFile: targetPath, ...(typeOnly ? { typeOnly: true } : {}) });
       }
     };
 
@@ -157,6 +158,8 @@ export async function analyze(
       const target = imp.getModuleSpecifierSourceFile();
       if (!target) continue;
       const targetPath = target.getFilePath();
+
+      const isTypeOnly = imp.isTypeOnly();
 
       // Barrel resolution: when the import resolves to an index.ts, follow each
       // named import to its actual declaration file instead of pointing at the barrel.
@@ -168,7 +171,7 @@ export async function analyze(
             const exportName = named.getNameNode().getText();
             const decls = barrelExports.get(exportName);
             const resolved = decls?.find(d => d.getSourceFile().getFilePath() !== targetPath);
-            addEdge(resolved ? resolved.getSourceFile().getFilePath() : targetPath, [exportName]);
+            addEdge(resolved ? resolved.getSourceFile().getFilePath() : targetPath, [exportName], isTypeOnly);
           }
           continue;
         }
@@ -178,17 +181,17 @@ export async function analyze(
       const names = namedImports.length > 0
         ? namedImports.map(n => n.getName())
         : ['*'];
-      addEdge(targetPath, names);
+      addEdge(targetPath, names, isTypeOnly);
     }
 
     for (const cls of sf.getClasses()) {
       for (const targetPath of extractDecoratorImports(cls)) {
-        addEdge(targetPath, ['*']);
+        addEdge(targetPath, ['*'], false);
       }
     }
   }
 
-  // Dedup edges by from→to, merging importedNames by union
+  // Dedup edges by from→to, merging importedNames by union and typeOnly by AND
   const edgeMap = new Map<string, GraphEdge>();
   for (const e of edges) {
     const k = `${e.from}→${e.to}`;
@@ -198,11 +201,20 @@ export async function analyze(
         const merged = new Set([...(existing.importedNames ?? []), ...e.importedNames]);
         existing.importedNames = [...merged];
       }
+      if (!e.typeOnly) delete existing.typeOnly;
     } else {
       edgeMap.set(k, { ...e });
     }
   }
   const dedupedEdges = [...edgeMap.values()];
+
+  // Compute typeOnly for in-scope nodes: every incoming edge must be type-only
+  for (const node of nodes) {
+    const incoming = dedupedEdges.filter(e => e.to === node.id);
+    if (incoming.length > 0 && incoming.every(e => e.typeOnly === true)) {
+      node.typeOnly = true;
+    }
+  }
 
   return {
     meta: {

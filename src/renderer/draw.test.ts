@@ -158,4 +158,29 @@ describe('toSvg', () => {
     expect(svg).toContain(`width="${l.width}"`);
     expect(svg).toContain(`height="${l.height}"`);
   });
+
+  it('type-only node has stroke-dasharray on rect', () => {
+    const n = node('typeOnlyNode', { typeOnly: true, label: 'TypeOnlyNode' });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('stroke-dasharray="4,2"');
+  });
+
+  it('type-only node label has font-style italic', () => {
+    const n = node('typeOnlyNode', { typeOnly: true, label: 'TypeOnlyNode' });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('font-style="italic"');
+  });
+
+  it('non-type-only node does not have stroke-dasharray (unless stub or removed)', () => {
+    const n = node('normalNode', { label: 'NormalNode' });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).not.toContain('stroke-dasharray');
+  });
+
+  it('type-only out-of-scope node has stroke-dasharray and italic label', () => {
+    const n = node('oosTypeOnly', { typeOnly: true, scope: 'out-of-scope', diff: null, label: 'OosNode' });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('stroke-dasharray="4,2"');
+    expect(svg).toContain('font-style="italic"');
+  });
 });
