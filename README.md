@@ -96,7 +96,7 @@ Differences (what the PR changed):
 
 ## Architecture
 
-See [PLAN.md](./PLAN.md) for the full design and [CLAUDE.md](./CLAUDE.md) for agent context.
+See [docs/architecture.md](./docs/architecture.md) for the architecture reference.
 
 ```
 analyze(base) ──┐

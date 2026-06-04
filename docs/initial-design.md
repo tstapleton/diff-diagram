@@ -1,3 +1,7 @@
+> **Historical document.** This is the original design plan written before implementation began, preserved as a reference. For the current architecture, see [docs/architecture.md](./docs/architecture.md).
+
+---
+
 # Plan: Angular Architecture Diff Diagram Tool
 
 ## Goal

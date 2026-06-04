@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"import\\('ts-morph'\\).then\\(m => { const p = new m.Project\\({}\\); console.log\\('ok'\\); }\\)\")",
+      "Bash(git commit *)",
+      "Bash(node *)",
+      "Bash(npm run *)",
+      "Bash(git -C /Users/tstapleton/code/tstapleton/diff-diagram status)",
+      "Bash(git -C /Users/tstapleton/code/tstapleton/diff-diagram/.claude/worktrees/agent-a967a0e44e5b2499f status)",
+      "Bash(git -C /Users/tstapleton/code/tstapleton/diff-diagram/.claude/worktrees/agent-a46ccb8d0bb3b4378 status)",
+      "Bash(git -C /Users/tstapleton/code/tstapleton/diff-diagram/.claude/worktrees/agent-a46ccb8d0bb3b4378 diff --stat HEAD)",
+      "Bash(git -C /Users/tstapleton/code/tstapleton/diff-diagram status --short)",
+      "Bash(git stash *)",
+      "Bash(git diff *)",
+      "Bash(git restore *)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  }
+}
