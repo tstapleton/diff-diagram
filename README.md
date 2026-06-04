@@ -1,30 +1,19 @@
 # diff-diagram
 
-CLI tool for Angular PR review that generates a dependency diagram showing what changed. Parses TypeScript imports, adds one hop of out-of-scope context, diffs base vs. current branch, and renders a component diagram.
+CLI tool for Angular PR review that generates a dependency diagram for a feature directory, showing what changed between branches. Parses TypeScript imports, includes one layer of dependencies outside the feature directory, diffs base vs. current, and renders a component graph.
 
-## What it does
-
-Given a feature directory (e.g. `src/app/features/users`) on two branches, it:
-
-1. Analyzes both branches with [ts-morph](https://ts-morph.com/) — extracts all imports and Angular decorator imports
-2. Adds one hop of out-of-scope context (shared services, components, guards)
-3. Diffs the two graphs: new files → **added**, deleted files → **removed-ghost**, changed import sets → **modified**
-4. Collapses unchanged subdirectories into stubs (diff-focused mode) so the diagram stays readable
-5. Writes `diagram.svg` (diff-focused, for PR comments), `diagram.html` (interactive, all modes), and `graph.json`
-
-### Outputs
+## What it produces
 
 | File | Purpose |
 |---|---|
-| `dist/diagram.svg` | Diff-focused graph with real elkjs layout. Paste as image in PR comment. |
-| `dist/diagram.html` | Interactive diagram with mode switching (All nodes / Diff-focused) and hover edge highlighting. Publish to GitHub Pages. |
-| `dist/graph.json` | Full diffed graph JSON for downstream tooling. |
+| `dist/diagram.svg` | Diff-focused graph (paste as image in PR comment) |
+| `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
+| `dist/graph.json` | Full diffed graph JSON for downstream tooling |
 
-## Installation
+## Setup
 
 ```bash
 npm install
-npm run build
 ```
 
 ## Usage
@@ -38,14 +27,16 @@ node dist/cli.js \
 
 | Arg / Flag | Description | Default |
 |---|---|---|
-| `<feature-dir>` | Feature directory to diagram, relative to `--repo-root` (required) | — |
+| `<feature-dir>` | Feature directory to diagram, relative to `--repo-root` | required |
 | `--repo-root` | Repo root for the current branch | auto-detected via `.git` |
-| `--base-repo-root` | Repo root for a pre-checked-out base branch | no diff mode |
+| `--base-repo-root` | Repo root for a pre-checked-out base branch | single-branch mode |
 | `--out-dir` | Output directory | `dist` |
 | `--tsconfig` | Path to tsconfig.json | auto-detected |
-| `--source-root` | Source root prefix for label derivation | `src/app` |
+| `--source-root` | Source root prefix (used for label derivation) | `src/app` |
 
-### Example: fake Angular app (development)
+Run `node dist/cli.js --help` for the full usage message.
+
+### Against the fake app fixtures
 
 ```bash
 node dist/cli.js \
@@ -54,11 +45,13 @@ node dist/cli.js \
   src/app/features/users
 ```
 
-### Example: real Angular repo in CI
+### Against a real repo
 
-Check out the base branch to a worktree, then run:
+Check out the base branch files to a worktree, then run:
 
 ```bash
+git worktree add /tmp/base $BASE_SHA
+
 node dist/cli.js \
   --repo-root . \
   --base-repo-root /tmp/base \
@@ -68,35 +61,25 @@ node dist/cli.js \
 ## Development
 
 ```bash
-npm test          # run all tests (vitest)
-npm run build     # tsc → dist/
+npm test                      # unit + integration tests
+npm run test:visual           # visual regression tests (pixel-level SVG comparison)
+npm run test:visual:approve   # update visual regression snapshots after intentional changes
+npm run build                 # compile TypeScript → dist/ (required before running the CLI)
+npm run verify                # full check: compile + unit tests
 ```
 
-Tests are colocated with source:
+Tests are colocated with source files in `src/`.
 
-```
-src/analyzer.test.ts         # 25 tests
-src/filter.test.ts           # 16 tests
-src/diff-parser.test.ts      # 40 tests
-src/integration.test.ts      # 15 tests (full pipeline against fake apps)
-src/renderer/graph-helpers.test.ts  # 15 tests
-src/renderer/layout.test.ts         # 9 tests
-src/renderer/draw.test.ts           # 22 tests
-```
+## Fixture apps
 
-## Fake app fixtures
+`fake-angular-app/` — "after PR" state  
+`fake-angular-app-base/` — "before PR" state
 
-`fake-angular-app/` is the "after PR" state (58 in-scope .ts files).
-`fake-angular-app-base/` is the "before PR" state (57 files).
-
-Differences (what the PR changed):
-- **Added**: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`
-- **Removed**: `user-list/user-search-results.component.ts`
-- **Modified imports**: `user-settings.component.ts` gains imports to the two new components; `users-list.component.ts` gains a new out-of-scope dep (`AnalyticsService`)
+Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, two files with changed imports.
 
 ## Architecture
 
-See [docs/architecture.md](./docs/architecture.md) for the architecture reference.
+See [docs/architecture.md](./docs/architecture.md) for the full module reference. See [docs/glossary.md](./docs/glossary.md) for term definitions.
 
 ```
 analyze(base) ──┐
@@ -104,15 +87,13 @@ analyze(base) ──┐
 analyze(current)┘
 ```
 
-Pipeline modules:
-
 | Module | Responsibility |
 |---|---|
-| `src/analyzer.ts` | ts-morph: enumerate .ts files, extract imports + decorator imports, build Graph |
-| `src/filter.ts` | Add one hop of out-of-scope context nodes |
-| `src/diff-parser.ts` | `diffGraphs(base, current)`: compare node/edge sets, assign diff states |
+| `src/analyzer.ts` | ts-morph: enumerate `.ts` files, extract imports, build Graph |
+| `src/filter.ts` | Add one layer of out-of-scope context nodes |
+| `src/diff-parser.ts` | `diffGraphs(base, current)`: compare graphs, assign diff states |
 | `src/renderer/graph-helpers.ts` | `computeViewNodes(graph, mode)`: collapse unchanged dirs to stubs |
 | `src/renderer/layout.ts` | `computeLayout(nodes, edges)`: elkjs wrapper, returns positions |
-| `src/renderer/draw.ts` | `toSvg(layout, nodes, edges)`: pure SVG string generator |
+| `src/renderer/draw.ts` | `toSvg(...)`: pure SVG string from pre-computed layout |
 | `src/cli.ts` | Orchestration: args, two-pass analysis, diff, layout, file writes |
-| `src/renderer.html` | Thin browser shell: reads embedded JSON, renders SVG, hover, mode switch |
+| `src/renderer.html` | Browser shell: reads embedded JSON, renders SVG, hover, mode switch |
