@@ -26,7 +26,7 @@ node dist/cli.js \
   src/app/features/my-feature
 ```
 
-`--repo-root` is the working-tree repo root; `<scope-dir>` is a path relative to it.
+`--repo-root` is the working-tree repo root; `<feature-dir>` is a path relative to it.
 `--base-repo-root` points to a materialized base-branch checkout (e.g., via `git worktree add`).
 The CLI does not manage git state.
 
@@ -47,75 +47,15 @@ Two fixture directories represent a before/after PR state:
 
 Both are domain-organized (not type-organized): `user-list/`, `user-detail/`, `user-edit/`, etc. No barrel files. No `.spec.ts` files.
 
-Integration tests run the full CLI pipeline with `--base-dir fake-angular-app-base` and verify node and edge diff output.
+Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-app-base` and verify node and edge diff output.
 
 ## Architecture
 
-```
-CLI (cli.ts)
-  ├── analyze(baseDir)    → base Graph       (analyzer.ts + filter.ts)
-  ├── analyze(scopeDir)   → current Graph    (analyzer.ts + filter.ts)
-  ├── diffGraphs(base, current) → diff Graph (diff-parser.ts)
-  ├── computeLayout(graph, 'all')         → allLayout       (renderer/layout.ts)
-  ├── computeLayout(graph, 'diff-focused') → focusedLayout  (renderer/layout.ts)
-  ├── draw.toSvg(focusedLayout)  → diagram.svg              (renderer/draw.ts)
-  └── embed(allLayout, focusedLayout, graph) → diagram.html
-```
-
-### Module responsibilities
-
-| File | Responsibility |
-|---|---|
-| `src/types.ts` | Shared TypeScript interfaces: Graph, GraphNode, GraphEdge, DiffState, etc. |
-| `src/analyzer.ts` | ts-morph parser: reads `.ts` files from a directory, extracts imports + decorator imports, returns Graph with in-scope nodes and `_oosEdges` |
-| `src/filter.ts` | 1-hop expansion: follows `_oosEdges` to add out-of-scope context nodes |
-| `src/diff-parser.ts` | Graph diffing: `diffGraphs(base, current)` — diffs node sets and edge sets, sets `diff` field on all nodes and edges |
-| `src/renderer/graph-helpers.ts` | View mode computation: `computeViewNodes(graph, mode)` applies collapse rules to produce nodes/edges for a given mode |
-| `src/renderer/layout.ts` | elkjs wrapper: `computeLayout(nodes, edges)` returns x/y/width/height per node and bend points per edge. Runs in Node only. |
-| `src/renderer/draw.ts` | SVG generation: `toSvg(layout, nodes, edges)` returns an SVG string. Pure function, no DOM. |
-| `src/cli.ts` | Entry point: orchestrates the full pipeline, writes dist/ outputs |
-
-### diagram.html
-
-The HTML output contains pre-computed layout data (JSON) for all view modes, embedded by the CLI. The browser renderer is a thin shell — it reads those coordinates and draws SVG. It does NOT run elkjs. This means one layout engine (Node-side), full hover interactions in the browser (node highlight on hover, edge highlight), and no CDN dependencies.
-
-### Diff-focused collapse rules
-
-The Diff-focused view reduces a large graph to what matters for a PR:
-
-**In-scope:**
-- Subdirectory with any changed file → expand all files in that subdirectory as individual nodes
-- Subdirectory with no changed files → collapse to a single stub node
-- Edges from expanded nodes to stubs are preserved
-
-**Out-of-scope:**
-- Group by immediate parent directory
-- Group with any changed file → expand all files in that group
-- Group with no changed files → collapse to a stub
-- Edges from in-scope nodes to stubs are preserved
-
-## Graph schema
-
-Defined in `src/types.ts`. Key types:
-
-```
-GraphNode: { id, label, file, type, scope, diff }
-  type:  component | service | pipe | guard | resolver | interceptor | routing | module | model | constants
-  scope: in-scope | out-of-scope | removed-ghost
-  diff:  added | modified | removed | unchanged | null
-
-GraphEdge: { from, to, kind, diff? }
-  kind:  import
-  diff:  added | removed | unchanged (absent = unchanged)
-```
-
-Node `id` is the repo-relative file path with `.ts` stripped, all non-alphanumeric characters replaced with `_`, consecutive underscores collapsed, leading/trailing underscores trimmed.
-
-Node `label` is the filename (no extension, no path) converted from kebab-case to PascalCase, splitting on both `-` and `.` (e.g. `user-list.component.ts` → `UserListComponent`).
+See [docs/architecture.md](./docs/architecture.md) for the full pipeline, module responsibilities, graph schema, and how to add new view modes or node types.
 
 ## Development workflow
 
-- Each commit must complete exactly one task from `TASKS.md` and mark it done (`- [x]`) in the same commit.
+- Each commit must complete exactly one task and mark it done in the same commit.
 - Before asking the user to review output, read through the relevant code and check for obvious bugs.
 - Do not add features, refactoring, or cleanup beyond what the current task requires.
 
