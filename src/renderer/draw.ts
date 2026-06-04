@@ -4,39 +4,12 @@ import type { Layout, LayoutEdge } from './layout.js';
 
 // ─── Color palette ────────────────────────────────────────────────────────────
 
-const NODE_FILL_MAJOR: Record<DiffState, string> = {
-  added:    '#14532d',
-  modified: '#78350f',
-  removed:  '#7f1d1d',
-  unchanged:'#1e293b',
+const NODE_FILL: Record<DiffState, string> = {
+  added:     '#14532d',
+  modified:  '#78350f',
+  removed:   '#7f1d1d',
+  unchanged: '#1e293b',
 };
-const NODE_FILL_SIGNIFICANT: Record<DiffState, string> = {
-  added:    '#0f3d20',
-  modified: '#5a270b',
-  removed:  '#5e1616',
-  unchanged:'#1e293b',
-};
-const NODE_FILL_MODERATE: Record<DiffState, string> = {
-  added:    '#092614',
-  modified: '#3d1a07',
-  removed:  '#3f0f0f',
-  unchanged:'#1e293b',
-};
-const NODE_FILL_MINOR: Record<DiffState, string> = {
-  added:    '#051509',
-  modified: '#220e04',
-  removed:  '#220808',
-  unchanged:'#1e293b',
-};
-
-function magnitudeFill(diff: DiffState, linesChanged: number | undefined): string {
-  const n = linesChanged ?? 0;
-  if (diff === 'unchanged' || n === 0) return NODE_FILL_MINOR[diff];
-  if (n <= 15)  return NODE_FILL_MINOR[diff];
-  if (n <= 50)  return NODE_FILL_MODERATE[diff];
-  if (n <= 150) return NODE_FILL_SIGNIFICANT[diff];
-  return NODE_FILL_MAJOR[diff];
-}
 
 const NODE_STROKE: Record<DiffState, string> = {
   added:     '#22c55e',
@@ -85,7 +58,7 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
       : { fill: '#0f172a', stroke: '#334155' };
   }
   const diff = node.diff ?? 'unchanged';
-  return { fill: magnitudeFill(diff, node.linesChanged), stroke: NODE_STROKE[diff] };
+  return { fill: NODE_FILL[diff], stroke: NODE_STROKE[diff] };
 }
 
 function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: number, sourceRoot: string): string {

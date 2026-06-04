@@ -185,13 +185,6 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
     const files = graph.nodes.map(n => n.file);
     expect(files.every(f => !f.endsWith('.stories.ts'))).toBe(true);
   });
-
-  it('in-scope node has a positive integer lineCount', async () => {
-    const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
-    const routesNode = graph.nodes.find(n => n.file.includes('users.routes'));
-    expect(routesNode?.lineCount).toBeGreaterThan(0);
-    expect(Number.isInteger(routesNode?.lineCount)).toBe(true);
-  });
 });
 
 // ─── analyze() — type-only imports ──────────────────────────────────────────

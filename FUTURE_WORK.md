@@ -53,6 +53,50 @@ be surfaced as a future opt-in once `verbatimModuleSyntax` is discussed.
 
 ---
 
+## Change Magnitude Styling
+
+### Request
+Show how much a file changed, not just that it changed. Nodes with more lines
+changed should be more visually prominent; nodes with fewer changes should appear
+more muted — so a reviewer's eye is drawn to the heaviest-changed files first.
+
+### Why deferred
+The implemented approach (4 hardcoded fill levels based on absolute line counts)
+produced nearly-black nodes for small files, making changed nodes indistinguishable
+from unchanged ones. Real Angular components are typically 10–30 lines, so all
+changed files landed in the "minor" bucket and looked nearly black regardless of
+diff state.
+
+### Ideas for a better approach
+
+**1. Relative buckets instead of absolute thresholds**  
+Identify which file has the most changes, then bucket all other files relative to
+that maximum. The file with the most changes is the most vivid; everything else
+is relative. A file that changed 10 lines when the max is 11 lines still looks
+nearly as vivid as the max.
+
+**2. Legend explaining the encoding**  
+Add a legend (similar to the edge diff legend) that describes what fill intensity
+means. Without a legend, the visual encoding is ambiguous.
+
+**3. Gradient or continuous encoding**  
+Instead of 4 discrete buckets, use a continuous color gradient from the "unchanged"
+fill to the full diff-state fill color, linearly interpolated by relative change
+magnitude. This avoids the bucket-boundary discontinuities and is perceptually
+more accurate.
+
+**4. Implementation sketch**
+```
+1. Compute lineCount per file in analyzer.ts (already done, can be reverted)
+2. In diffGraphs: compute linesChanged per node (absolute delta)
+3. After diffing, find maxChanged = max(linesChanged) across all changed nodes
+4. magnitude(node) = linesChanged / maxChanged  (0.0 – 1.0)
+5. fill = lerp(unchangedFill, diffStateFill, magnitude)
+6. Add a "change magnitude" row to the legend
+```
+
+---
+
 ## Subdirectory Grouping Inside Scope Container
 
 ### Request
