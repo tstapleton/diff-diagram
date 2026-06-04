@@ -106,11 +106,20 @@ describe('toSvg', () => {
     expect(svg).toContain('UserCard');
   });
 
-  it('includes node type in metadata text', () => {
-    const n = node('svc', { type: 'service', diff: 'added' });
+  it('in-scope node shows label only — no type or diff text inside node', () => {
+    const n = node('svc', { label: 'MyService', type: 'service', diff: 'added' });
     const svg = toSvg(layout([n]), [n], []);
-    expect(svg).toContain('service');
-    expect(svg).toContain('added');
+    expect(svg).toContain('MyService');
+    expect(svg).not.toContain('service · added');
+    expect(svg).not.toContain('>service<');
+    expect(svg).not.toContain('>added<');
+  });
+
+  it('out-of-scope node shows directory path as subtitle', () => {
+    const n = node('oos', { label: 'Analytics', scope: 'out-of-scope', file: 'src/app/shared/services/analytics.service.ts' });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('Analytics');
+    expect(svg).toContain('src/app/shared/services');
   });
 
   it('renders added edges with green stroke color', () => {

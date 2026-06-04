@@ -1,3 +1,4 @@
+import path from 'path';
 import type { GraphNode, GraphEdge, DiffState } from '../types.js';
 import type { Layout, LayoutEdge } from './layout.js';
 
@@ -65,10 +66,22 @@ function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: num
     ].join('\n');
   }
 
+  const isOos = node.scope === 'out-of-scope';
+
+  if (isOos) {
+    const dirPath = path.dirname(node.file);
+    return [
+      `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
+      `  <text x="${lx + 8}" y="${ly + 15}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+      `  <text x="${lx + 8}" y="${ly + 27}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+    ].join('\n');
+  }
+
+  // in-scope or removed-ghost: label only, vertically centered
+  const cy = ly + lh / 2 + 4;
   return [
     `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
-    `  <text x="${lx + 8}" y="${ly + 15}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
-    `  <text x="${lx + 8}" y="${ly + 27}" font-family="monospace" font-size="8" fill="${META_COLOR}">${node.type} · ${node.diff ?? 'unchanged'}</text>`,
+    `  <text x="${lx + 8}" y="${cy}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
   ].join('\n');
 }
 
