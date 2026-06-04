@@ -2,6 +2,8 @@
 
 Internal reference for agents and contributors. Describes the pipeline, module responsibilities, data contracts, and how to add new features.
 
+For term definitions, see [glossary.md](./glossary.md).
+
 ## Pipeline overview
 
 ```
