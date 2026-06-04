@@ -22,6 +22,8 @@ export interface GraphNode {
   scope: NodeScope;
   diff: DiffState | null;
   typeOnly?: boolean;
+  hasTests?: boolean;
+  hasStories?: boolean;
 }
 
 export interface GraphEdge {

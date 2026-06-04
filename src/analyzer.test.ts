@@ -244,3 +244,50 @@ describe('analyze (type-only imports)', { timeout: 15000 }, () => {
     expect(node?.typeOnly).toBeUndefined();
   });
 });
+
+// ─── analyze() — test/story markers ─────────────────────────────────────────
+
+describe('analyze (test and story markers)', { timeout: 15000 }, () => {
+  let tmpRoot3: string;
+  let scopeDir3: string;
+
+  beforeAll(() => {
+    tmpRoot3 = mkdtempSync(path.join(tmpdir(), 'diff-diagram-markers-'));
+    scopeDir3 = path.join(tmpRoot3, 'src', 'app', 'features', 'demo');
+    mkdirSync(scopeDir3, { recursive: true });
+
+    writeFileSync(path.join(scopeDir3, 'with-both.component.ts'), "import { Component } from '@angular/core';\n@Component({}) export class WithBothComponent {}");
+    writeFileSync(path.join(scopeDir3, 'with-both.component.spec.ts'), "describe('x', () => {});");
+    writeFileSync(path.join(scopeDir3, 'with-both.component.stories.ts'), 'export default {};');
+
+    writeFileSync(path.join(scopeDir3, 'test-only.component.ts'), "import { Component } from '@angular/core';\n@Component({}) export class TestOnlyComponent {}");
+    writeFileSync(path.join(scopeDir3, 'test-only.component.spec.ts'), "describe('x', () => {});");
+
+    writeFileSync(path.join(scopeDir3, 'neither.component.ts'), "import { Component } from '@angular/core';\n@Component({}) export class NeitherComponent {}");
+  });
+
+  afterAll(() => {
+    rmSync(tmpRoot3, { recursive: true, force: true });
+  });
+
+  it('node with both spec and stories files has hasTests and hasStories', async () => {
+    const graph = await analyze(scopeDir3, { repoRoot: tmpRoot3 });
+    const node = graph.nodes.find(n => n.file.includes('with-both'));
+    expect(node?.hasTests).toBe(true);
+    expect(node?.hasStories).toBe(true);
+  });
+
+  it('node with only spec file has hasTests but not hasStories', async () => {
+    const graph = await analyze(scopeDir3, { repoRoot: tmpRoot3 });
+    const node = graph.nodes.find(n => n.file.includes('test-only'));
+    expect(node?.hasTests).toBe(true);
+    expect(node?.hasStories).toBeUndefined();
+  });
+
+  it('node with neither spec nor stories has neither marker', async () => {
+    const graph = await analyze(scopeDir3, { repoRoot: tmpRoot3 });
+    const node = graph.nodes.find(n => n.file.includes('neither'));
+    expect(node?.hasTests).toBeUndefined();
+    expect(node?.hasStories).toBeUndefined();
+  });
+});

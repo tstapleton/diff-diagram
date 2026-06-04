@@ -30,6 +30,8 @@ const OOS_STROKE = '#1e3a5f';
 const TEXT_COLOR = '#e2e8f0';
 const META_COLOR = '#64748b';
 const STUB_TEXT  = '#94a3b8';
+const TEST_DOT   = '#22c55e'; // green — has unit test
+const STORY_DOT  = '#a855f7'; // purple — has storybook story
 
 // ─── Label truncation ─────────────────────────────────────────────────────────
 
@@ -104,10 +106,26 @@ function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: num
 
   // in-scope or removed-ghost: label only, vertically centered
   const cy = ly + lh / 2 + 4;
+  const dots = nodeMarkerDots(node, lx, ly, lw, lh);
   return [
     `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
     `  <text x="${lx + 8}" y="${cy}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+    ...dots,
   ].join('\n');
+}
+
+function nodeMarkerDots(node: GraphNode, lx: number, ly: number, lw: number, lh: number): string[] {
+  const dots: string[] = [];
+  const r = 3;
+  let offsetRight = 6;
+  if (node.hasStories) {
+    dots.push(`  <circle cx="${lx + lw - offsetRight}" cy="${ly + lh - 6}" r="${r}" fill="${STORY_DOT}"/>`);
+    offsetRight += 8;
+  }
+  if (node.hasTests) {
+    dots.push(`  <circle cx="${lx + lw - offsetRight}" cy="${ly + lh - 6}" r="${r}" fill="${TEST_DOT}"/>`);
+  }
+  return dots;
 }
 
 // ─── Edge rendering ───────────────────────────────────────────────────────────

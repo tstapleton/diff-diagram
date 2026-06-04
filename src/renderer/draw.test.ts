@@ -184,4 +184,24 @@ describe('toSvg', () => {
     expect(svg).toContain('stroke-dasharray="4,2"');
     expect(svg).toContain('font-style="italic"');
   });
+
+  it('node with hasTests shows green dot marker', () => {
+    const n = node('tested', { hasTests: true });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('#22c55e');
+    expect(svg).toContain('<circle');
+  });
+
+  it('node with hasStories shows purple dot marker', () => {
+    const n = node('storied', { hasStories: true });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('#a855f7');
+    expect(svg).toContain('<circle');
+  });
+
+  it('node without markers has no circle elements', () => {
+    const n = node('plain');
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).not.toContain('<circle');
+  });
 });

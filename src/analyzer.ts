@@ -1,4 +1,5 @@
 import path from 'path';
+import { existsSync } from 'fs';
 import { Project, SourceFile } from 'ts-morph';
 import type { Graph, GraphNode, GraphEdge, NodeType } from './types.js';
 
@@ -125,6 +126,10 @@ export async function analyze(
     const fp = sf.getFilePath();
     const id = toNodeId(fp, resolvedRoot);
     nodeIdByFile.set(fp, id);
+    const base     = fp.replace(/\.ts$/, '');
+    const baseShort = base.replace(/\.(component|service|pipe|guard|resolver|interceptor|module|directive)$/, '');
+    const hasTests   = existsSync(`${base}.spec.ts`)    || existsSync(`${baseShort}.spec.ts`);
+    const hasStories = existsSync(`${base}.stories.ts`) || existsSync(`${baseShort}.stories.ts`);
     nodes.push({
       id,
       label: labelFromFile(fp),
@@ -132,6 +137,8 @@ export async function analyze(
       type: classifyFile(sf),
       scope: 'in-scope',
       diff: null,
+      ...(hasTests   ? { hasTests: true }   : {}),
+      ...(hasStories ? { hasStories: true } : {}),
     });
   }
 
