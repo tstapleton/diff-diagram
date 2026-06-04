@@ -52,3 +52,49 @@ use `import type`. Rare in the codebase today, but costs nothing at runtime. Cou
 be surfaced as a future opt-in once `verbatimModuleSyntax` is discussed.
 
 ---
+
+## Subdirectory Grouping Inside Scope Container
+
+### Request
+Within the in-scope container box, visually group nodes by their first-level
+subdirectory under the scope dir (e.g. `user-list/`, `user-settings/`). Each
+group rendered as a subtle background rect with a label. Files at the scope root
+get no group box.
+
+### Why deferred
+The implementation placed all nodes inside the workspace container (the outer
+in-scope bounding box) rather than producing distinct per-subdirectory boxes
+inside it. ELK's layout algorithm does not guarantee that nodes from the same
+subdirectory are spatially adjacent — it optimizes for minimal edge crossings —
+so the per-subdir bounding boxes computed from final node positions all overlapped
+or merged into the container bounds.
+
+A correct implementation would require either:
+- Telling ELK to place nodes in subdir groups (compound graph layout), or
+- Post-processing the layout to physically cluster nodes by subdir before computing bounding boxes
+
+### Options for moving forward
+
+**Option A: ELK compound/hierarchical layout**  
+Model each subdirectory as an ELK compound node containing its files. ELK will
+guarantee spatial separation between subdirs. Requires significant changes to
+`computeLayout` — nodes must be nested, edges must cross compound boundaries,
+and the current flat layout model changes substantially.
+
+**Option B: Two-pass layout**  
+Run a first ELK pass on subdirs (treating each as a single unit), then a second
+pass within each subdir. Positions are composed. More predictable than compound
+layout but adds complexity.
+
+**Option C: Force-cluster with ELK partitions**  
+Extend the existing partition approach (currently used for in-scope vs oos) to
+assign each subdir its own partition number. ELK would place subdir 0 left of
+subdir 1, etc. Less flexible than compound layout but simpler. May not produce
+readable layouts for large graphs.
+
+**Option D: Label-only grouping (no boxes)**  
+Instead of background rectangles, render a small subdir label near each node
+(above the node label). No bounding-box computation needed. Lower visual impact
+but zero layout coupling.
+
+---

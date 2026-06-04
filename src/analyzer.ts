@@ -1,4 +1,5 @@
 import path from 'path';
+import { readFileSync } from 'fs';
 import { Project, SourceFile } from 'ts-morph';
 import type { Graph, GraphNode, GraphEdge, NodeType } from './types.js';
 
@@ -125,6 +126,7 @@ export async function analyze(
     const fp = sf.getFilePath();
     const id = toNodeId(fp, resolvedRoot);
     nodeIdByFile.set(fp, id);
+    const lineCount = readFileSync(fp, 'utf-8').split('\n').length;
     nodes.push({
       id,
       label: labelFromFile(fp),
@@ -132,6 +134,7 @@ export async function analyze(
       type: classifyFile(sf),
       scope: 'in-scope',
       diff: null,
+      lineCount,
     });
   }
 

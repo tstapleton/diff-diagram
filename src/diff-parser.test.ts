@@ -389,6 +389,51 @@ describe('diffGraphs', () => {
   });
 });
 
+// ─── diffGraphs — linesChanged ───────────────────────────────────────────────
+
+describe('diffGraphs — linesChanged', () => {
+  it('added node has linesChanged equal to its lineCount', () => {
+    const base = makeFullGraph('src/users', []);
+    const current = makeFullGraph('src/users', [gNode('src/users/foo.component.ts', { lineCount: 42 })]);
+    const result = diffGraphs(base, current);
+    const node = result.nodes.find(n => n.file === 'src/users/foo.component.ts');
+    expect(node?.linesChanged).toBe(42);
+  });
+
+  it('removed ghost node has linesChanged equal to base lineCount', () => {
+    const base = makeFullGraph('src/users', [gNode('src/users/foo.component.ts', { lineCount: 30 })]);
+    const current = makeFullGraph('src/users', []);
+    const result = diffGraphs(base, current);
+    const ghost = result.nodes.find(n => n.scope === 'removed-ghost');
+    expect(ghost?.linesChanged).toBe(30);
+  });
+
+  it('modified node has linesChanged equal to abs(currentLineCount - baseLineCount)', () => {
+    const foo = gNode('src/users/foo.component.ts', { lineCount: 80 });
+    const bar = gNode('src/users/bar.component.ts', { lineCount: 10 });
+    const baseFoo = gNode('src/users/foo.component.ts', { lineCount: 50 });
+    const baseBar = gNode('src/users/bar.component.ts', { lineCount: 10 });
+    const base = makeFullGraph('src/users', [baseFoo, baseBar], []);
+    const current = makeFullGraph('src/users', [foo, bar], [
+      gEdge('src/users/foo.component.ts', 'src/users/bar.component.ts'),
+    ]);
+    const result = diffGraphs(base, current);
+    const node = result.nodes.find(n => n.file === 'src/users/foo.component.ts');
+    expect(node?.diff).toBe('modified');
+    expect(node?.linesChanged).toBe(30); // |80 - 50|
+  });
+
+  it('unchanged node has linesChanged equal to 0', () => {
+    const n = gNode('src/users/foo.component.ts', { lineCount: 25 });
+    const base = makeFullGraph('src/users', [n]);
+    const current = makeFullGraph('src/users', [n]);
+    const result = diffGraphs(base, current);
+    const node = result.nodes.find(n => n.file === 'src/users/foo.component.ts');
+    expect(node?.diff).toBe('unchanged');
+    expect(node?.linesChanged).toBe(0);
+  });
+});
+
 // ─── diffGraphs — edge modified state ────────────────────────────────────────
 
 describe('diffGraphs — edge modified state', () => {

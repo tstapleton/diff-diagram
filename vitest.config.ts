@@ -5,6 +5,7 @@ export default defineConfig({
     exclude: [
       'node_modules/**',
       'dist/**',
+      '.claude/**',
       'src/renderer/visual.test.ts',
     ],
   },

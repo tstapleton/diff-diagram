@@ -22,6 +22,8 @@ export interface GraphNode {
   scope: NodeScope;
   diff: DiffState | null;
   typeOnly?: boolean;
+  lineCount?: number;     // line count in this snapshot (absent for stubs/oos)
+  linesChanged?: number;  // set by diffGraphs; 0 for unchanged
 }
 
 export interface GraphEdge {

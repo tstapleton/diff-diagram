@@ -26,19 +26,19 @@ function layout(nodes: GraphNode[], edges: GraphEdge[] = []): Layout {
 // ─── nodeColor ───────────────────────────────────────────────────────────────
 
 describe('nodeColor', () => {
-  it('added node uses green fill', () => {
+  it('added node with no linesChanged uses minor (muted) green fill', () => {
     const { fill } = nodeColor(node('a', { diff: 'added' }));
-    expect(fill).toBe('#14532d');
+    expect(fill).toBe('#051509');
   });
 
-  it('modified node uses amber fill', () => {
+  it('modified node with no linesChanged uses minor (muted) amber fill', () => {
     const { fill } = nodeColor(node('a', { diff: 'modified' }));
-    expect(fill).toBe('#78350f');
+    expect(fill).toBe('#220e04');
   });
 
-  it('removed node uses red fill', () => {
+  it('removed node with no linesChanged uses minor (muted) red fill', () => {
     const { fill } = nodeColor(node('a', { diff: 'removed' }));
-    expect(fill).toBe('#7f1d1d');
+    expect(fill).toBe('#220808');
   });
 
   it('unchanged node uses slate fill', () => {
@@ -59,6 +59,16 @@ describe('nodeColor', () => {
   it('removed node has red stroke', () => {
     const { stroke } = nodeColor(node('a', { diff: 'removed' }));
     expect(stroke).toBe('#ef4444');
+  });
+
+  it('added node with linesChanged 200 uses major (vivid) green fill', () => {
+    const { fill } = nodeColor(node('a', { diff: 'added', linesChanged: 200 }));
+    expect(fill).toBe('#14532d');
+  });
+
+  it('added node with linesChanged 5 uses minor (muted) green fill', () => {
+    const { fill } = nodeColor(node('a', { diff: 'added', linesChanged: 5 }));
+    expect(fill).toBe('#051509');
   });
 });
 
@@ -184,4 +194,17 @@ describe('toSvg', () => {
     expect(svg).toContain('stroke-dasharray="4,2"');
     expect(svg).toContain('font-style="italic"');
   });
+
+  it('added node with linesChanged 200 uses major (vivid) fill color in SVG', () => {
+    const n = node('a', { diff: 'added', linesChanged: 200 });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('#14532d'); // NODE_FILL_MAJOR added
+  });
+
+  it('added node with linesChanged 5 uses minor (muted) fill color in SVG', () => {
+    const n = node('a', { diff: 'added', linesChanged: 5 });
+    const svg = toSvg(layout([n]), [n], []);
+    expect(svg).toContain('#051509'); // NODE_FILL_MINOR added
+  });
+
 });

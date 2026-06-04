@@ -156,7 +156,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 
   for (const node of current.nodes) {
     if (!baseByFile.has(node.file)) {
-      diffedNodes.push({ ...node, diff: 'added' });
+      diffedNodes.push({ ...node, diff: 'added', linesChanged: node.lineCount ?? 0 });
     } else {
       const baseNode = baseByFile.get(node.file)!;
 
@@ -179,7 +179,11 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
           return toFile && !currentEdgeNames.has(`${node.file}→${toFile}`);
         });
 
-      diffedNodes.push({ ...node, diff: outgoingChanged || outgoingRemoved ? 'modified' : 'unchanged' });
+      const isModified = outgoingChanged || outgoingRemoved;
+      const linesChanged = isModified
+        ? Math.abs((node.lineCount ?? 0) - (baseNode.lineCount ?? 0))
+        : 0;
+      diffedNodes.push({ ...node, diff: isModified ? 'modified' : 'unchanged', linesChanged });
     }
   }
 
@@ -187,7 +191,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
   for (const node of base.nodes) {
     if (node.scope === 'out-of-scope') continue;
     if (!currentByFile.has(node.file)) {
-      diffedNodes.push({ ...node, scope: 'removed-ghost', diff: 'removed' });
+      diffedNodes.push({ ...node, scope: 'removed-ghost', diff: 'removed', linesChanged: node.lineCount ?? 0 });
     }
   }
 

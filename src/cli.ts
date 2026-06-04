@@ -51,7 +51,7 @@ function detectRepoRoot(startDir: string): string {
 // ─── Diagram data builder ────────────────────────────────────────────────────
 
 interface ModeData {
-  nodes: Array<{ id: string; x: number; y: number; width: number; height: number; label: string; type: string; diff: string | null; scope: string; file: string; typeOnly?: boolean }>;
+  nodes: Array<{ id: string; x: number; y: number; width: number; height: number; label: string; type: string; diff: string | null; scope: string; file: string; typeOnly?: boolean; linesChanged?: number }>;
   edges: Array<{ from: string; to: string; sections: Layout['edges'][number]['sections']; diff?: string }>;
   width: number;
   height: number;
@@ -82,6 +82,7 @@ function buildModeData(
       scope: gn?.scope ?? 'in-scope',
       file: gn?.file ?? '',
       ...(gn?.typeOnly ? { typeOnly: true } : {}),
+      ...(gn?.linesChanged !== undefined ? { linesChanged: gn.linesChanged } : {}),
     };
   });
 
