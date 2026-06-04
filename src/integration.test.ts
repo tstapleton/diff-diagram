@@ -171,6 +171,15 @@ describe('barrel file resolution', () => {
   });
 });
 
+// ─── stories exclusion ───────────────────────────────────────────────────────
+
+describe('diffGraphs integration — stories exclusion', () => {
+  it('no stories.ts nodes in the graph', () => {
+    const storiesNodes = diffed.nodes.filter(n => n.file.endsWith('.stories.ts'));
+    expect(storiesNodes).toHaveLength(0);
+  });
+});
+
 // ─── meta ────────────────────────────────────────────────────────────────────
 
 describe('diffGraphs integration — meta', () => {

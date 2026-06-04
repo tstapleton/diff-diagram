@@ -133,6 +133,12 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
       'export declare const x: string;',
     );
 
+    // Should be excluded: stories file
+    writeFileSync(
+      path.join(scopeDir, 'users.routes.stories.ts'),
+      "import { Component } from '@angular/core';\nexport default {};",
+    );
+
     // Should be excluded: node_modules inside scope (BUG: currently included)
     const nmDir = path.join(scopeDir, 'node_modules', 'some-lib');
     mkdirSync(nmDir, { recursive: true });
@@ -172,5 +178,11 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
     const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
     const routesNode = graph.nodes.find(n => n.file.includes('users.routes'));
     expect(routesNode?.type).toBe('routing');
+  });
+
+  it('excludes .stories.ts files', async () => {
+    const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+    const files = graph.nodes.map(n => n.file);
+    expect(files.every(f => !f.endsWith('.stories.ts'))).toBe(true);
   });
 });
