@@ -41,6 +41,14 @@ export function truncateLabel(label: string, maxWidth: number): string {
   return label.slice(0, Math.max(1, maxChars - 1)) + '…';
 }
 
+// ─── OOS path display ────────────────────────────────────────────────────────
+
+function oosDisplayPath(file: string, sourceRoot: string): string {
+  const dir = path.dirname(file);
+  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
+  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
+}
+
 // ─── Node rendering ───────────────────────────────────────────────────────────
 
 export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
@@ -53,7 +61,7 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
   return { fill: NODE_FILL[diff], stroke: NODE_STROKE[diff] };
 }
 
-function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: number): string {
+function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: number, sourceRoot: string): string {
   const { fill, stroke } = nodeColor(node);
   const isStub = node.type === 'stub';
   const label = isStub ? truncateLabel(node.label, lw) : node.label;
@@ -71,11 +79,11 @@ function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: num
   if (node.typeOnly) {
     const typeOnlyFill = '#0d1f3c';
     if (isOos) {
-      const dirPath = path.dirname(node.file);
+      const dirPath = oosDisplayPath(node.file, sourceRoot);
       return [
         `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
-        `  <text x="${lx + 8}" y="${ly + 15}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
-        `  <text x="${lx + 8}" y="${ly + 27}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+        `  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
+        `  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
       ].join('\n');
     }
     const cy = ly + lh / 2 + 4;
@@ -86,11 +94,11 @@ function renderNode(node: GraphNode, lx: number, ly: number, lw: number, lh: num
   }
 
   if (isOos) {
-    const dirPath = path.dirname(node.file);
+    const dirPath = oosDisplayPath(node.file, sourceRoot);
     return [
       `  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
-      `  <text x="${lx + 8}" y="${ly + 15}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
-      `  <text x="${lx + 8}" y="${ly + 27}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+      `  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+      `  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
     ].join('\n');
   }
 
@@ -146,6 +154,7 @@ export function toSvg(
   nodes: GraphNode[],
   edges: GraphEdge[],
   featureLabel?: string,
+  sourceRoot = 'src/app',
 ): string {
   const nodeById = new Map(nodes.map(n => [n.id, n]));
 
@@ -155,7 +164,7 @@ export function toSvg(
   const renderedNodes = layout.nodes.flatMap(ln => {
     const gn = nodeById.get(ln.id);
     if (!gn) return [];
-    return [renderNode(gn, ln.x, ln.y, ln.width, ln.height)];
+    return [renderNode(gn, ln.x, ln.y, ln.width, ln.height, sourceRoot)];
   });
 
   const renderedEdges = layout.edges.flatMap(le => {

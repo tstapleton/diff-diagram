@@ -115,11 +115,12 @@ describe('toSvg', () => {
     expect(svg).not.toContain('>added<');
   });
 
-  it('out-of-scope node shows directory path as subtitle', () => {
+  it('out-of-scope node shows stripped directory path as subtitle', () => {
     const n = node('oos', { label: 'Analytics', scope: 'out-of-scope', file: 'src/app/shared/services/analytics.service.ts' });
-    const svg = toSvg(layout([n]), [n], []);
+    const svg = toSvg(layout([n]), [n], [], undefined, 'src/app');
     expect(svg).toContain('Analytics');
-    expect(svg).toContain('src/app/shared/services');
+    expect(svg).toContain('shared/services');
+    expect(svg).not.toContain('>src/app/shared/services<');
   });
 
   it('renders added edges with green stroke color', () => {

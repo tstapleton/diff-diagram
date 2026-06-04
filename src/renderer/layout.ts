@@ -54,11 +54,24 @@ const NODE_HEIGHT = 40;
 const STUB_WIDTH = 120;
 const STUB_HEIGHT = 32;
 const APPROX_CHAR_WIDTH = 7;
+const APPROX_CHAR_WIDTH_SMALL = 5; // px per char at font-size 8
 const NODE_PADDING = 24;
 
-function nodeDims(node: GraphNode): { width: number; height: number } {
+function oosStrippedDir(file: string, sourceRoot: string): string {
+  const dir = file.includes('/') ? file.substring(0, file.lastIndexOf('/')) : '.';
+  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
+  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
+}
+
+function nodeDims(node: GraphNode, sourceRoot = 'src/app'): { width: number; height: number } {
   if (node.type === 'stub') return { width: STUB_WIDTH, height: STUB_HEIGHT };
-  const width = Math.max(MIN_NODE_WIDTH, node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING);
+  const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
+  let pathWidth = 0;
+  if (node.scope === 'out-of-scope') {
+    const dir = oosStrippedDir(node.file, sourceRoot);
+    pathWidth = dir.length * APPROX_CHAR_WIDTH_SMALL + NODE_PADDING;
+  }
+  const width = Math.max(MIN_NODE_WIDTH, labelWidth, pathWidth);
   return { width, height: NODE_HEIGHT };
 }
 
@@ -74,6 +87,7 @@ function nodeDims(node: GraphNode): { width: number; height: number } {
 export async function computeLayout(
   nodes: GraphNode[],
   edges: GraphEdge[],
+  sourceRoot = 'src/app',
 ): Promise<Layout> {
   const elk = new ELKClass();
 
@@ -83,7 +97,7 @@ export async function computeLayout(
 
   const elkNodes: ElkNode[] = nodes.map(n => ({
     id: n.id,
-    ...nodeDims(n),
+    ...nodeDims(n, sourceRoot),
     ...(usePartitions ? {
       layoutOptions: {
         'elk.partitioning.partition': n.scope === 'out-of-scope' ? '1' : '0',

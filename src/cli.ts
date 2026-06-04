@@ -20,16 +20,18 @@ interface Args {
   tsConfig: string | null;
   repoRoot: string | null;
   scopeDir: string | null;
+  sourceRoot: string;
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Args = { baseDir: null, baseRepoRoot: null, outDir: 'dist', tsConfig: null, repoRoot: null, scopeDir: null };
+  const args: Args = { baseDir: null, baseRepoRoot: null, outDir: 'dist', tsConfig: null, repoRoot: null, scopeDir: null, sourceRoot: 'src/app' };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--base-dir')        { args.baseDir      = argv[++i]; continue; }
     if (argv[i] === '--base-repo-root')  { args.baseRepoRoot = argv[++i]; continue; }
     if (argv[i] === '--out-dir')         { args.outDir       = argv[++i]; continue; }
     if (argv[i] === '--tsconfig')        { args.tsConfig     = argv[++i]; continue; }
     if (argv[i] === '--repo-root')       { args.repoRoot     = argv[++i]; continue; }
+    if (argv[i] === '--source-root')     { args.sourceRoot   = argv[++i]; continue; }
     if (!argv[i].startsWith('-'))        { args.scopeDir     = argv[i]; }
   }
   return args;
@@ -58,6 +60,7 @@ interface ModeData {
 
 interface DiagramData {
   meta: Omit<Graph['meta'], 'repoRoot'>;
+  sourceRoot: string;
   modes: { all: ModeData; diffFocused: ModeData };
 }
 
@@ -148,14 +151,14 @@ async function main(): Promise<void> {
   const diffView = computeViewNodes(diffed, 'diff-focused');
 
   const [allLayout, diffLayout] = await Promise.all([
-    computeLayout(allView.nodes, allView.edges),
-    computeLayout(diffView.nodes, diffView.edges),
+    computeLayout(allView.nodes, allView.edges, args.sourceRoot),
+    computeLayout(diffView.nodes, diffView.edges, args.sourceRoot),
   ]);
 
   await mkdir(outDir, { recursive: true });
 
   // diagram.svg — diff-focused, real layout
-  const svg = toSvg(diffLayout, diffView.nodes, diffView.edges, path.basename(scopeDir));
+  const svg = toSvg(diffLayout, diffView.nodes, diffView.edges, path.basename(scopeDir), args.sourceRoot);
   const svgPath = path.join(outDir, 'diagram.svg');
   await writeFile(svgPath, svg);
   console.log(`Wrote ${svgPath}`);
@@ -164,6 +167,7 @@ async function main(): Promise<void> {
   const { repoRoot: _root, ...metaWithoutRoot } = diffed.meta;
   const diagramData: DiagramData = {
     meta: metaWithoutRoot,
+    sourceRoot: args.sourceRoot,
     modes: {
       all:          buildModeData(allView.nodes,  allView.edges,  allLayout),
       diffFocused:  buildModeData(diffView.nodes, diffView.edges, diffLayout),
