@@ -4,6 +4,76 @@ Ideas and deferred features with context on why they weren't implemented yet and
 
 ---
 
+## Diff State for Test and Storybook Markers (iteration on item 10)
+
+### Request
+The current markers (green dot = has test, purple dot = has story) are static —
+they show presence but not change. A reviewer would benefit from knowing whether
+a spec or story file was **added**, **modified**, **removed**, or **unchanged**
+as part of this PR, just like the component node itself.
+
+### Possible approaches (pick one or combine)
+
+**Option A: Dot color encodes diff state**  
+Reuse the existing diff palette on the dots themselves. A newly-added spec file
+gets a bright green dot (added); a removed spec gets a red dot; a modified spec
+gets amber; unchanged stays the current green. Purple for stories follows the same
+pattern. Simple visual extension with no structural change — just pass diff state
+through to the dot renderer.
+
+**Option B: Dot shape/style encodes diff state**  
+Keep color fixed (green = test, purple = story) but encode diff in shape:
+- Added → filled circle
+- Modified → circle with ring/halo
+- Removed → hollow circle (stroke only)
+- Unchanged → small filled circle (current)
+This separates the "what kind" signal (color) from the "what happened" signal (shape).
+
+**Option C: Sidecar files as first-class nodes in the graph**  
+Treat `.spec.ts` and `.stories.ts` files as proper `GraphNode` entries with their
+own diff state, type (`spec` / `story`), and edges back to their component. Show
+them as satellite nodes in the layout. Enables full diff treatment but increases
+graph density significantly.
+
+**Option D: Track sidecar presence in base vs current in the analyzer**  
+The analyzer currently checks existence in the current snapshot only. Pass the
+base snapshot's file list into the analyzer (or re-run `existsSync` against the
+base repo root) and compute `testsDiff` / `storiesDiff` on each node:
+- present in current, absent in base → `added`
+- absent in current, present in base → `removed`
+- present in both → `unchanged` (content diff would require hashing/reading)
+- absent in both → no marker
+Requires threading base path into the analyzer or doing a post-diff step.
+
+**Option E: Post-diff computation in `diffGraphs`**  
+After `diffGraphs` runs, compare `hasTests`/`hasStories` between base and current
+nodes (by file). If a component node existed in both snapshots, compare the sidecar
+flags to detect adds/removes. A component that gained a test → `testsDiff: 'added'`.
+No changes to analyzer; all diff logic stays in `diff-parser.ts`.
+
+**Option F: Use git diff output (requires git access)**  
+Before running the analysis, shell out to `git diff --name-status <base> HEAD` and
+parse the output to identify which `.spec.ts` and `.stories.ts` files changed.
+Inject the results as metadata into the graph. Works accurately even when file
+content is unchanged but the test file was renamed. Requires the CLI to have access
+to a real git repo, which CI workflows typically provide.
+
+**Option G: Hash-based content diff for "modified" detection**  
+Options A–E can detect presence changes (added/removed) but not content changes
+(modified). Reading and hashing both the base and current sidecar files would
+distinguish "file exists in both and is identical" (unchanged) from "file exists
+in both but content differs" (modified). Adds I/O cost per node.
+
+### Recommended starting point
+**Option E** (post-diff in `diffGraphs`) is the lowest-effort path: it leverages
+data already computed (`hasTests`/`hasStories` on base and current nodes), requires
+no new I/O or git access, and detects the most common case (test file added or
+removed alongside a feature change). Combine with **Option A** (dot color) for the
+visual encoding. Hash-based "modified" detection (Option G) can layer on later if
+that distinction proves useful.
+
+---
+
 ## Grouping Out-of-Scope Nodes by Parent Directory
 
 ### Request
