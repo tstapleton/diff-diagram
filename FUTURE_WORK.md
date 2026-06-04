@@ -4,6 +4,47 @@ Ideas and deferred features with context on why they weren't implemented yet and
 
 ---
 
+## Grouping Out-of-Scope Nodes by Parent Directory
+
+### Request
+Instead of showing each out-of-scope (external dependency) node individually with
+a path subtitle, group them visually by their parent directory. A shared services
+directory with 5 components would become a single collapsed group node rather than
+5 individual nodes.
+
+### Current behavior
+Each OOS node is shown individually with its label and a path subtitle (e.g.
+`shared/services`). This gives the most detail but can create clutter when a
+feature imports many things from the same shared directory.
+
+### Why this was deferred (simpler option chosen first)
+Individual nodes with path subtitles were implemented as the simpler first option.
+They convey precise information without requiring grouping logic. The grouped
+option would reduce clutter for large diagrams but requires design decisions about
+what constitutes a "group" and how to handle mixed changed/unchanged groups.
+
+### Design for grouped option
+
+**Grouping rule:** Collect OOS nodes that share the same immediate parent directory
+(after stripping `sourceRoot`). E.g., `shared/services/analytics.service.ts` and
+`shared/services/logging.service.ts` both belong to group `shared/services`.
+
+**Group node rendering:**
+- Single rect with the directory path as label
+- Fill/stroke reflects the highest-severity diff state among member nodes
+  (added > modified > removed > unchanged)
+- Dashed border if any member is type-only
+- Tooltip or expand-on-click could reveal individual members (future)
+
+**Implementation:**
+- In `computeViewNodes` or a new step: collapse OOS nodes by parent dir into
+  synthetic group nodes
+- Edges from in-scope nodes that targeted any member of a group get redirected
+  to the group node
+- Group node `id` = canonical parent dir path
+
+---
+
 ## Type-Only Import Detection
 
 ### Request
