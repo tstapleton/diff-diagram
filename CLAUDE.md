@@ -35,7 +35,7 @@ Optional flags: `--out-dir <dir>` (default `dist`), `--tsconfig <file>`, `--sour
 ## Count nodes in any Angular feature directory
 
 ```bash
-find <scope-dir> -name "*.ts" ! -name "*.spec.ts" | wc -l
+find <feature-dir> -name "*.ts" ! -name "*.spec.ts" | wc -l
 ```
 
 ## Fake app fixtures

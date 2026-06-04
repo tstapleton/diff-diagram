@@ -87,7 +87,7 @@ Algorithm:
 Modes:
 - `'all'` — returns `{ nodes: graph.nodes, edges: graph.edges }` unchanged
 - `'diff-focused'` — applies collapse rules:
-  1. Group in-scope nodes by immediate subdirectory (1 level below `graph.meta.scopeDir`)
+  1. Group in-scope nodes by immediate subdirectory (1 level below the feature directory; `graph.meta.scopeDir` is the JSON field name)
   2. If ALL nodes in a group are `unchanged` → collapse to a stub node
   3. If ANY node is `added/modified/removed` → expand the entire group individually
   4. Nodes at the scope root level (no subdirectory) are always shown individually
