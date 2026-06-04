@@ -22,9 +22,27 @@ interface Args {
   sourceRoot: string;
 }
 
+function printHelp(): void {
+  console.log('Usage: diff-diagram [options] <feature-dir>');
+  console.log('');
+  console.log('Generate a dependency diagram for an Angular feature directory.');
+  console.log('');
+  console.log('Arguments:');
+  console.log('  feature-dir              Feature directory to diagram (relative to --repo-root)');
+  console.log('');
+  console.log('Options:');
+  console.log('  --repo-root <path>       Repo root for the current branch (auto-detected via .git)');
+  console.log('  --base-repo-root <path>  Repo root for a pre-checked-out base branch (enables diff)');
+  console.log('  --out-dir <dir>          Output directory (default: dist)');
+  console.log('  --tsconfig <file>        Path to tsconfig.json (auto-detected)');
+  console.log('  --source-root <dir>      Source root prefix for label derivation (default: src/app)');
+  console.log('  -h, --help               Show this help message');
+}
+
 function parseArgs(argv: string[]): Args {
   const args: Args = { baseRepoRoot: null, outDir: 'dist', tsConfig: null, repoRoot: null, scopeDir: null, sourceRoot: 'src/app' };
   for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '-h' || argv[i] === '--help') { printHelp(); process.exit(0); }
     if (argv[i] === '--base-repo-root')  { args.baseRepoRoot = argv[++i]; continue; }
     if (argv[i] === '--out-dir')         { args.outDir       = argv[++i]; continue; }
     if (argv[i] === '--tsconfig')        { args.tsConfig     = argv[++i]; continue; }
@@ -106,8 +124,7 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   if (!args.scopeDir) {
-    console.error('Usage: node dist/cli.js --repo-root <path> [--base-repo-root <path>] [--out-dir <dir>] [--tsconfig <file>] [--source-root <dir>] <scope-dir>');
-    console.error('  <scope-dir>  path relative to --repo-root, e.g. src/app/features/users');
+    printHelp();
     process.exit(1);
   }
 
