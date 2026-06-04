@@ -33,9 +33,10 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType, scope: NodeScope, diff: DiffState | null }`
-- `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState }`
+- `GraphNode` — `{ id, label, file, type: NodeType, scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
+- `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
+- `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount, diffSha?: string | null }` (`scopeDir` is the JSON field name for the feature directory path)
 - `DiffState` — `'added' | 'modified' | 'removed' | 'unchanged'`
 - `NodeScope` — `'in-scope' | 'out-of-scope' | 'removed-ghost'`
 - `NodeType` — `'component' | 'service' | 'pipe' | 'guard' | 'resolver' | 'interceptor' | 'routing' | 'module' | 'model' | 'constants' | 'stub'`
