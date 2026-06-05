@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import type { ElkNode, ELK as ELKInstance, ElkExtendedEdge } from 'elkjs/lib/elk-api.js';
+import { oosDisplayPath } from '../analyzer.js';
 import type { GraphNode, GraphEdge } from '../types.js';
 
 const _require = createRequire(import.meta.url);
@@ -57,18 +58,12 @@ const APPROX_CHAR_WIDTH = 7;
 const APPROX_CHAR_WIDTH_SMALL = 5; // px per char at font-size 8
 const NODE_PADDING = 24;
 
-function oosStrippedDir(file: string, sourceRoot: string): string {
-  const dir = file.includes('/') ? file.substring(0, file.lastIndexOf('/')) : '.';
-  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
-  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
-}
-
 function nodeDims(node: GraphNode, sourceRoot = 'src/app'): { width: number; height: number } {
   if (node.type === 'stub') return { width: STUB_WIDTH, height: STUB_HEIGHT };
   const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
   let pathWidth = 0;
   if (node.scope === 'out-of-scope') {
-    const dir = oosStrippedDir(node.file, sourceRoot);
+    const dir = oosDisplayPath(node.file, sourceRoot);
     pathWidth = dir.length * APPROX_CHAR_WIDTH_SMALL + NODE_PADDING;
   }
   const width = Math.max(MIN_NODE_WIDTH, labelWidth, pathWidth);

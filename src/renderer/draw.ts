@@ -1,4 +1,4 @@
-import path from 'path';
+import { oosDisplayPath } from '../analyzer.js';
 import type { GraphNode, GraphEdge, DiffState } from '../types.js';
 import type { Layout, LayoutEdge } from './layout.js';
 
@@ -41,14 +41,6 @@ export function truncateLabel(label: string, maxWidth: number): string {
   const maxChars = Math.floor((maxWidth - 16) / APPROX_CHAR_WIDTH);
   if (label.length <= maxChars) return label;
   return label.slice(0, Math.max(1, maxChars - 1)) + '…';
-}
-
-// ─── OOS path display ────────────────────────────────────────────────────────
-
-function oosDisplayPath(file: string, sourceRoot: string): string {
-  const dir = path.dirname(file);
-  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
-  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
 }
 
 // ─── Node rendering ───────────────────────────────────────────────────────────

@@ -47,6 +47,12 @@ export function toNodeId(filePath: string, repoRoot: string): string {
     .replace(/^_|_$/g, '');
 }
 
+export function oosDisplayPath(file: string, sourceRoot: string): string {
+  const dir = path.dirname(file);
+  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
+  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
+}
+
 export function labelFromFile(filePath: string): string {
   const base = path.basename(filePath, '.ts');
   const name = base === 'index' ? path.basename(path.dirname(filePath)) : base;

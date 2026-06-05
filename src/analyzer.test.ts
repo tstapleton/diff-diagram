@@ -170,7 +170,6 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
   it('excludes files inside node_modules', async () => {
     const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
     const files = graph.nodes.map(n => n.file);
-    // BUG: currently includes node_modules files
     expect(files.every(f => !f.includes('node_modules'))).toBe(true);
   });
 

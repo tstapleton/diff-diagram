@@ -35,13 +35,13 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType, scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
+- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
 - `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount, diffSha?: string | null }` (`scopeDir` is the JSON field name for the feature directory path)
 - `DiffState` — `'added' | 'modified' | 'removed' | 'unchanged'`
 - `NodeScope` — `'in-scope' | 'out-of-scope' | 'removed-ghost'`
-- `NodeType` — `'component' | 'service' | 'pipe' | 'guard' | 'resolver' | 'interceptor' | 'routing' | 'module' | 'model' | 'constants' | 'stub'`
+- `NodeType` — `'component' | 'service' | 'pipe' | 'guard' | 'resolver' | 'interceptor' | 'routing' | 'module' | 'model' | 'constants'` (Angular file types only; `'stub'` is a separate rendering-layer value on `GraphNode.type`)
 
 ### `src/analyzer.ts`
 
@@ -55,7 +55,7 @@ The `analyze()` function takes:
 - `options.repoRoot` — absolute path to repo root (used to compute relative file paths for node IDs)
 - `options.tsConfigPath` — optional; auto-detected via `.git` walk-up
 
-Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`
+Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`, `oosDisplayPath`
 
 **Node ID** — derived from the file path relative to `repoRoot`, without `.ts` extension, with non-alphanumeric chars replaced by `_`, deduplicated underscores stripped.
 
@@ -79,8 +79,6 @@ Algorithm:
 6. Current edges not in base → `diff: 'added'`
 7. Current edges in base → `diff: 'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
-
-**`applyDiff`** — legacy function, no production callers. Exported for backward compatibility; safe to remove.
 
 ### `src/renderer/graph-helpers.ts`
 
@@ -173,7 +171,7 @@ Writes three files:
 
 ## Adding a new node type
 
-1. Add to `NodeType` union in `src/types.ts`
+1. Add to `NodeType` union in `src/types.ts` (note: `'stub'` is a rendering-layer sentinel on `GraphNode.type` and is intentionally not in `NodeType`)
 2. Handle classification in `src/analyzer.ts` `classifyFile()` and/or `classifyByFilename()`
 3. Add color logic in `src/renderer/draw.ts` `nodeColor()` (currently all types share diff-state colors; add a special case if needed)
 4. Update `src/renderer.html` client-side colors if they diverge from `draw.ts`

@@ -10,15 +10,14 @@ export type NodeType =
   | 'routing'
   | 'module'
   | 'model'
-  | 'constants'
-  | 'stub';
+  | 'constants';
 export type EdgeKind = 'import';
 
 export interface GraphNode {
   id: string;
   label: string;
   file: string;
-  type: NodeType;
+  type: NodeType | 'stub';
   scope: NodeScope;
   diff: DiffState | null;
   typeOnly?: boolean;
