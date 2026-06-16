@@ -45,7 +45,7 @@ function compareWithSnapshot(svg: string, name: string): number {
 	mkdirSync(SNAPSHOTS_CURRENT, { recursive: true });
 	writeFileSync(currentPath, data);
 
-	if (process.env.UPDATE_SNAPSHOTS || !existsSync(referencePath)) {
+	if (!existsSync(referencePath)) {
 		mkdirSync(SNAPSHOTS_REFERENCE, { recursive: true });
 		writeFileSync(referencePath, data);
 		return 0;

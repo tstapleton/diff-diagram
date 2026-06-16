@@ -6,7 +6,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:visual": "vitest run --config vitest.visual.config.ts",
-		"test:visual:approve": "UPDATE_SNAPSHOTS=1 vitest run --config vitest.visual.config.ts",
+		"test:visual:approve": "cp test/snapshots/current/*.png test/snapshots/reference/",
 		"lint": "biome lint",
 		"lint:fix": "biome lint --write --unsafe",
 		"format": "biome format --write",
