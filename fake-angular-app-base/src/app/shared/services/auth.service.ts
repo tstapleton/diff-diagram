@@ -1,25 +1,30 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { ApiService } from '../api/api.service';
+import { Injectable } from "@angular/core";
+import { type Observable, of } from "rxjs";
+import type { ApiService } from "../api/api.service";
 
 export interface AuthUser {
-  id: string;
-  email: string;
-  roles: string[];
+	id: string;
+	email: string;
+	roles: string[];
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
-  private currentUser: AuthUser | null = null;
+	private currentUser: AuthUser | null = null;
 
-  constructor(private api: ApiService) {}
+	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: fixture stub
+	constructor(private api: ApiService) {}
 
-  getUser(): AuthUser | null { return this.currentUser; }
+	getUser(): AuthUser | null {
+		return this.currentUser;
+	}
 
-  isAuthenticated(): boolean { return this.currentUser !== null; }
+	isAuthenticated(): boolean {
+		return this.currentUser !== null;
+	}
 
-  logout(): Observable<void> {
-    this.currentUser = null;
-    return of(undefined);
-  }
+	logout(): Observable<void> {
+		this.currentUser = null;
+		return of(undefined);
+	}
 }

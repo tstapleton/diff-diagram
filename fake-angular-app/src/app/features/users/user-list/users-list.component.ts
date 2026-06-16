@@ -1,18 +1,24 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { UserCardComponent } from './user-card.component';
-import { UserFilterComponent } from './user-filter.component';
-import { UserTableHeaderComponent } from './user-table-header.component';
-import { UsersService } from '../data-access/users.service';
-import { UserModel } from '../models/user.model';
-import { PaginationComponent } from '../../../shared/components/pagination.component';
-import { AnalyticsService } from '../../../shared/services';
+import { CommonModule } from "@angular/common";
+import { Component, type OnInit } from "@angular/core";
+import { PaginationComponent } from "../../../shared/components/pagination.component";
+import type { AnalyticsService } from "../../../shared/services";
+import type { UsersService } from "../data-access/users.service";
+import type { UserModel } from "../models/user.model";
+import { UserCardComponent } from "./user-card.component";
+import { UserFilterComponent } from "./user-filter.component";
+import { UserTableHeaderComponent } from "./user-table-header.component";
 
 @Component({
-  selector: 'app-users-list',
-  standalone: true,
-  imports: [CommonModule, UserCardComponent, UserFilterComponent, UserTableHeaderComponent, PaginationComponent],
-  template: `
+	selector: "app-users-list",
+	standalone: true,
+	imports: [
+		CommonModule,
+		UserCardComponent,
+		UserFilterComponent,
+		UserTableHeaderComponent,
+		PaginationComponent,
+	],
+	template: `
     <div class="users-list">
       <app-user-filter />
       <table>
@@ -28,20 +34,24 @@ import { AnalyticsService } from '../../../shared/services';
   `,
 })
 export class UsersListComponent implements OnInit {
-  users: UserModel[] = [];
-  page = 1;
-  totalPages = 1;
+	users: UserModel[] = [];
+	page = 1;
+	totalPages = 1;
 
-  constructor(private usersService: UsersService, private analytics: AnalyticsService) {}
+	constructor(
+		private usersService: UsersService,
+		// biome-ignore lint/correctness/noUnusedPrivateClassMembers: fixture stub
+		private analytics: AnalyticsService,
+	) {}
 
-  ngOnInit(): void {
-    this.usersService.getAll().subscribe(users => {
-      this.users = users;
-      this.totalPages = Math.ceil(users.length / 20);
-    });
-  }
+	ngOnInit(): void {
+		this.usersService.getAll().subscribe((users) => {
+			this.users = users;
+			this.totalPages = Math.ceil(users.length / 20);
+		});
+	}
 
-  onPageChange(page: number): void {
-    this.page = page;
-  }
+	onPageChange(page: number): void {
+		this.page = page;
+	}
 }

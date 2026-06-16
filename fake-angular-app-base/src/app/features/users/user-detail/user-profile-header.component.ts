@@ -1,13 +1,13 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { UserModel } from '../models/user.model';
-import { UserAvatarComponent } from './user-avatar.component';
+import { CommonModule } from "@angular/common";
+import { Component, Input } from "@angular/core";
+import type { UserModel } from "../models/user.model";
+import { UserAvatarComponent } from "./user-avatar.component";
 
 @Component({
-  selector: 'app-user-profile-header',
-  standalone: true,
-  imports: [CommonModule, UserAvatarComponent],
-  template: `
+	selector: "app-user-profile-header",
+	standalone: true,
+	imports: [CommonModule, UserAvatarComponent],
+	template: `
     <div class="profile-header">
       <app-user-avatar [src]="user.avatarUrl" [initials]="user.firstName[0] + user.lastName[0]" />
       <h2>{{ user.firstName }} {{ user.lastName }}</h2>
@@ -16,5 +16,5 @@ import { UserAvatarComponent } from './user-avatar.component';
   `,
 })
 export class UserProfileHeaderComponent {
-  @Input() user!: UserModel;
+	@Input() user!: UserModel;
 }

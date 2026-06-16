@@ -1,12 +1,12 @@
-import { UserModel } from '../models/user.model';
+import type { UserModel } from "../models/user.model";
 
 export interface UserApiResponseModel {
-  data: UserModel[];
-  total: number;
-  page: number;
-  pageSize: number;
+	data: UserModel[];
+	total: number;
+	page: number;
+	pageSize: number;
 }
 
 export interface SingleUserApiResponseModel {
-  data: UserModel;
+	data: UserModel;
 }

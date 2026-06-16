@@ -1,19 +1,23 @@
-import { Injectable } from '@angular/core';
-import { UserAction, loadUsersSuccess, loadUsersFailure } from './user.actions';
-import { UsersService } from '../users.service';
+import { Injectable } from "@angular/core";
+import type { UsersService } from "../users.service";
+import {
+	loadUsersFailure,
+	loadUsersSuccess,
+	type UserAction,
+} from "./user.actions";
 
 @Injectable()
 export class UserEffects {
-  constructor(private usersService: UsersService) {}
+	constructor(private usersService: UsersService) {}
 
-  handleLoadUsers(): void {
-    this.usersService.getAll().subscribe({
-      next: users => this.dispatch(loadUsersSuccess(users)),
-      error: (err: Error) => this.dispatch(loadUsersFailure(err)),
-    });
-  }
+	handleLoadUsers(): void {
+		this.usersService.getAll().subscribe({
+			next: (users) => this.dispatch(loadUsersSuccess(users)),
+			error: (err: Error) => this.dispatch(loadUsersFailure(err)),
+		});
+	}
 
-  private dispatch(action: UserAction): void {
-    console.debug('[UserEffects]', action.type);
-  }
+	private dispatch(action: UserAction): void {
+		console.debug("[UserEffects]", action.type);
+	}
 }

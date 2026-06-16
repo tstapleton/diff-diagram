@@ -1,13 +1,13 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { SortStateService } from './sort-state.service';
-import { SortModel } from './sort.model';
+import { CommonModule } from "@angular/common";
+import { Component } from "@angular/core";
+import type { SortModel } from "./sort.model";
+import type { SortStateService } from "./sort-state.service";
 
 @Component({
-  selector: 'app-user-table-header',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+	selector: "app-user-table-header",
+	standalone: true,
+	imports: [CommonModule],
+	template: `
     <thead>
       <tr>
         <th (click)="sort('lastName')">Name</th>
@@ -18,13 +18,13 @@ import { SortModel } from './sort.model';
   `,
 })
 export class UserTableHeaderComponent {
-  currentSort!: SortModel;
+	currentSort!: SortModel;
 
-  constructor(private sortState: SortStateService) {
-    this.sortState.sort$.subscribe(s => (this.currentSort = s));
-  }
+	constructor(private sortState: SortStateService) {
+		this.sortState.sort$.subscribe((s) => (this.currentSort = s));
+	}
 
-  sort(field: string): void {
-    this.sortState.toggle(field);
-  }
+	sort(field: string): void {
+		this.sortState.toggle(field);
+	}
 }

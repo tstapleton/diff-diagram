@@ -1,15 +1,15 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { UserExportService } from './user-export.service';
-import { ExportModel } from './export.model';
-import { UserModel } from '../models/user.model';
+import { CommonModule } from "@angular/common";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import type { UserModel } from "../models/user.model";
+import type { ExportModel } from "./export.model";
+import type { UserExportService } from "./user-export.service";
 
 @Component({
-  selector: 'app-user-export-dialog',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+	selector: "app-user-export-dialog",
+	standalone: true,
+	imports: [CommonModule, FormsModule],
+	template: `
     <div class="dialog">
       <h2>Export Users</h2>
       <select [(ngModel)]="format">
@@ -21,15 +21,21 @@ import { UserModel } from '../models/user.model';
   `,
 })
 export class UserExportDialogComponent {
-  @Input() users: UserModel[] = [];
-  @Output() exported = new EventEmitter<void>();
+	@Input() users: UserModel[] = [];
+	@Output() exported = new EventEmitter<void>();
 
-  format: ExportModel['format'] = 'csv';
+	format: ExportModel["format"] = "csv";
 
-  constructor(private exportService: UserExportService) {}
+	constructor(private exportService: UserExportService) {}
 
-  doExport(): void {
-    const config: ExportModel = { format: this.format, fields: ['id', 'email', 'firstName', 'lastName'], filename: `users.${this.format}` };
-    this.exportService.export(this.users, config).subscribe(() => this.exported.emit());
-  }
+	doExport(): void {
+		const config: ExportModel = {
+			format: this.format,
+			fields: ["id", "email", "firstName", "lastName"],
+			filename: `users.${this.format}`,
+		};
+		this.exportService
+			.export(this.users, config)
+			.subscribe(() => this.exported.emit());
+	}
 }

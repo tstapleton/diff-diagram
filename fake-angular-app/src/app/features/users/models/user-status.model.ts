@@ -1,8 +1,8 @@
-export type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending';
+export type UserStatus = "active" | "inactive" | "suspended" | "pending";
 
 export interface UserStatusModel {
-  id: string;
-  status: UserStatus;
-  label: string;
-  color: string;
+	id: string;
+	status: UserStatus;
+	label: string;
+	color: string;
 }

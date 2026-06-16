@@ -1,8 +1,8 @@
-export type SortDirection = 'asc' | 'desc';
+export type SortDirection = "asc" | "desc";
 
 export interface SortModel {
-  field: string;
-  direction: SortDirection;
+	field: string;
+	direction: SortDirection;
 }
 
-export const defaultSort: SortModel = { field: 'lastName', direction: 'asc' };
+export const defaultSort: SortModel = { field: "lastName", direction: "asc" };

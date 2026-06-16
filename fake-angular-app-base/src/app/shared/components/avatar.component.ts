@@ -1,13 +1,13 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule } from "@angular/common";
+import { Component, Input } from "@angular/core";
 
 @Component({
-  selector: 'app-avatar',
-  standalone: true,
-  imports: [CommonModule],
-  template: `<div class="avatar" [style.background-image]="'url(' + src + ')'">{{ initials }}</div>`,
+	selector: "app-avatar",
+	standalone: true,
+	imports: [CommonModule],
+	template: `<div class="avatar" [style.background-image]="'url(' + src + ')'">{{ initials }}</div>`,
 })
 export class AvatarComponent {
-  @Input() src = '';
-  @Input() initials = '';
+	@Input() src = "";
+	@Input() initials = "";
 }

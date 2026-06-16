@@ -1,7 +1,7 @@
-export type BulkActionType = 'activate' | 'deactivate' | 'delete' | 'export';
+export type BulkActionType = "activate" | "deactivate" | "delete" | "export";
 
 export interface BulkActionModel {
-  type: BulkActionType;
-  userIds: string[];
-  confirmedAt?: string;
+	type: BulkActionType;
+	userIds: string[];
+	confirmedAt?: string;
 }

@@ -1,16 +1,21 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { UserPreferencesService } from './user-preferences.service';
-import { UserPreferencesModel } from './user-preferences.model';
-import { UserSecurityComponent } from './user-security.component';
-import { UserNotificationPrefsComponent } from './user-notification-prefs.component';
+import { CommonModule } from "@angular/common";
+import { Component, Input, type OnInit } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { UserNotificationPrefsComponent } from "./user-notification-prefs.component";
+import type { UserPreferencesModel } from "./user-preferences.model";
+import type { UserPreferencesService } from "./user-preferences.service";
+import { UserSecurityComponent } from "./user-security.component";
 
 @Component({
-  selector: 'app-user-settings',
-  standalone: true,
-  imports: [CommonModule, FormsModule, UserSecurityComponent, UserNotificationPrefsComponent],
-  template: `
+	selector: "app-user-settings",
+	standalone: true,
+	imports: [
+		CommonModule,
+		FormsModule,
+		UserSecurityComponent,
+		UserNotificationPrefsComponent,
+	],
+	template: `
     <div *ngIf="prefs" class="user-settings">
       <label>Theme
         <select [(ngModel)]="prefs.theme" (ngModelChange)="save()">
@@ -25,16 +30,16 @@ import { UserNotificationPrefsComponent } from './user-notification-prefs.compon
   `,
 })
 export class UserSettingsComponent implements OnInit {
-  @Input() userId = '';
-  prefs: UserPreferencesModel | null = null;
+	@Input() userId = "";
+	prefs: UserPreferencesModel | null = null;
 
-  constructor(private prefsService: UserPreferencesService) {}
+	constructor(private prefsService: UserPreferencesService) {}
 
-  ngOnInit(): void {
-    this.prefsService.get(this.userId).subscribe(p => (this.prefs = p));
-  }
+	ngOnInit(): void {
+		this.prefsService.get(this.userId).subscribe((p) => (this.prefs = p));
+	}
 
-  save(): void {
-    if (this.prefs) this.prefsService.save(this.prefs).subscribe();
-  }
+	save(): void {
+		if (this.prefs) this.prefsService.save(this.prefs).subscribe();
+	}
 }

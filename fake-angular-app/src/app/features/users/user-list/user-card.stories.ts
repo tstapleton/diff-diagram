@@ -1,8 +1,8 @@
-import { UserCardComponent } from './user-card.component';
+import { UserCardComponent } from "./user-card.component";
 
 export default {
-  title: 'UserCard',
-  component: UserCardComponent,
+	title: "UserCard",
+	component: UserCardComponent,
 };
 
 export const Default = {};

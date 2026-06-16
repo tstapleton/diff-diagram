@@ -6,14 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": [
-			"**",
-			"!!**/dist",
-			"!!fake-angular-app",
-			"!!fake-angular-app-base",
-			"!!.claude",
-			"!!skills-lock.json"
-		]
+		"includes": ["**", "!!**/dist", "!!.claude", "!!skills-lock.json"]
 	},
 	"formatter": {
 		"enabled": true,

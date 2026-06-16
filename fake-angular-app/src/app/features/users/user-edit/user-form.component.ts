@@ -1,15 +1,15 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { UserModel } from '../models/user.model';
-import { validateUser, ValidationError } from './validation.utils';
-import { FormErrorsComponent } from '../../../shared/components/form-errors.component';
+import { CommonModule } from "@angular/common";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { FormErrorsComponent } from "../../../shared/components/form-errors.component";
+import type { UserModel } from "../models/user.model";
+import { type ValidationError, validateUser } from "./validation.utils";
 
 @Component({
-  selector: 'app-user-form',
-  standalone: true,
-  imports: [CommonModule, FormsModule, FormErrorsComponent],
-  template: `
+	selector: "app-user-form",
+	standalone: true,
+	imports: [CommonModule, FormsModule, FormErrorsComponent],
+	template: `
     <form (ngSubmit)="onSubmit()">
       <app-form-errors [errors]="errorMessages" />
       <input [(ngModel)]="draft.firstName" name="firstName" placeholder="First name" />
@@ -20,18 +20,20 @@ import { FormErrorsComponent } from '../../../shared/components/form-errors.comp
   `,
 })
 export class UserFormComponent {
-  @Input() set user(u: Partial<UserModel>) { this.draft = { ...u }; }
-  @Output() save = new EventEmitter<Partial<UserModel>>();
+	@Input() set user(u: Partial<UserModel>) {
+		this.draft = { ...u };
+	}
+	@Output() save = new EventEmitter<Partial<UserModel>>();
 
-  draft: Partial<UserModel> = {};
-  errors: ValidationError[] = [];
+	draft: Partial<UserModel> = {};
+	errors: ValidationError[] = [];
 
-  get errorMessages(): string[] {
-    return this.errors.map(e => `${e.field}: ${e.message}`);
-  }
+	get errorMessages(): string[] {
+		return this.errors.map((e) => `${e.field}: ${e.message}`);
+	}
 
-  onSubmit(): void {
-    this.errors = validateUser(this.draft);
-    if (!this.errors.length) this.save.emit(this.draft);
-  }
+	onSubmit(): void {
+		this.errors = validateUser(this.draft);
+		if (!this.errors.length) this.save.emit(this.draft);
+	}
 }
