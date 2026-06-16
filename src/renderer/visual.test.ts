@@ -11,7 +11,8 @@ import { computeViewNodes } from './graph-helpers.js';
 import { computeLayout } from './layout.js';
 import { toSvg } from './draw.js';
 
-const SNAPSHOTS_DIR = path.resolve('test/snapshots');
+const SNAPSHOTS_REFERENCE = path.resolve('test/snapshots/reference');
+const SNAPSHOTS_CURRENT   = path.resolve('test/snapshots/current');
 const REPO_ROOT = path.resolve('fake-angular-app');
 const BASE_ROOT = path.resolve('fake-angular-app-base');
 const SCOPE = path.resolve('fake-angular-app/src/app/features/users');
@@ -24,14 +25,20 @@ function rasterize(svg: string): { data: Buffer; width: number; height: number }
 }
 
 function compareWithSnapshot(svg: string, name: string): number {
-  const snapshotPath = path.join(SNAPSHOTS_DIR, `${name}.png`);
+  const referencePath = path.join(SNAPSHOTS_REFERENCE, `${name}.png`);
+  const currentPath   = path.join(SNAPSHOTS_CURRENT,   `${name}.png`);
   const { data, width, height } = rasterize(svg);
-  if (process.env.UPDATE_SNAPSHOTS || !existsSync(snapshotPath)) {
-    mkdirSync(SNAPSHOTS_DIR, { recursive: true });
-    writeFileSync(snapshotPath, data);
+
+  mkdirSync(SNAPSHOTS_CURRENT, { recursive: true });
+  writeFileSync(currentPath, data);
+
+  if (process.env.UPDATE_SNAPSHOTS || !existsSync(referencePath)) {
+    mkdirSync(SNAPSHOTS_REFERENCE, { recursive: true });
+    writeFileSync(referencePath, data);
     return 0;
   }
-  const ref = PNG.sync.read(readFileSync(snapshotPath));
+
+  const ref = PNG.sync.read(readFileSync(referencePath));
   const actual = PNG.sync.read(data);
   const diff = new PNG({ width, height });
   return pixelmatch(ref.data, actual.data, diff.data, width, height, { threshold: 0.1 });

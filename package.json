@@ -7,7 +7,7 @@
     "test:watch": "vitest",
     "test:visual": "vitest run --config vitest.visual.config.ts",
     "test:visual:approve": "UPDATE_SNAPSHOTS=1 vitest run --config vitest.visual.config.ts",
-    "verify": "tsc && vitest run"
+    "verify": "tsc && vitest run && vitest run --config vitest.visual.config.ts"
   },
   "dependencies": {
     "elkjs": "0.11.1",
