@@ -10,7 +10,8 @@
 		"lint": "biome lint",
 		"lint:fix": "biome lint --write --unsafe",
 		"format": "biome format --write",
-		"verify": "npm run build && biome check && npm run test && npm run test:visual"
+		"verify": "npm run build && biome check && npm run test && npm run test:visual",
+		"prepare": "husky"
 	},
 	"dependencies": {
 		"elkjs": "0.11.1",
@@ -23,6 +24,7 @@
 		"@types/node": "25.9.3",
 		"@types/pixelmatch": "5.2.6",
 		"@types/pngjs": "6.0.5",
+		"husky": "9.1.7",
 		"pixelmatch": "7.2.0",
 		"pngjs": "7.0.0",
 		"typescript": "6.0.3",
