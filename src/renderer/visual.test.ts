@@ -18,9 +18,7 @@ const BASE_ROOT = path.resolve("fake-angular-app-base");
 const SCOPE = path.resolve("fake-angular-app/src/app/features/users");
 const BASE_SCOPE = path.resolve("fake-angular-app-base/src/app/features/users");
 
-const FIRA_CODE = readFileSync(
-	path.resolve("test/fixtures/fonts/FiraCode-Regular.ttf"),
-);
+const FIRA_CODE_PATH = path.resolve("test/fixtures/fonts/FiraCode-Regular.ttf");
 
 function rasterize(svg: string): {
 	data: Buffer;
@@ -28,8 +26,8 @@ function rasterize(svg: string): {
 	height: number;
 } {
 	const resvg = new Resvg(svg, {
-		fitTo: { mode: "width", value: 1200 },
-		font: { fontBuffers: [FIRA_CODE], loadSystemFonts: false },
+		fitTo: { mode: "zoom", value: 2 },
+		font: { fontFiles: [FIRA_CODE_PATH], loadSystemFonts: false },
 	});
 	const rendered = resvg.render();
 	return {

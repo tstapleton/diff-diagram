@@ -35,6 +35,7 @@ const STORY_DOT = "#a855f7"; // purple — has storybook story
 
 // ─── Label truncation ─────────────────────────────────────────────────────────
 
+const FONT_FAMILY = "Fira Code, monospace";
 const APPROX_CHAR_WIDTH = 7; // px per monospace character at font-size 11
 
 export function truncateLabel(label: string, maxWidth: number): string {
@@ -71,7 +72,7 @@ function renderNode(
 		const cy = ly + lh / 2;
 		return [
 			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-dasharray="4,2"/>`,
-			`  <text x="${lx + lw / 2}" y="${cy + 4}" text-anchor="middle" font-family="monospace" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
+			`  <text x="${lx + lw / 2}" y="${cy + 4}" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
 		].join("\n");
 	}
 
@@ -83,14 +84,14 @@ function renderNode(
 			const dirPath = oosDisplayPath(node.file, sourceRoot);
 			return [
 				`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
-				`  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
-				`  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+				`  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="${FONT_FAMILY}" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
+				`  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="${FONT_FAMILY}" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
 			].join("\n");
 		}
 		const cy = ly + lh / 2 + 4;
 		return [
 			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
-			`  <text x="${lx + 8}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
+			`  <text x="${lx + 8}" y="${cy}" font-family="${FONT_FAMILY}" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
 		].join("\n");
 	}
 
@@ -98,8 +99,8 @@ function renderNode(
 		const dirPath = oosDisplayPath(node.file, sourceRoot);
 		return [
 			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
-			`  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
-			`  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="monospace" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
+			`  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+			`  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="${FONT_FAMILY}" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
 		].join("\n");
 	}
 
@@ -108,7 +109,7 @@ function renderNode(
 	const dots = nodeMarkerDots(node, lx, ly, lw, lh);
 	return [
 		`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
-		`  <text x="${lx + 8}" y="${cy}" font-family="monospace" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+		`  <text x="${lx + 8}" y="${cy}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
 		...dots,
 	].join("\n");
 }
@@ -209,7 +210,7 @@ export function toSvg(
 		const { x: cx, y: cy, width: cw, height: ch } = layout.container;
 		containerRect = [
 			`  <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>`,
-			`  <text x="${cx + 10}" y="${cy + 13}" font-family="monospace" font-size="9" fill="#475569">${featureLabel}</text>`,
+			`  <text x="${cx + 10}" y="${cy + 13}" font-family="${FONT_FAMILY}" font-size="9" fill="#475569">${featureLabel}</text>`,
 		].join("\n");
 	}
 
