@@ -1,12 +1,12 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: {
-    exclude: [
-      'node_modules/**',
-      'dist/**',
-      '.claude/**',
-      'src/renderer/visual.test.ts',
-    ],
-  },
+	test: {
+		exclude: [
+			"node_modules/**",
+			"dist/**",
+			".claude/**",
+			"src/renderer/visual.test.ts",
+		],
+	},
 });
