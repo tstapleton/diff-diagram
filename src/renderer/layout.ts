@@ -1,4 +1,4 @@
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import type { ElkNode, ELK as ELKInstance, ElkExtendedEdge } from 'elkjs/lib/elk-api.js';
 import { oosDisplayPath } from '../analyzer.js';
 import type { GraphNode, GraphEdge } from '../types.js';
@@ -106,7 +106,9 @@ export async function computeLayout(
     .map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to] }))
     .filter(e => {
       const k = `${e.sources[0]}→${e.targets[0]}`;
-      return seen.has(k) ? false : (seen.add(k), true);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
     });
 
   const graph: ElkNode = {

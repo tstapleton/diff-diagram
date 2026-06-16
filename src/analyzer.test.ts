@@ -1,6 +1,6 @@
-import path from 'path';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
+import path from 'node:path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { toNodeId, labelFromFile, classifyByFilename, analyze } from './analyzer.js';
 
@@ -107,8 +107,8 @@ describe('classifyByFilename', () => {
 // These tests run ts-morph against a real (temporary) fixture directory.
 
 describe('analyze (integration)', { timeout: 15000 }, () => {
-  let tmpRoot;
-  let scopeDir;
+  let tmpRoot: string;
+  let scopeDir: string;
 
   beforeAll(() => {
     tmpRoot = mkdtempSync(path.join(tmpdir(), 'diff-diagram-test-'));
@@ -189,8 +189,8 @@ describe('analyze (integration)', { timeout: 15000 }, () => {
 // ─── analyze() — type-only imports ──────────────────────────────────────────
 
 describe('analyze (type-only imports)', { timeout: 15000 }, () => {
-  let tmpRoot2;
-  let scopeDir2;
+  let tmpRoot2: string;
+  let scopeDir2: string;
 
   beforeAll(() => {
     tmpRoot2 = mkdtempSync(path.join(tmpdir(), 'diff-diagram-typeonly-'));

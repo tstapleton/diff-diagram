@@ -1,6 +1,6 @@
-import path from 'path';
-import { existsSync } from 'fs';
-import { Project, SourceFile } from 'ts-morph';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { Project, type SourceFile } from 'ts-morph';
 import type { Graph, GraphNode, GraphEdge, NodeType } from './types.js';
 
 // ─── File type classification ─────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export function toNodeId(filePath: string, repoRoot: string): string {
 
 export function oosDisplayPath(file: string, sourceRoot: string): string {
   const dir = path.dirname(file);
-  const prefix = sourceRoot.endsWith('/') ? sourceRoot : sourceRoot + '/';
+  const prefix = sourceRoot.endsWith('/') ? sourceRoot : `${sourceRoot}/`;
   return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
 }
 
@@ -70,6 +70,7 @@ function extractDecoratorImports(cls: ReturnType<SourceFile['getClasses']>[numbe
     if (dec.getName() !== 'Component') continue;
     const args = dec.getArguments();
     if (!args.length) continue;
+    // biome-ignore lint/suspicious/noExplicitAny: ts-morph decorator argument nodes have no typed introspection API
     const objLit = args[0] as any;
     if (!objLit.getProperties) continue;
     for (const prop of objLit.getProperties()) {
@@ -88,7 +89,7 @@ function extractDecoratorImports(cls: ReturnType<SourceFile['getClasses']>[numbe
 // ─── Auto-detect tsconfig ────────────────────────────────────────────────────
 
 async function findTsConfig(startDir: string): Promise<string | null> {
-  const { access } = await import('fs/promises');
+  const { access } = await import('node:fs/promises');
   let dir = startDir;
   while (dir !== path.dirname(dir)) {
     const candidate = path.join(dir, 'tsconfig.json');
@@ -150,6 +151,7 @@ export async function analyze(
 
   for (const sf of project.getSourceFiles()) {
     if (!sf.getFilePath().startsWith(scopeDir)) continue;
+    // biome-ignore lint/style/noNonNullAssertion: set in the previous loop for every file in scopeDir
     const fromId = nodeIdByFile.get(sf.getFilePath())!;
 
     const addEdge = (targetPath: string, names: string[] = [], typeOnly = false) => {

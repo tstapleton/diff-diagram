@@ -40,7 +40,7 @@ const APPROX_CHAR_WIDTH = 7; // px per monospace character at font-size 11
 export function truncateLabel(label: string, maxWidth: number): string {
   const maxChars = Math.floor((maxWidth - 16) / APPROX_CHAR_WIDTH);
   if (label.length <= maxChars) return label;
-  return label.slice(0, Math.max(1, maxChars - 1)) + '…';
+  return `${label.slice(0, Math.max(1, maxChars - 1))}…`;
 }
 
 // ─── Node rendering ───────────────────────────────────────────────────────────

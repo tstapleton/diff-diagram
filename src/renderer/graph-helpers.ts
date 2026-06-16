@@ -1,5 +1,5 @@
-import path from 'path';
-import type { Graph, GraphNode, GraphEdge, DiffState } from '../types.js';
+import path from 'node:path';
+import type { Graph, GraphNode, GraphEdge, } from '../types.js';
 
 // ─── computeViewNodes ─────────────────────────────────────────────────────────
 // Returns nodes and edges for a given view mode.
@@ -111,5 +111,5 @@ function sanitize(s: string): string {
 
 function appendToGroup<K, V>(map: Map<K, V[]>, key: K, value: V): void {
   if (!map.has(key)) map.set(key, []);
-  map.get(key)!.push(value);
+  map.get(key)?.push(value);
 }

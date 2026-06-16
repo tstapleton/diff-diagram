@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import path from 'path';
-import { mkdir, writeFile, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
+import path from 'node:path';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { analyze } from './analyzer.js';
 import { addContext } from './filter.js';
 import { diffGraphs } from './diff-parser.js';
@@ -55,7 +55,7 @@ function parseArgs(argv: string[]): Args {
 
 // ─── Repo root detection ──────────────────────────────────────────────────────
 
-function detectRepoRoot(startDir: string): string {
+function _detectRepoRoot(startDir: string): string {
   let dir = startDir;
   while (path.dirname(dir) !== dir) {
     if (existsSync(path.join(dir, '.git'))) return dir;

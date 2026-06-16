@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { diffGraphs } from './diff-parser.js';
+import type { GraphEdge, GraphNode } from './types.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeFullGraph(scopeDir: string, nodes: any[] = [], edges: any[] = []) {
+function makeFullGraph(scopeDir: string, nodes: Partial<GraphNode>[] = [], edges: Partial<GraphEdge>[] = []) {
   return {
     meta: { repoRoot: '/repo', scopeDir, nodeCount: nodes.length, edgeCount: edges.length, generatedAt: '' },
     nodes,

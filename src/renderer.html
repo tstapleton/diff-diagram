@@ -52,8 +52,8 @@
   <div class="card">
     <h2>View Mode</h2>
     <div class="mode-group">
-      <button class="mode-btn active" onclick="setMode('all')">All nodes</button>
-      <button class="mode-btn" onclick="setMode('diffFocused')">Diff-focused</button>
+      <button type="button" class="mode-btn active" onclick="setMode('all')">All nodes</button>
+      <button type="button" class="mode-btn" onclick="setMode('diffFocused')">Diff-focused</button>
     </div>
   </div>
   <div class="card">
@@ -65,8 +65,8 @@
       <div class="legend-row"><div class="swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
       <div class="legend-row"><div class="swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>External (1-hop)</div>
       <div class="legend-row"><div class="swatch" style="background:#0f172a;border:1px dashed #334155"></div>Collapsed dir</div>
-      <div class="legend-row"><svg width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#22c55e"/></svg>Has unit test</div>
-      <div class="legend-row"><svg width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#a855f7"/></svg>Has Storybook story</div>
+      <div class="legend-row"><svg aria-hidden="true" width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#22c55e"/></svg>Has unit test</div>
+      <div class="legend-row"><svg aria-hidden="true" width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#a855f7"/></svg>Has Storybook story</div>
     </div>
   </div>
   <div class="card">
@@ -106,7 +106,7 @@ const CHAR_W = 7, PAD = 8;
 
 function truncate(s, maxW) {
   const max = Math.floor((maxW - PAD * 2) / CHAR_W);
-  return s.length <= max ? s : s.slice(0, Math.max(1, max - 1)) + '…';
+  return s.length <= max ? s : `${s.slice(0, Math.max(1, max - 1))}…`;
 }
 
 function buildPath(section) {
@@ -124,8 +124,8 @@ function buildPath(section) {
 const SOURCE_ROOT = DIFF_DIAGRAM.sourceRoot || 'src/app';
 
 function oosDisplayDir(file) {
-  const dir = file && file.includes('/') ? file.substring(0, file.lastIndexOf('/')) : '.';
-  const prefix = SOURCE_ROOT.endsWith('/') ? SOURCE_ROOT : SOURCE_ROOT + '/';
+  const dir = file?.includes('/') ? file.substring(0, file.lastIndexOf('/')) : '.';
+  const prefix = SOURCE_ROOT.endsWith('/') ? SOURCE_ROOT : `${SOURCE_ROOT}/`;
   return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
 }
 
@@ -139,7 +139,7 @@ function renderSvg(mode) {
   // Container box: positioned by ELK compound layout, not derived from node bounds
   let containerSvg = '';
   if (container) {
-    const scopeDir = (DIFF_DIAGRAM.meta && DIFF_DIAGRAM.meta.scopeDir) || '';
+    const scopeDir = (DIFF_DIAGRAM.meta?.scopeDir) || '';
     const featureLabel = scopeDir.split('/').pop() || scopeDir;
     containerSvg = `<rect x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>
 <text x="${container.x + 10}" y="${container.y + 13}" font-family="monospace" font-size="9" fill="#475569">${featureLabel}</text>`;
@@ -228,9 +228,9 @@ function attachHover(svgEl) {
 // ─── Mode state ───────────────────────────────────────────────────────────────
 let currentMode = 'all';
 
-function setMode(mode) {
+function _setMode(mode) {
   currentMode = mode;
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === (mode === 'all' ? 'All nodes' : 'Diff-focused')));
+  document.querySelectorAll('.mode-btn').forEach(b => { b.classList.toggle('active', b.textContent.trim() === (mode === 'all' ? 'All nodes' : 'Diff-focused')); });
   draw();
 }
 

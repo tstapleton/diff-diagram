@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeViewNodes } from './graph-helpers.js';
-import type { Graph, GraphNode, GraphEdge } from '../types.js';
+import type { DiffState, Graph, GraphNode, GraphEdge } from '../types.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -29,9 +29,9 @@ function node(
   return { id, label: id, file, type: 'component', scope, diff };
 }
 
-function edge(from: string, to: string, diff?: GraphNode['diff']): GraphEdge {
+function edge(from: string, to: string, diff?: DiffState): GraphEdge {
   return diff
-    ? { from, to, kind: 'import', diff: diff as any }
+    ? { from, to, kind: 'import', diff }
     : { from, to, kind: 'import' };
 }
 
@@ -170,7 +170,7 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
     expect(stub).toBeDefined();
     expect(edges).toHaveLength(1); // both edges dedup to one stub edge
     expect(edges[0].from).toBe('in');
-    expect(edges[0].to).toBe(stub!.id);
+    expect(edges[0].to).toBe(stub?.id);
   });
 
   it('deduplicates edges that collapse to the same stub→stub', () => {

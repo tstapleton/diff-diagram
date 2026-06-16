@@ -1,27 +1,31 @@
 {
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/cli.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:visual": "vitest run --config vitest.visual.config.ts",
-    "test:visual:approve": "UPDATE_SNAPSHOTS=1 vitest run --config vitest.visual.config.ts",
-    "verify": "tsc && vitest run && vitest run --config vitest.visual.config.ts"
-  },
-  "dependencies": {
-    "elkjs": "0.11.1",
-    "ts-morph": "28.0.0"
-  },
-  "devDependencies": {
-    "@resvg/resvg-js": "2.6.2",
-    "@tsconfig/node26": "26.0.0",
-    "@types/node": "25.9.3",
-    "@types/pixelmatch": "5.2.6",
-    "@types/pngjs": "6.0.5",
-    "pixelmatch": "7.2.0",
-    "pngjs": "7.0.0",
-    "typescript": "6.0.3",
-    "vitest": "3.2.3"
-  }
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"start": "node dist/cli.js",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:visual": "vitest run --config vitest.visual.config.ts",
+		"test:visual:approve": "UPDATE_SNAPSHOTS=1 vitest run --config vitest.visual.config.ts",
+		"lint": "biome lint",
+		"lint:fix": "biome lint --write --unsafe",
+		"format": "biome format --write",
+		"verify": "npm run build && biome check && npm run test && npm run test:visual"
+	},
+	"dependencies": {
+		"elkjs": "0.11.1",
+		"ts-morph": "28.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.0",
+		"@resvg/resvg-js": "2.6.2",
+		"@tsconfig/node26": "26.0.0",
+		"@types/node": "25.9.3",
+		"@types/pixelmatch": "5.2.6",
+		"@types/pngjs": "6.0.5",
+		"pixelmatch": "7.2.0",
+		"pngjs": "7.0.0",
+		"typescript": "6.0.3",
+		"vitest": "3.2.3"
+	}
 }

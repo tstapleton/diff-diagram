@@ -32,7 +32,9 @@ describe('computeLayout — ELK input construction', () => {
     const regular = node('a', 'component');
     const stub = node('b', 'stub');
     const layout = await computeLayout([regular, stub], []);
+    // biome-ignore lint/style/noNonNullAssertion: nodes "a" and "b" were just passed into computeLayout
     const rn = layout.nodes.find(n => n.id === 'a')!;
+    // biome-ignore lint/style/noNonNullAssertion: nodes "a" and "b" were just passed into computeLayout
     const sn = layout.nodes.find(n => n.id === 'b')!;
     expect(rn.width).toBeGreaterThan(sn.width);
     expect(rn.height).toBeGreaterThan(sn.height);
@@ -86,7 +88,7 @@ describe('computeLayout — output shape', () => {
     const edges = [edge('a', 'b'), edge('b', 'c')];
     const layout = await computeLayout(nodes, edges);
     const byId = new Map(layout.nodes.map(n => [n.id, n]));
-    expect(byId.get('a')!.x).toBeLessThan(byId.get('b')!.x);
-    expect(byId.get('b')!.x).toBeLessThan(byId.get('c')!.x);
+    expect(byId.get('a')?.x).toBeLessThan(byId.get('b')?.x);
+    expect(byId.get('b')?.x).toBeLessThan(byId.get('c')?.x);
   });
 });

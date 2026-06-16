@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { addContext } from './filter.js';
+import type { GraphEdge, GraphNode } from './types.js';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeGraph({ nodes = [], edges = [], oosEdges = [] }: { nodes?: any[]; edges?: any[]; oosEdges?: any[] } = {}) {
+function makeGraph({ nodes = [], edges = [], oosEdges = [] }: { nodes?: Partial<GraphNode>[]; edges?: Partial<GraphEdge>[]; oosEdges?: Array<{ from: string; toFile: string; typeOnly?: boolean }> } = {}) {
   return {
     meta: {
       repoRoot: '/repo',

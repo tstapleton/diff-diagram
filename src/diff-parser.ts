@@ -39,6 +39,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
     if (!baseByFile.has(node.file)) {
       diffedNodes.push({ ...node, diff: 'added' });
     } else {
+      // biome-ignore lint/style/noNonNullAssertion: guarded by baseByFile.has() in the if-branch above
       const baseNode = baseByFile.get(node.file)!;
 
       const outgoingChanged = current.edges
@@ -49,6 +50,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
           const key = `${node.file}→${toFile}`;
           const baseNames = baseEdgeNames.get(key);
           if (!baseNames) return true; // added edge
+          // biome-ignore lint/style/noNonNullAssertion: edge e is from current.edges so key was set in currentEdgeNames
           const currentNames = currentEdgeNames.get(key)!;
           return !nameSetsEqual(baseNames, currentNames); // modified edge
         });
@@ -87,6 +89,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
     if (!baseNames) {
       diffedEdges.push({ ...e, diff: 'added' });
     } else {
+      // biome-ignore lint/style/noNonNullAssertion: edge e is from current.edges so key was set in currentEdgeNames
       const currentNames = currentEdgeNames.get(key)!;
       const edgeDiff = nameSetsEqual(baseNames, currentNames) ? 'unchanged' : 'modified';
       diffedEdges.push({ ...e, diff: edgeDiff });

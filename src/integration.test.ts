@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import path from 'path';
+import path from 'node:path';
 import { analyze } from './analyzer.js';
 import { addContext } from './filter.js';
 import { diffGraphs } from './diff-parser.js';

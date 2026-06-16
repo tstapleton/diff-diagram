@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { toNodeId, labelFromFile, classifyByFilename } from './analyzer.js';
 import type { Graph, GraphNode, GraphEdge } from './types.js';
 
@@ -41,7 +41,9 @@ export function addContext(graph: Graph): Graph {
   const edgeSet = new Set<string>(graph.edges.map(e => `${e.from}→${e.to}:${e.kind}`));
   const dedupedNew = newEdges.filter(e => {
     const k = `${e.from}→${e.to}:${e.kind}`;
-    return edgeSet.has(k) ? false : (edgeSet.add(k), true);
+    if (edgeSet.has(k)) return false;
+    edgeSet.add(k);
+    return true;
   });
 
   // Compute typeOnly for OOS context nodes: every incoming edge must be type-only
