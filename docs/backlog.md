@@ -273,22 +273,6 @@ Try Option A first (zero new dependencies). If import extension issues arise, ev
 
 ---
 
-## Developer Tooling Setup
-
-### Request
-Add standard developer tooling to improve code quality and consistency: ESLint, strict TypeScript configuration extending shared defaults, and Prettier.
-
-### Why deferred
-The initial focus was on implementing the core pipeline. Tooling setup is mechanical but valuable for maintenance.
-
-### Implementation sketch
-1. **Strict TypeScript**: update `tsconfig.json` with `"strict": true` and any shared-config base (e.g. `@tsconfig/strictest`)
-2. **ESLint**: add `eslint`, `@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`; configure to extend recommended rules; add `lint` npm script
-3. **Prettier**: add `prettier`; add `.prettierrc`; add `format` npm script; optionally add a `format:check` script for CI
-4. Add `lint` and `format:check` to the `verify` script
-
----
-
 ## Fixture Coverage Review
 
 ### Request
