@@ -14,7 +14,7 @@ export class RoleGuard implements CanActivate {
 	) {}
 
 	canActivate(route: ActivatedRouteSnapshot): boolean {
-		const required = route.data["permissions"] as string[] | undefined;
+		const required = route.data.permissions as string[] | undefined;
 		if (!required?.length) return true;
 		const allowed = required.some((p) => this.permissions.can(p as never));
 		if (!allowed) this.router.navigate(["/forbidden"]);
