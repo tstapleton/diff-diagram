@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, type OnInit } from "@angular/core";
 import type { ActivatedRoute } from "@angular/router";
+// biome-ignore lint/style/useImportType: fixture demonstrates value import removal
 import { CacheService } from "../../../shared/services/cache.service";
 import type { UsersService } from "../data-access/users.service";
 import type { UserModel } from "../models/user.model";
