@@ -273,24 +273,3 @@ Try Option A first (zero new dependencies). If import extension issues arise, ev
 
 ---
 
-## Fixture Coverage Review
-
-### Request
-Review the code and tests to identify scenarios that should be represented in the fixture apps but currently aren't. Ensure the fixtures provide complete coverage of interesting cases.
-
-### Why deferred
-Fixtures were built to cover the primary diff scenarios (added, removed, modified nodes and edges). Edge cases in the fixture data may be missing.
-
-### What to look for
-Examples of cases that could be added:
-- A file that removes an external (out-of-scope) dependency between base and current
-- A file that gains a new out-of-scope dependency
-- A file that has a `.spec.ts` sidecar file (tests marker)
-- A file that has a `.stories.ts` sidecar file (stories marker)
-- A routing module that changed
-- A model/interface file that changed
-- An in-scope file that both gained and lost imports in the same PR
-
-After identifying gaps, add the corresponding files to `fake-angular-app/` and `fake-angular-app-base/` and update integration tests to assert the new cases.
-
----
