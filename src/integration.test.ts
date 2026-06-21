@@ -173,6 +173,38 @@ describe("barrel file resolution", () => {
 	});
 });
 
+// ─── sidecar markers ─────────────────────────────────────────────────────────
+
+describe("diffGraphs integration — sidecar markers", () => {
+	it("user-card has hasTests because a spec sidecar exists in both snapshots", () => {
+		const n = nodeByFile("user-list/user-card.component.ts");
+		expect(n?.hasTests).toBe(true);
+	});
+
+	it("user-card has hasStories because a stories sidecar exists in current", () => {
+		const n = nodeByFile("user-list/user-card.component.ts");
+		expect(n?.hasStories).toBe(true);
+	});
+});
+
+// ─── removed OOS edge ────────────────────────────────────────────────────────
+
+describe("diffGraphs integration — removed OOS edge", () => {
+	it("user-detail.component is modified (dropped CacheService import)", () => {
+		const n = nodeByFile("user-detail/user-detail.component.ts");
+		expect(n?.diff).toBe("modified");
+	});
+
+	it("edge user-detail → cache.service (OOS) is removed", () => {
+		const e = edgeBetween(
+			"user-detail/user-detail.component.ts",
+			"shared/services/cache.service.ts",
+		);
+		expect(e).toBeDefined();
+		expect(e?.diff).toBe("removed");
+	});
+});
+
 // ─── stories exclusion ───────────────────────────────────────────────────────
 
 describe("diffGraphs integration — stories exclusion", () => {

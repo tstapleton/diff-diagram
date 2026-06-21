@@ -6,6 +6,8 @@ export default defineConfig({
 			"node_modules/**",
 			"dist/**",
 			".claude/**",
+			"fake-angular-app/**",
+			"fake-angular-app-base/**",
 			"src/renderer/visual.test.ts",
 		],
 	},

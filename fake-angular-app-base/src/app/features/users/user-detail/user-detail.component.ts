@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, type OnInit } from "@angular/core";
 import type { ActivatedRoute } from "@angular/router";
+import { CacheService } from "../../../shared/services/cache.service";
 import type { UsersService } from "../data-access/users.service";
 import type { UserModel } from "../models/user.model";
 import { UserActivityLogComponent } from "./user-activity-log.component";
@@ -32,6 +33,8 @@ export class UserDetailComponent implements OnInit {
 	constructor(
 		private route: ActivatedRoute,
 		private usersService: UsersService,
+		// biome-ignore lint/correctness/noUnusedPrivateClassMembers: fixture stub
+		private cacheService: CacheService,
 	) {}
 
 	ngOnInit(): void {
