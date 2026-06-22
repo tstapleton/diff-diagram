@@ -30,7 +30,7 @@ Make diff-diagram available as a GitHub Action that runs on pull requests, gener
 
 ### Implementation steps
 
-1. Add `esbuild` as a devDependency; add `"build:action": "esbuild src/action.ts --bundle --platform=node --target=node20 --outfile=dist/action.js"` to `package.json`. Update `"build"` to run both `tsc` and `build:action`.
+1. Add `esbuild` as a devDependency; add `"build:action": "esbuild src/action.ts --bundle --platform=node --target=node20 --outfile=dist/action.js"` to `package.json`. Update `"build"` to run both `tsc` and `build:action`. Also add `"dev": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js && node dist/cli.js"` — ~100ms rebuild, replaces the need for a separate "run without build" workflow. Args pass through via `npm run dev -- --repo-root ...`.
 2. Create `src/action.ts` — imports `@actions/core`, `@actions/github`, and the diagram modules directly (analyzer, diff-parser, renderer). Runs the full pipeline in-process (no subprocess), producing an SVG buffer in memory.
 3. In `src/action.ts`, rasterize the SVG to PNG using `resvg-js` (already a dependency) — same approach as the visual tests.
 4. Implement the 3-step GitHub asset upload:
@@ -381,25 +381,6 @@ readable layouts for large graphs.
 Instead of background rectangles, render a small subdir label near each node
 (above the node label). No bounding-box computation needed. Lower visual impact
 but zero layout coupling.
-
----
-
-## Run CLI Without a Build Step
-
-### Request
-The current workflow requires `npm run build` (tsc → dist/) before running the CLI. It would be preferable to run TypeScript source directly so developers don't need to remember to rebuild.
-
-### Why deferred
-The CLI uses ESM and ts-morph, both of which work fine after a tsc compile. Running TypeScript directly requires either:
-
-**Option A: Node.js type stripping (`--experimental-strip-types`, Node 22+)**  
-Node 22 can strip TypeScript type annotations without a type checker. Run with: `node --experimental-strip-types src/cli.ts`. Does not perform type checking — errors only surface at runtime or via a separate `tsc --noEmit`. The `import './foo.js'` extension convention required by our ESM setup may conflict.
-
-**Option B: tsx**  
-`tsx` (or `ts-node/esm`) transpiles TypeScript on the fly. Well-tested with ESM. Adds a devDependency and changes the entry point.
-
-### Recommended starting point
-Try Option A first (zero new dependencies). If import extension issues arise, evaluate Option B. Keep `npm run build` for CI and `npm run verify` for type checking.
 
 ---
 
