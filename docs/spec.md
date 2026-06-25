@@ -47,7 +47,7 @@ Every `.ts` file in the feature directory becomes a node, except:
 
 Spec and stories sidecars are excluded from the graph but their *presence* is noted on their associated node — a green dot for a test sidecar, a purple dot for a stories sidecar.
 
-Node labels are derived from filenames: `user-list.component.ts` → `UserListComponent`. See [architecture.md](../../architecture.md) for the full derivation rules.
+Node labels are derived from filenames: `user-list.component.ts` → `UserListComponent`. See [architecture.md](./architecture.md) for the full derivation rules.
 
 ### Diff semantics
 
@@ -64,7 +64,7 @@ The tool runs the analyzer twice — once on the base branch, once on the curren
 - `removed` — import exists in base, not in current; rendered as a dashed line
 - `unchanged` — import exists in both
 
-Modification is detected at the import-set level, not at the file content level. A file that changed internally but whose imports did not change is `unchanged` in the diagram. See [architecture.md](../../architecture.md) for the full diff algorithm.
+Modification is detected at the import-set level, not at the file content level. A file that changed internally but whose imports did not change is `unchanged` in the diagram. See [architecture.md](./architecture.md) for the full diff algorithm.
 
 ### Out-of-scope context
 
@@ -119,7 +119,7 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 
 ## Planned
 
-The following features are designed but not yet implemented. Full design decisions and implementation steps are in [docs/backlog.md](../../backlog.md).
+The following features are designed but not yet implemented. Full design decisions and implementation steps are in [docs/backlog.md](./backlog.md).
 
 - **GitHub Action** — runs on PR events, posts `diagram.svg` as an inline PR comment image, no external storage required
 - **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, all node types, sidecar markers), committed to the repo and referenced in the README
