@@ -59,6 +59,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 
 ## Development workflow
 
+- Never commit directly to `main`. All work happens on a feature branch and lands via pull request, with one independent commit per task.
 - Each commit must complete exactly one task.
 - Do not add features, refactoring, or cleanup beyond what the current task requires.
 - Read through relevant code and check for obvious bugs before asking the user to review output.
@@ -73,6 +74,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 - Adding or changing items in `docs/backlog.md`.
 
 **Never:**
+- Commit or push directly to `main` — all changes land through pull requests (enforced by a branch ruleset).
 - Run `npm run test:visual:approve` without explicit user instruction — snapshot approval is a user decision.
 - Use `--no-verify` to bypass the pre-commit hook.
 - Add features, refactoring, or abstractions beyond what the current task requires.
