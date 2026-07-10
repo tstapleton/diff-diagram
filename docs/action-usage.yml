@@ -1,0 +1,34 @@
+# Example workflow for consuming the diff-diagram action from another repo.
+# Copy into .github/workflows/ of the consuming repo and adjust feature-dir.
+#
+# Note: if the consuming repo is private and this repo is also private, the
+# consuming repo's org/owner must grant Actions access to this repo
+# (Settings → Actions → General → Access) or the `uses:` resolution fails.
+name: diff-diagram
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: diff-diagram-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  diagram:
+    runs-on: ubuntu-latest
+    steps:
+      # Current branch (PR head)
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Base branch, checked out into a subdirectory
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .diff-diagram-base
+      - uses: tstapleton/diff-diagram@main
+        with:
+          feature-dir: src/app/features/my-feature
+          base-repo-root: .diff-diagram-base
