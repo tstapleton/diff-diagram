@@ -65,7 +65,7 @@ npm test                      # unit + integration tests
 npm run test:visual           # visual regression tests (pixel-level SVG comparison)
 npm run test:visual:approve   # update visual regression snapshots after intentional changes
 npm run build                 # compile TypeScript → dist/ (required before running the CLI)
-npm run verify                # full check: compile + unit tests
+npm run verify                # full check: build + lint + unit tests + visual tests (runs on pre-commit)
 ```
 
 Tests are colocated with source files in `src/`.
