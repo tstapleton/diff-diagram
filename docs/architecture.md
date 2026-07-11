@@ -184,12 +184,12 @@ If a file moves (rename), `diffGraphs` treats it as removed + added. Rename trac
 
 ## Test fixtures
 
-`fake-angular-app/` — 58 .ts files, represents the "after PR" state.
-`fake-angular-app-base/` — 57 .ts files, represents the "before PR" state.
+`fake-angular-app/` — 79 .ts files, represents the "after PR" state.
+`fake-angular-app-base/` — 76 .ts files, represents the "before PR" state.
 
 Fixture diff:
-- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`
+- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`; also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
 - Removed: `user-list/user-search-results.component.ts`
-- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`)
+- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`, dropped import of the removed component), `user-detail/user-detail.component.ts` (dropped `CacheService`)
 
 Integration tests in `src/integration.test.ts` run the full analyze→addContext→diffGraphs pipeline against these fixtures and assert all 5 node diff states and 3 edge diff states.

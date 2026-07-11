@@ -53,7 +53,7 @@ Two fixture directories represent a before/after PR state:
 - `fake-angular-app-base/` — base branch state (before the PR)
 - `fake-angular-app/` — current branch state (after the PR)
 
-Both are domain-organized (not type-organized): `user-list/`, `user-detail/`, `user-edit/`, etc. No barrel files. Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, two files with changed imports.
+Both are domain-organized (not type-organized): `user-list/`, `user-detail/`, `user-edit/`, etc. No barrel files inside the feature directory (the current branch adds one out-of-scope barrel at `shared/services/index.ts`). Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story added in `user-list/`.
 
 Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-app-base` and verify node and edge diff output.
 

@@ -75,7 +75,7 @@ Tests are colocated with source files in `src/`.
 `fake-angular-app/` — "after PR" state  
 `fake-angular-app-base/` — "before PR" state
 
-Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, two files with changed imports.
+Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch.
 
 ## Architecture
 
