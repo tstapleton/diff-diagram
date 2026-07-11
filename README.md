@@ -28,7 +28,7 @@ node dist/cli.js \
 | Arg / Flag | Description | Default |
 |---|---|---|
 | `<feature-dir>` | Feature directory to diagram, relative to `--repo-root` | required |
-| `--repo-root` | Repo root for the current branch | auto-detected via `.git` |
+| `--repo-root` | Repo root for the current branch | current working directory |
 | `--base-repo-root` | Repo root for a pre-checked-out base branch | single-branch mode |
 | `--out-dir` | Output directory | `dist` |
 | `--tsconfig` | Path to tsconfig.json | auto-detected |

@@ -25,7 +25,7 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 | Flag / Arg | Required | Default | Description |
 |---|---|---|---|
 | `<feature-dir>` | yes | — | Feature directory to diagram, relative to `--repo-root` |
-| `--repo-root` | no | auto-detected via `.git` | Repo root for the current branch |
+| `--repo-root` | no | current working directory | Repo root for the current branch |
 | `--base-repo-root` | no | — | Repo root for a pre-checked-out base branch; omit for single-branch mode |
 | `--out-dir` | no | `dist` | Where to write output files |
 | `--tsconfig` | no | auto-detected | Path to `tsconfig.json` for import resolution |
