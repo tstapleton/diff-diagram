@@ -76,23 +76,37 @@ export function computeViewNodes(
 	}
 
 	// ── Remap edges to stubs, dedup ──────────────────────────────────────────
-	const edgeSet = new Set<string>();
-	const outputEdges: GraphEdge[] = [];
+	// Duplicates keep the highest-priority diff state so added/removed imports
+	// into a collapsed dir are not masked by surviving unchanged imports.
+	const edgeMap = new Map<string, GraphEdge>();
 
 	for (const edge of graph.edges) {
 		const from = collapsedMap.get(edge.from) ?? edge.from;
 		const to = collapsedMap.get(edge.to) ?? edge.to;
 		if (from === to) continue;
 		const key = `${from}→${to}:${edge.kind}`;
-		if (edgeSet.has(key)) continue;
-		edgeSet.add(key);
-		outputEdges.push({ ...edge, from, to });
+		const existing = edgeMap.get(key);
+		if (existing && diffPriority(existing.diff) >= diffPriority(edge.diff)) {
+			continue;
+		}
+		edgeMap.set(key, { ...edge, from, to });
 	}
 
-	return { nodes: outputNodes, edges: outputEdges };
+	return { nodes: outputNodes, edges: [...edgeMap.values()] };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const DIFF_PRIORITY: Record<string, number> = {
+	added: 3,
+	removed: 2,
+	modified: 1,
+	unchanged: 0,
+};
+
+function diffPriority(diff: GraphEdge["diff"]): number {
+	return diff ? DIFF_PRIORITY[diff] : 0;
+}
 
 function allUnchanged(nodes: GraphNode[]): boolean {
 	return nodes.every((n) => n.diff === "unchanged" || n.diff === null);
