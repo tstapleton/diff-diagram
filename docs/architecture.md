@@ -73,11 +73,11 @@ Algorithm:
 1. Index base and current nodes by `node.file` (repo-relative path — stable across branches)
 2. Index base and current edges by `"fromFile→toFile"` key
 3. Current nodes not in base → `diff: 'added'`
-4. Current nodes in base → `diff: 'modified'` if outgoing edge set changed, else `'unchanged'`
+4. Current nodes in base → `diff: 'modified'` if any outgoing edge was added, removed, or changed its imported-name set, else `'unchanged'`
 5. Base in-scope nodes not in current → ghost node, `scope: 'removed-ghost'`, `diff: 'removed'`
    - Out-of-scope removed nodes are dropped (no ghost)
 6. Current edges not in base → `diff: 'added'`
-7. Current edges in base → `diff: 'unchanged'`
+7. Current edges in base → compare imported-name sets: `diff: 'modified'` if the set changed, else `'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
 
 ### `src/renderer/graph-helpers.ts`
