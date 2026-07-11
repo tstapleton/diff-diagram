@@ -190,3 +190,41 @@ describe("cli single-branch mode output views", () => {
 		expect(html).not.toContain('"initialMode"');
 	}, 30_000);
 });
+
+// ─── GAP-08: graph.json must not leak the local filesystem path ───────────────
+
+describe("cli graph.json output", () => {
+	let tmp: string;
+	let repoRoot: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-graph-json-"));
+		repoRoot = path.join(tmp, "repo");
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/a.ts"),
+			"export const a = 1;\n",
+		);
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("meta does not contain the absolute repoRoot path", async () => {
+		const outDir = path.join(tmp, "out");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const graph = JSON.parse(
+			await readFile(path.join(outDir, "graph.json"), "utf8"),
+		);
+		expect(graph.meta).not.toHaveProperty("repoRoot");
+		expect(JSON.stringify(graph)).not.toContain(repoRoot);
+	}, 30_000);
+});

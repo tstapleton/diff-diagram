@@ -158,7 +158,7 @@ When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs curren
 Writes three files:
 - `diagram.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout
 - `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_DATA__` replaced by JSON
-- `graph.json` — full diffed graph without internal `_oosEdges`
+- `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
 
 ## Adding a new view mode
 

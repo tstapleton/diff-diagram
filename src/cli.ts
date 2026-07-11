@@ -301,8 +301,8 @@ async function main(): Promise<void> {
 	await writeFile(htmlPath, html);
 	console.log(`Wrote ${htmlPath}`);
 
-	// graph.json
-	const { _oosEdges, ...graphOut } = diffed;
+	// graph.json — strip meta.repoRoot (absolute local path) like the HTML does
+	const { _oosEdges, ...graphOut } = { ...diffed, meta: metaWithoutRoot };
 	const jsonPath = path.join(outDir, "graph.json");
 	await writeFile(jsonPath, JSON.stringify(graphOut, null, 2));
 	console.log(`Wrote ${jsonPath}`);
