@@ -199,6 +199,11 @@ async function main(): Promise<void> {
 	const scopeDir = path.resolve(repoRoot, args.scopeDir);
 	const outDir = path.resolve(args.outDir);
 
+	if (!existsSync(scopeDir)) {
+		console.error(`Error: feature directory not found: ${scopeDir}`);
+		process.exit(1);
+	}
+
 	console.log(`Analyzing ${path.relative(repoRoot, scopeDir)} ...`);
 	const current = addContext(
 		await analyze(scopeDir, { repoRoot, tsConfigPath: args.tsConfig }),
@@ -209,6 +214,11 @@ async function main(): Promise<void> {
 	console.log(
 		`  +${current.nodes.filter((n) => n.scope === "out-of-scope").length} out-of-scope context nodes`,
 	);
+	if (current.nodes.length === 0) {
+		console.warn(
+			`Warning: current graph has 0 nodes — no TypeScript files found in ${scopeDir}`,
+		);
+	}
 
 	let diffed: Graph = current;
 
@@ -216,6 +226,9 @@ async function main(): Promise<void> {
 		const baseRepoRoot = path.resolve(args.baseRepoRoot);
 		const baseScopeDir = path.resolve(baseRepoRoot, args.scopeDir);
 
+		if (!existsSync(baseScopeDir)) {
+			console.log("Feature dir absent in base — treating all files as added");
+		}
 		console.log(
 			`Analyzing base at ${path.relative(baseRepoRoot, baseScopeDir)} ...`,
 		);
