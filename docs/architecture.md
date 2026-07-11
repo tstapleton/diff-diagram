@@ -46,7 +46,7 @@ Key types:
 ### `src/analyzer.ts`
 
 Runs ts-morph on a directory. Produces a `Graph` with:
-- `nodes[]` — one per `.ts` file (excluding `.spec.ts`, `.d.ts`, `node_modules`)
+- `nodes[]` — one per `.ts` file (excluding `.spec.ts`, `.stories.ts`, `.d.ts`, `node_modules`)
 - `edges[]` — import edges between in-scope files
 - `_oosEdges` — edges to out-of-scope files (consumed by `addContext`, then dropped)
 
