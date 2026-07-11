@@ -98,10 +98,21 @@ function extractDecoratorImports(
 
 // ─── Auto-detect tsconfig ────────────────────────────────────────────────────
 
-async function findTsConfig(startDir: string): Promise<string | null> {
+// Walks up from startDir looking for a tsconfig.json, stopping at repoRoot
+// (inclusive). Never escapes the repo — a tsconfig in a parent directory
+// (monorepo root, $HOME, …) must not change module resolution.
+export async function findTsConfig(
+	startDir: string,
+	repoRoot: string,
+): Promise<string | null> {
 	const { access } = await import("node:fs/promises");
-	let dir = startDir;
-	while (dir !== path.dirname(dir)) {
+	const root = path.resolve(repoRoot);
+	let dir = path.resolve(startDir);
+
+	const rel = path.relative(root, dir);
+	if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
+
+	while (true) {
 		const candidate = path.join(dir, "tsconfig.json");
 		try {
 			await access(candidate);
@@ -109,6 +120,7 @@ async function findTsConfig(startDir: string): Promise<string | null> {
 		} catch {
 			/* keep walking */
 		}
+		if (dir === root || dir === path.dirname(dir)) break;
 		dir = path.dirname(dir);
 	}
 	return null;
@@ -128,7 +140,7 @@ export async function analyze(
 		? path.resolve(repoRoot)
 		: path.dirname(scopeDir);
 
-	if (!tsConfigPath) tsConfigPath = await findTsConfig(scopeDir);
+	if (!tsConfigPath) tsConfigPath = await findTsConfig(scopeDir, resolvedRoot);
 
 	const project = new Project({
 		...(tsConfigPath ? { tsConfigFilePath: tsConfigPath } : {}),
