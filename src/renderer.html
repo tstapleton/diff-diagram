@@ -226,7 +226,7 @@ function attachHover(svgEl) {
 }
 
 // ─── Mode state ───────────────────────────────────────────────────────────────
-let currentMode = 'diffFocused';
+let currentMode = DIFF_DIAGRAM.initialMode || 'diffFocused';
 
 function setMode(mode) {
   currentMode = mode;

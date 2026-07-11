@@ -135,6 +135,7 @@ interface ModeData {
 interface DiagramData {
 	meta: Omit<Graph["meta"], "repoRoot">;
 	sourceRoot: string;
+	initialMode?: "all" | "diffFocused";
 	modes: { all: ModeData; diffFocused: ModeData };
 }
 
@@ -263,11 +264,15 @@ async function main(): Promise<void> {
 
 	await mkdir(outDir, { recursive: true });
 
-	// diagram.svg — diff-focused, real layout
+	// diagram.svg — diff-focused, real layout. In single-branch mode every diff
+	// state is null, so diff-focused would collapse everything into stubs — use
+	// the all-nodes view instead.
+	const svgView = args.baseRepoRoot ? diffView : allView;
+	const svgLayout = args.baseRepoRoot ? diffLayout : allLayout;
 	const svg = toSvg(
-		diffLayout,
-		diffView.nodes,
-		diffView.edges,
+		svgLayout,
+		svgView.nodes,
+		svgView.edges,
 		path.basename(scopeDir),
 		args.sourceRoot,
 	);
@@ -280,6 +285,10 @@ async function main(): Promise<void> {
 	const diagramData: DiagramData = {
 		meta: metaWithoutRoot,
 		sourceRoot: args.sourceRoot,
+		// Single-branch mode: open the interactive diagram in the all-nodes view
+		// (there is no diff to focus on). Omitted in diff mode so the template's
+		// own default applies.
+		...(args.baseRepoRoot ? {} : { initialMode: "all" as const }),
 		modes: {
 			all: buildModeData(allView.nodes, allView.edges, allLayout),
 			diffFocused: buildModeData(diffView.nodes, diffView.edges, diffLayout),

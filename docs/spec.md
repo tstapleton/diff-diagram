@@ -33,7 +33,7 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 
 The tool does not manage git state. The caller is responsible for materializing the base branch (e.g., via `git worktree add`) and passing the path via `--base-repo-root`.
 
-When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring.
+When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring. In this mode both `diagram.svg` and `diagram.html` default to the all-nodes view, since without a diff the diff-focused view would collapse everything into stubs.
 
 ## Core Behaviors
 

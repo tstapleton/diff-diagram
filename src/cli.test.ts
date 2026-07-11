@@ -123,3 +123,70 @@ describe("cli feature directory existence checks", () => {
 		expect(result.stderr.toLowerCase()).toContain("0 nodes");
 	}, 30_000);
 });
+
+// ─── GAP-05: single-branch mode renders the all-nodes view ────────────────────
+
+describe("cli single-branch mode output views", () => {
+	let tmp: string;
+	let repoRoot: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-single-branch-"));
+		repoRoot = path.join(tmp, "repo");
+		// Files live in a subdirectory of the feature dir so that diff-focused
+		// mode would collapse them into a stub (all diff states are null).
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/sub/alpha.component.ts"),
+			'import { beta } from "./beta.component";\nexport const alpha = beta;\n',
+		);
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/sub/beta.component.ts"),
+			"export const beta = 1;\n",
+		);
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("diagram.svg shows individual nodes, not collapsed stubs", async () => {
+		const outDir = path.join(tmp, "out-single");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const svg = await readFile(path.join(outDir, "diagram.svg"), "utf8");
+		expect(svg).toContain(">AlphaComponent<");
+		expect(svg).toContain(">BetaComponent<");
+	}, 30_000);
+
+	it("diagram.html embeds initialMode 'all' in single-branch mode", async () => {
+		const html = await readFile(
+			path.join(tmp, "out-single/diagram.html"),
+			"utf8",
+		);
+		expect(html).toContain('"initialMode":"all"');
+	}, 30_000);
+
+	it("diagram.html embeds no initialMode when a base repo is given", async () => {
+		const outDir = path.join(tmp, "out-diff");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--base-repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const html = await readFile(path.join(outDir, "diagram.html"), "utf8");
+		expect(html).not.toContain('"initialMode"');
+	}, 30_000);
+});
