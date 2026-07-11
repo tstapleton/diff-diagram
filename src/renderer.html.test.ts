@@ -73,6 +73,19 @@ function modeButton(window: Window, label: string) {
 }
 
 describe("renderer.html view-mode switching", () => {
+	it("opens in diff-focused mode by default", async () => {
+		const window = await loadDiagram();
+
+		expect(window.document.querySelectorAll(".node-group")).toHaveLength(2);
+		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("2");
+		expect(
+			modeButton(window, "Diff-focused").classList.contains("active"),
+		).toBe(true);
+		expect(modeButton(window, "All nodes").classList.contains("active")).toBe(
+			false,
+		);
+	});
+
 	it("clicking the mode buttons switches the rendered view", async () => {
 		const window = await loadDiagram();
 

@@ -52,7 +52,7 @@
   <div class="card">
     <h2>View Mode</h2>
     <div class="mode-group">
-      <button type="button" class="mode-btn active" data-mode="all">All nodes</button>
+      <button type="button" class="mode-btn" data-mode="all">All nodes</button>
       <button type="button" class="mode-btn" data-mode="diffFocused">Diff-focused</button>
     </div>
   </div>
@@ -226,7 +226,7 @@ function attachHover(svgEl) {
 }
 
 // ─── Mode state ───────────────────────────────────────────────────────────────
-let currentMode = 'all';
+let currentMode = 'diffFocused';
 
 function setMode(mode) {
   currentMode = mode;
@@ -263,7 +263,7 @@ if (changed.length === 0) {
   ).join('');
 }
 
-draw();
+setMode(currentMode);
 </script>
 </body>
 </html>
