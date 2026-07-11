@@ -14,6 +14,7 @@
 		"prepare": "husky"
 	},
 	"dependencies": {
+		"@actions/github": "9.1.1",
 		"elkjs": "0.11.1",
 		"ts-morph": "28.0.0"
 	},

@@ -6,73 +6,16 @@ Ideas and deferred features with context on why they weren't implemented yet and
 
 ## GitHub Action
 
-### Request
-Make diff-diagram available as a GitHub Action that runs on pull requests, generates the dependency diff diagram, and posts it as an inline image in a PR comment. Reviewers see the diagram without leaving GitHub.
+**Shipped 2026-07** as a composite action (`action.yml` at repo root) — see `docs/action-usage.yml` for consumer setup. The design changed from the original plan during implementation planning:
 
-### Design decisions (resolved)
+- **No inline image in the PR comment.** Original design uploaded a PNG via GitHub's undocumented asset API. Abandoned: target consumers are private repos, and GitHub proxies comment images through camo, which requires publicly reachable image URLs. The comment instead contains a text summary (file/dependency/import diff counts and named changes) plus a link to the `diagram.html` workflow artifact, uploaded non-zipped (`actions/upload-artifact@v7`, `archive: false`) so it renders directly in the browser.
+- **Composite action instead of a bundled JS action.** The JS-action rationale (TypeScript for the 3-step image upload) died with the image upload. The composite variant runs `npm ci && npm run build` in the action path at runtime (~30–60s), keeping the repo free of a ~10MB committed esbuild bundle and its staleness check.
+- **The action shells out to `dist/cli.js`** rather than running the pipeline in-process; the comment script builds its summary from the CLI's `graph.json` output.
 
-- **Action type: JavaScript action** — `runs.using: node20`, main entry point at `dist/action.js`. Chosen over composite because the 3-step GitHub image upload API is cleaner in TypeScript than shell `curl`.
-- **Image hosting: GitHub's internal asset upload API** — the same endpoint the web UI uses when you drag-drop an image into a comment. Three-step flow: POST to `.../upload/policies/assets` for a presigned URL → PUT the PNG to S3 → POST to confirm. Returns a permanent `https://github.com/user-attachments/assets/{uuid}` URL. Only needs `GITHUB_TOKEN` with write access; no external storage.
-- **Comment behavior: find-and-update** — the action tags its comment with `<!-- diff-diagram -->`. On each push it finds the existing comment and edits it; creates a new one only if none exists. One comment per PR, always current.
-- **Git management: caller's responsibility** — the action accepts `base-repo-root` as an input and does no git operations itself. The caller's workflow handles checking out the base branch (via `git worktree add`, a second `actions/checkout`, etc.) and passes the path in. Keeps the action simple; the calling team controls checkout strategy.
-- **Bundle committed to repo** — `dist/action.js` (esbuild bundle) is committed alongside `dist/cli.js`. Required so GitHub can execute the action immediately on checkout without a build step. A CI check verifies the bundle stays current.
-- **Location: `action.yml` at repo root** — consumed as `uses: tstapleton/diff-diagram@main`. Note: the GitHub repo does not exist yet; it must be created and pushed before the action can be used.
+### Deferred follow-ups
 
-### Inputs
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `feature-dir` | yes | — | Feature directory to diagram, relative to `repo-root` |
-| `repo-root` | no | `$GITHUB_WORKSPACE` | Repo root for the current branch |
-| `base-repo-root` | yes | — | Path to a pre-checked-out base branch |
-| `source-root` | no | `src/app` | Source root prefix for label derivation |
-| `token` | no | `${{ github.token }}` | GitHub token for API calls |
-
-### Implementation steps
-
-1. Add `esbuild` as a devDependency; add `"build:action": "esbuild src/action.ts --bundle --platform=node --target=node20 --outfile=dist/action.js"` to `package.json`. Update `"build"` to run both `tsc` and `build:action`. Also add `"dev": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js && node dist/cli.js"` — ~100ms rebuild, replaces the need for a separate "run without build" workflow. Args pass through via `npm run dev -- --repo-root ...`.
-2. Create `src/action.ts` — imports `@actions/core`, `@actions/github`, and the diagram modules directly (analyzer, diff-parser, renderer). Runs the full pipeline in-process (no subprocess), producing an SVG buffer in memory.
-3. In `src/action.ts`, rasterize the SVG to PNG using `resvg-js` (already a dependency) — same approach as the visual tests.
-4. Implement the 3-step GitHub asset upload:
-   ```
-   POST /repos/{owner}/{repo}/upload/policies/assets  → { upload_url, form fields }
-   PUT  {upload_url}  (multipart, PNG body)            → S3 response
-   POST /confirm (asset id from S3 response)           → { url }
-   ```
-   Use `octokit` from `@actions/github` for the GitHub API calls; plain `fetch` for the S3 PUT.
-5. Implement comment find-or-update:
-   ```typescript
-   const marker = "<!-- diff-diagram -->";
-   const body = `${marker}\n![Dependency diagram](${imageUrl})`;
-   // list PR comments, find one whose body includes marker → update
-   // if none found → create
-   ```
-6. Add `action.yml` at repo root:
-   ```yaml
-   name: diff-diagram
-   description: Post a dependency diff diagram on a pull request
-   inputs:
-     feature-dir: { required: true }
-     repo-root: { default: "${{ github.workspace }}" }
-     base-repo-root: { required: true }
-     source-root: { default: src/app }
-     token: { default: "${{ github.token }}" }
-   runs:
-     using: node20
-     main: dist/action.js
-   ```
-7. Commit `dist/action.js`.
-8. Add CI check: a job that runs `npm run build:action` and then `git diff --exit-code dist/action.js` — fails if the committed bundle is stale. This prevents `src/action.ts` and `dist/action.js` from drifting.
-9. Add an example caller workflow to `docs/action-usage.yml` showing the full setup: checkout current branch, checkout base branch to a temp dir via `git worktree add`, call the action.
-
-### Prerequisites
-- GitHub repo must exist (currently local-only; `git push` required before the action can be consumed via `uses:`).
-- Caller workflow needs `pull_request` trigger and `contents: write` + `pull-requests: write` permissions for `GITHUB_TOKEN`.
-
-### Notes
-- The action runs the full analysis pipeline in-process (no subprocess), so it inherits any performance characteristics of the analyzer on large repos.
-- `dist/action.js` will be large if ts-morph is bundled — evaluate whether to externalize it and install at runtime, or accept the bundle size.
-- The undocumented GitHub upload API is stable in practice (used by many community actions) but could change without notice.
+- **Inline image in the comment** — only viable for public repos, or if GitHub changes camo behavior; would need public image hosting.
+- **Versioned action refs** — consumers currently pin `@main`; cut a `v1` tag once the action stabilizes.
 
 ---
 
