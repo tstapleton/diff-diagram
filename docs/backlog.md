@@ -15,7 +15,6 @@ Ideas and deferred features with context on why they weren't implemented yet and
 ### Deferred follow-ups
 
 - **Inline image in the comment** — only viable for public repos, or if GitHub changes camo behavior; would need public image hosting.
-- **Interactivity under CSP** — if GitHub serves artifact HTML with a CSP blocking inline `<script>`, hover highlighting is dead in the artifact view. Recorded observed behavior in PR #2; fix would be a static-fallback rendering.
 - **Versioned action refs** — consumers currently pin `@main`; cut a `v1` tag once the action stabilizes.
 
 ---
