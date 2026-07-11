@@ -145,7 +145,7 @@ Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope }` and `
 
 Client-side renderer: builds SVG string from layout positions using the same color palette as `draw.ts`. Adds `data-id` to node groups and `data-from`/`data-to` to edge paths for hover event delegation.
 
-Hover: `mouseover` on `[data-id]` → highlight connected edges (strokeWidth: 3), dim others (opacity: 0.25). `mouseleave` restores.
+Hover: `mouseover` on `[data-id]` → connected edges keep full opacity (1), all other edges dim to opacity 0.2. `mouseleave` restores.
 
 ### `src/cli.ts`
 
