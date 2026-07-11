@@ -55,8 +55,14 @@ export function addContext(graph: Graph): Graph {
 	});
 
 	// Compute typeOnly for OOS context nodes: every incoming edge must be type-only
+	const incomingByTo = new Map<string, GraphEdge[]>();
+	for (const e of [...graph.edges, ...dedupedNew]) {
+		const list = incomingByTo.get(e.to);
+		if (list) list.push(e);
+		else incomingByTo.set(e.to, [e]);
+	}
 	for (const [id, node] of contextById) {
-		const incoming = [...graph.edges, ...dedupedNew].filter((e) => e.to === id);
+		const incoming = incomingByTo.get(id) ?? [];
 		if (incoming.length > 0 && incoming.every((e) => e.typeOnly === true)) {
 			node.typeOnly = true;
 		}

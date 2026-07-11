@@ -267,8 +267,14 @@ export async function analyze(
 	const dedupedEdges = [...edgeMap.values()];
 
 	// Compute typeOnly for in-scope nodes: every incoming edge must be type-only
+	const incomingByTo = new Map<string, GraphEdge[]>();
+	for (const e of dedupedEdges) {
+		const list = incomingByTo.get(e.to);
+		if (list) list.push(e);
+		else incomingByTo.set(e.to, [e]);
+	}
 	for (const node of nodes) {
-		const incoming = dedupedEdges.filter((e) => e.to === node.id);
+		const incoming = incomingByTo.get(node.id) ?? [];
 		if (incoming.length > 0 && incoming.every((e) => e.typeOnly === true)) {
 			node.typeOnly = true;
 		}
