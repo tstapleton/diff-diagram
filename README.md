@@ -28,7 +28,7 @@ node dist/cli.js \
 | Arg / Flag | Description | Default |
 |---|---|---|
 | `<feature-dir>` | Feature directory to diagram, relative to `--repo-root` | required |
-| `--repo-root` | Repo root for the current branch | auto-detected via `.git` |
+| `--repo-root` | Repo root for the current branch | current working directory |
 | `--base-repo-root` | Repo root for a pre-checked-out base branch | single-branch mode |
 | `--out-dir` | Output directory | `dist` |
 | `--tsconfig` | Path to tsconfig.json | auto-detected |
@@ -65,7 +65,7 @@ npm test                      # unit + integration tests
 npm run test:visual           # visual regression tests (pixel-level SVG comparison)
 npm run test:visual:approve   # update visual regression snapshots after intentional changes
 npm run build                 # compile TypeScript → dist/ (required before running the CLI)
-npm run verify                # full check: compile + unit tests
+npm run verify                # full check: build + lint + unit tests + visual tests (runs on pre-commit)
 ```
 
 Tests are colocated with source files in `src/`.
@@ -75,7 +75,7 @@ Tests are colocated with source files in `src/`.
 `fake-angular-app/` — "after PR" state  
 `fake-angular-app-base/` — "before PR" state
 
-Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, two files with changed imports.
+Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch.
 
 ## Architecture
 

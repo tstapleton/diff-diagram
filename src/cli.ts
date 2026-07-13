@@ -36,7 +36,7 @@ function printHelp(): void {
 	console.log("");
 	console.log("Options:");
 	console.log(
-		"  --repo-root <path>       Repo root for the current branch (auto-detected via .git)",
+		"  --repo-root <path>       Repo root for the current branch (default: current working directory)",
 	);
 	console.log(
 		"  --base-repo-root <path>  Repo root for a pre-checked-out base branch (enables diff)",

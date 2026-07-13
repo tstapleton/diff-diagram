@@ -25,7 +25,7 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 | Flag / Arg | Required | Default | Description |
 |---|---|---|---|
 | `<feature-dir>` | yes | — | Feature directory to diagram, relative to `--repo-root` |
-| `--repo-root` | no | auto-detected via `.git` | Repo root for the current branch |
+| `--repo-root` | no | current working directory | Repo root for the current branch |
 | `--base-repo-root` | no | — | Repo root for a pre-checked-out base branch; omit for single-branch mode |
 | `--out-dir` | no | `dist` | Where to write output files |
 | `--tsconfig` | no | auto-detected | Path to `tsconfig.json` for import resolution |
@@ -62,9 +62,10 @@ The tool runs the analyzer twice — once on the base branch, once on the curren
 **Edge diff states:**
 - `added` — import exists in current, not in base
 - `removed` — import exists in base, not in current; rendered as a dashed line
-- `unchanged` — import exists in both
+- `modified` — import exists in both, but its set of imported names changed
+- `unchanged` — import exists in both with the same imported names
 
-Modification is detected at the import-set level, not at the file content level. A file that changed internally but whose imports did not change is `unchanged` in the diagram. See [architecture.md](./architecture.md) for the full diff algorithm.
+Modification is detected at the import level, not at the file content level: a node is `modified` when any outgoing import was added or removed, or when the set of names imported over a persisting edge changed. A file that changed internally but whose imports did not change is `unchanged` in the diagram. See [architecture.md](./architecture.md) for the full diff algorithm.
 
 ### Out-of-scope context
 
@@ -102,7 +103,7 @@ Out-of-scope nodes use a distinct dark background and blue stroke regardless of 
 
 Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 
-**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state. Removed edges are dashed and partially transparent.
+**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state (`modified` edges are amber). Removed edges are dashed and partially transparent.
 
 **Sidecar markers** appear as small dots in the node corner:
 - Green dot — a `.spec.ts` sidecar exists for this file

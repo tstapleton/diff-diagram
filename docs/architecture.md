@@ -46,7 +46,7 @@ Key types:
 ### `src/analyzer.ts`
 
 Runs ts-morph on a directory. Produces a `Graph` with:
-- `nodes[]` — one per `.ts` file (excluding `.spec.ts`, `.d.ts`, `node_modules`)
+- `nodes[]` — one per `.ts` file (excluding `.spec.ts`, `.stories.ts`, `.d.ts`, `node_modules`)
 - `edges[]` — import edges between in-scope files
 - `_oosEdges` — edges to out-of-scope files (consumed by `addContext`, then dropped)
 
@@ -73,11 +73,11 @@ Algorithm:
 1. Index base and current nodes by `node.file` (repo-relative path — stable across branches)
 2. Index base and current edges by `"fromFile→toFile"` key
 3. Current nodes not in base → `diff: 'added'`
-4. Current nodes in base → `diff: 'modified'` if outgoing edge set changed, else `'unchanged'`
+4. Current nodes in base → `diff: 'modified'` if any outgoing edge was added, removed, or changed its imported-name set, else `'unchanged'`
 5. Base in-scope nodes not in current → ghost node, `scope: 'removed-ghost'`, `diff: 'removed'`
    - Out-of-scope removed nodes are dropped (no ghost)
 6. Current edges not in base → `diff: 'added'`
-7. Current edges in base → `diff: 'unchanged'`
+7. Current edges in base → compare imported-name sets: `diff: 'modified'` if the set changed, else `'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
 
 ### `src/renderer/graph-helpers.ts`
@@ -145,7 +145,7 @@ Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope }` and `
 
 Client-side renderer: builds SVG string from layout positions using the same color palette as `draw.ts`. Adds `data-id` to node groups and `data-from`/`data-to` to edge paths for hover event delegation.
 
-Hover: `mouseover` on `[data-id]` → highlight connected edges (strokeWidth: 3), dim others (opacity: 0.25). `mouseleave` restores.
+Hover: `mouseover` on `[data-id]` → connected edges keep full opacity (1), all other edges dim to opacity 0.2. `mouseleave` restores.
 
 ### `src/cli.ts`
 
@@ -184,12 +184,12 @@ If a file moves (rename), `diffGraphs` treats it as removed + added. Rename trac
 
 ## Test fixtures
 
-`fake-angular-app/` — 58 .ts files, represents the "after PR" state.
-`fake-angular-app-base/` — 57 .ts files, represents the "before PR" state.
+`fake-angular-app/` — 79 .ts files, represents the "after PR" state.
+`fake-angular-app-base/` — 76 .ts files, represents the "before PR" state.
 
 Fixture diff:
-- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`
+- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`; also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
 - Removed: `user-list/user-search-results.component.ts`
-- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`)
+- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`, dropped import of the removed component), `user-detail/user-detail.component.ts` (dropped `CacheService`)
 
 Integration tests in `src/integration.test.ts` run the full analyze→addContext→diffGraphs pipeline against these fixtures and assert all 5 node diff states and 3 edge diff states.

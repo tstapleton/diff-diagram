@@ -23,7 +23,7 @@ A synthetic node representing a collapsed directory in Diff-focused view. When a
 One of four values indicating how a node or edge changed between base and current branches:
 - `added` — present in current, not in base
 - `removed` — present in base, not in current
-- `modified` — present in both but with changed imports
+- `modified` — present in both but changed: a node whose outgoing imports changed, or an edge whose set of imported names changed
 - `unchanged` — identical in both branches
 
 **base branch / base repo root**  
