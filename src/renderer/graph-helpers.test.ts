@@ -338,6 +338,76 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		expect(edges).toHaveLength(0);
 	});
 
+	it("keeps 'added' diff when an added edge dedups with an unchanged edge to the same stub", () => {
+		const inNode = node(
+			"in",
+			`${SCOPE}/user-list/users-list.component.ts`,
+			"in-scope",
+			"modified",
+		);
+		const oos1 = node(
+			"oos_a",
+			"src/app/shared/services/auth.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const oos2 = node(
+			"oos_b",
+			"src/app/shared/services/cache.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const unchangedEdge = edge("in", "oos_a", "unchanged");
+		const addedEdge = edge("in", "oos_b", "added");
+
+		// unchanged edge first in graph.edges
+		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, addedEdge]);
+		const r1 = computeViewNodes(g1, "diff-focused");
+		expect(r1.edges).toHaveLength(1);
+		expect(r1.edges[0].diff).toBe("added");
+
+		// added edge first in graph.edges
+		const g2 = makeGraph([inNode, oos1, oos2], [addedEdge, unchangedEdge]);
+		const r2 = computeViewNodes(g2, "diff-focused");
+		expect(r2.edges).toHaveLength(1);
+		expect(r2.edges[0].diff).toBe("added");
+	});
+
+	it("keeps 'removed' diff when a removed edge dedups with an unchanged edge to the same stub", () => {
+		const inNode = node(
+			"in",
+			`${SCOPE}/user-list/users-list.component.ts`,
+			"in-scope",
+			"modified",
+		);
+		const oos1 = node(
+			"oos_a",
+			"src/app/shared/services/auth.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const oos2 = node(
+			"oos_b",
+			"src/app/shared/services/cache.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const unchangedEdge = edge("in", "oos_a", "unchanged");
+		const removedEdge = edge("in", "oos_b", "removed");
+
+		// unchanged edge first (removed edges are appended last in diffGraphs)
+		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, removedEdge]);
+		const r1 = computeViewNodes(g1, "diff-focused");
+		expect(r1.edges).toHaveLength(1);
+		expect(r1.edges[0].diff).toBe("removed");
+
+		// removed edge first
+		const g2 = makeGraph([inNode, oos1, oos2], [removedEdge, unchangedEdge]);
+		const r2 = computeViewNodes(g2, "diff-focused");
+		expect(r2.edges).toHaveLength(1);
+		expect(r2.edges[0].diff).toBe("removed");
+	});
+
 	it("preserves edge diff state when remapping", () => {
 		const inNode = node(
 			"in",
