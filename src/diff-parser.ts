@@ -36,6 +36,20 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 		return true;
 	}
 
+	// Outgoing edges grouped by from-node id, built once for the node loop below
+	const baseEdgesByFrom = new Map<string, GraphEdge[]>();
+	for (const e of base.edges) {
+		const list = baseEdgesByFrom.get(e.from);
+		if (list) list.push(e);
+		else baseEdgesByFrom.set(e.from, [e]);
+	}
+	const currentEdgesByFrom = new Map<string, GraphEdge[]>();
+	for (const e of current.edges) {
+		const list = currentEdgesByFrom.get(e.from);
+		if (list) list.push(e);
+		else currentEdgesByFrom.set(e.from, [e]);
+	}
+
 	// ── Diff nodes ────────────────────────────────────────────────────────────
 	const diffedNodes: GraphNode[] = [];
 
@@ -46,9 +60,8 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 			// biome-ignore lint/style/noNonNullAssertion: guarded by baseByFile.has() in the if-branch above
 			const baseNode = baseByFile.get(node.file)!;
 
-			const outgoingChanged = current.edges
-				.filter((e) => e.from === node.id)
-				.some((e) => {
+			const outgoingChanged = (currentEdgesByFrom.get(node.id) ?? []).some(
+				(e) => {
 					const toFile = currentIdToFile.get(e.to);
 					if (!toFile) return false;
 					const key = `${node.file}→${toFile}`;
@@ -57,14 +70,15 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 					// biome-ignore lint/style/noNonNullAssertion: edge e is from current.edges so key was set in currentEdgeNames
 					const currentNames = currentEdgeNames.get(key)!;
 					return !nameSetsEqual(baseNames, currentNames); // modified edge
-				});
+				},
+			);
 
-			const outgoingRemoved = base.edges
-				.filter((e) => e.from === baseNode.id)
-				.some((e) => {
+			const outgoingRemoved = (baseEdgesByFrom.get(baseNode.id) ?? []).some(
+				(e) => {
 					const toFile = baseIdToFile.get(e.to);
 					return toFile && !currentEdgeNames.has(`${node.file}→${toFile}`);
-				});
+				},
+			);
 
 			diffedNodes.push({
 				...node,
