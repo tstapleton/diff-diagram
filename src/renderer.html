@@ -52,8 +52,8 @@
   <div class="card">
     <h2>View Mode</h2>
     <div class="mode-group">
-      <button type="button" class="mode-btn active" onclick="setMode('all')">All nodes</button>
-      <button type="button" class="mode-btn" onclick="setMode('diffFocused')">Diff-focused</button>
+      <button type="button" class="mode-btn" data-mode="all">All nodes</button>
+      <button type="button" class="mode-btn" data-mode="diffFocused">Diff-focused</button>
     </div>
   </div>
   <div class="card">
@@ -226,13 +226,17 @@ function attachHover(svgEl) {
 }
 
 // ─── Mode state ───────────────────────────────────────────────────────────────
-let currentMode = 'all';
+let currentMode = 'diffFocused';
 
-function _setMode(mode) {
+function setMode(mode) {
   currentMode = mode;
-  document.querySelectorAll('.mode-btn').forEach(b => { b.classList.toggle('active', b.textContent.trim() === (mode === 'all' ? 'All nodes' : 'Diff-focused')); });
+  document.querySelectorAll('.mode-btn').forEach(b => { b.classList.toggle('active', b.dataset.mode === mode); });
   draw();
 }
+
+document.querySelectorAll('.mode-btn').forEach(b => {
+  b.addEventListener('click', () => setMode(b.dataset.mode));
+});
 
 function draw() {
   const wrap = document.getElementById('svg-wrap');
@@ -259,7 +263,7 @@ if (changed.length === 0) {
   ).join('');
 }
 
-draw();
+setMode(currentMode);
 </script>
 </body>
 </html>
