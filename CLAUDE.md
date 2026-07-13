@@ -59,8 +59,8 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 
 ## Development workflow
 
-- Never commit directly to `main`. All work happens on a feature branch and lands via pull request, with one independent commit per task.
-- Each commit must complete exactly one task.
+- Never commit directly to `main`. All work happens on a feature branch and lands via pull request.
+- One PR per task, one commit per PR, one logical change per commit. Never batch multiple tasks into a single PR — split them into separate branches, each with its own PR. (Enforced by `.claude/hooks/block-multi-commit-pr.sh`, wired up as a PreToolUse hook in `.claude/settings.json`, which blocks `gh pr create` on branches more than one commit ahead of the base.)
 - Do not add features, refactoring, or cleanup beyond what the current task requires.
 - Read through relevant code and check for obvious bugs before asking the user to review output.
 
@@ -77,6 +77,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 - Commit or push directly to `main` — all changes land through pull requests (enforced by a branch ruleset).
 - Run `npm run test:visual:approve` without explicit user instruction — snapshot approval is a user decision.
 - Use `--no-verify` to bypass the pre-commit hook.
+- Open a PR containing more than one commit.
 - Add features, refactoring, or abstractions beyond what the current task requires.
 
 ## Validation gates

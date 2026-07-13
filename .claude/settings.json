@@ -1,0 +1,17 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-multi-commit-pr.sh",
+						"timeout": 15,
+						"statusMessage": "Checking one-commit-per-PR rule"
+					}
+				]
+			}
+		]
+	}
+}
