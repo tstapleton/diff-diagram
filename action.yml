@@ -63,6 +63,7 @@ runs:
       with:
         path: ${{ steps.stage.outputs.path }}
         archive: false
+        overwrite: true
     - name: Post PR comment
       shell: bash
       env:
