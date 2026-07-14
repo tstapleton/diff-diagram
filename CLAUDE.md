@@ -7,7 +7,6 @@ CLI tool that takes an Angular feature directory, runs TypeScript import analysi
 - `docs/spec.md` — product spec (what the tool does and why)
 - `docs/architecture.md` — module reference, pipeline, types, graph schema
 - `docs/glossary.md` — term definitions
-- `docs/backlog.md` — deferred features with design decisions
 
 ## Setup
 
@@ -64,14 +63,11 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 - Do not add features, refactoring, or cleanup beyond what the current task requires.
 - Read through relevant code and check for obvious bugs before asking the user to review output.
 
-## Always / Ask first / Never
+## Always / Never
 
 **Always:**
 - Run `npm run verify` before asking the user to review output.
 - Build (`npm run build`) before running the CLI.
-
-**Ask first:**
-- Adding or changing items in `docs/backlog.md`.
 
 **Never:**
 - Commit or push directly to `main` — all changes land through pull requests (enforced by a branch ruleset).
