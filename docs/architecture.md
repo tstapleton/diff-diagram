@@ -56,9 +56,11 @@ The `analyze()` function takes:
 
 The tsconfig is auto-detected by walking up from `scopeDir`, stopping at `repoRoot`; each analysis pass therefore resolves imports against its own checkout's tsconfig.
 
-Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`, `oosDisplayPath`
+Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`, `dedupeId`, `oosDisplayPath`
 
 **Node ID** — derived from the file path relative to `repoRoot`, without `.ts` extension, with non-alphanumeric chars replaced by `_`, deduplicated underscores stripped.
+
+**`dedupeId(id, sourceKey, seen)`** — this sanitization can map two distinct inputs to the same id (e.g. `user-list.component.ts` and `user.list.component.ts` both → `user_list_component`). `dedupeId` guards against that: given a `Map<id, sourceKey>` tracked by the caller across one node-construction pass, a genuine collision (same `id`, different `sourceKey`) gets a short deterministic hash of `sourceKey` appended (`_${hash.slice(0,6)}`, extending the hash length in the astronomically unlikely case that also collides). The same `sourceKey` always maps to the same id, independent of the `seen` map's prior contents, so scope-boundary checks and diffing (which matches by `node.file`, not `node.id` — see below) are unaffected. Both `analyze()` (node ids) and `computeViewNodes()` (stub ids, for the same reason — see `src/renderer/graph-helpers.ts`) use it.
 
 **`labelFromFile`** — splits basename on `-` and `.` separators, capitalizes each part. E.g. `user-list.component.ts` → `UserListComponent`.
 
@@ -179,7 +181,7 @@ Writes three files:
 
 ## Graph node ID stability
 
-Node IDs must be stable across the base and current analysis runs so that `diffGraphs` can match them by `node.file` (not `node.id`). The ID is derived from `path.relative(repoRoot, filePath)`, which is deterministic for the same file in both base and current as long as `repoRoot` is consistent.
+`diffGraphs` matches nodes between base and current by `node.file` (repo-relative path), not `node.id` — see its algorithm above. This means the two analysis passes do **not** need to assign the same id to the same file; each pass's ids only need to be internally consistent (same file → same id, distinct files → distinct ids) within that pass, which `dedupeId` guarantees deterministically regardless of source-file iteration order. The id itself is derived from `path.relative(repoRoot, filePath)`, sanitized and, on collision, disambiguated by `dedupeId` (see `src/analyzer.ts`).
 
 If a file moves (rename), `diffGraphs` treats it as removed + added. Rename tracking via git is a future enhancement.
 

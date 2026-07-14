@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { Project, type SourceFile } from "ts-morph";
@@ -53,6 +54,41 @@ export function toNodeId(filePath: string, repoRoot: string): string {
 		.replace(/[^a-zA-Z0-9]/g, "_")
 		.replace(/_+/g, "_")
 		.replace(/^_|_$/g, "");
+}
+
+// Given a freshly-generated `id` and the key it was derived from (a file or
+// directory path), returns a collision-free id and records the assignment in
+// `seen`. Sanitization (toNodeId, and graph-helpers' stub `sanitize`) collapses
+// all non-alphanumerics to `_`, so distinct inputs can legitimately produce the
+// same id (e.g. "user-list.component.ts" vs "user.list.component.ts", or
+// "shared/api" vs "shared-api"). On a genuine collision — `id` already taken by
+// a *different* sourceKey — this appends a short deterministic hash of the
+// sourceKey so the two stay distinct. Same sourceKey queried again (including
+// against a fresh, empty `seen` map) always yields the same id, since the hash
+// is a pure function of sourceKey and doesn't depend on iteration order.
+export function dedupeId(
+	id: string,
+	sourceKey: string,
+	seen: Map<string, string>,
+): string {
+	const existing = seen.get(id);
+	if (existing === undefined || existing === sourceKey) {
+		seen.set(id, sourceKey);
+		return id;
+	}
+
+	const hash = createHash("sha256").update(sourceKey).digest("hex");
+	for (const len of [6, 12, hash.length]) {
+		const candidate = `${id}_${hash.slice(0, len)}`;
+		const candidateExisting = seen.get(candidate);
+		if (candidateExisting === undefined || candidateExisting === sourceKey) {
+			seen.set(candidate, sourceKey);
+			return candidate;
+		}
+	}
+	// Unreachable in practice (would require a full sha256 collision between
+	// two distinct source keys); returning the bare id at least terminates.
+	return id;
 }
 
 export function oosDisplayPath(file: string, sourceRoot: string): string {
@@ -137,6 +173,13 @@ export async function analyze(
 		? path.resolve(repoRoot)
 		: path.dirname(scopeDir);
 
+	// A raw startsWith(scopeDir) check would also match a sibling directory
+	// that shares scopeDir as a string prefix (e.g. scope ".../users" and
+	// sibling ".../users-admin"). Require an exact match or a path-separator
+	// boundary right after the prefix.
+	const inScope = (p: string): boolean =>
+		p === scopeDir || p.startsWith(scopeDir + path.sep);
+
 	const tsConfigPath = await findTsConfig(scopeDir, resolvedRoot);
 
 	const project = new Project({
@@ -157,11 +200,14 @@ export async function analyze(
 	const oosEdges: Array<{ from: string; toFile: string; typeOnly?: boolean }> =
 		[];
 	const nodeIdByFile = new Map<string, string>();
+	// Reverse index (generated id → source file) used to detect and
+	// deterministically resolve id collisions from sanitization (BUG-11).
+	const idSources = new Map<string, string>();
 
 	for (const sf of project.getSourceFiles()) {
-		if (!sf.getFilePath().startsWith(scopeDir)) continue;
+		if (!inScope(sf.getFilePath())) continue;
 		const fp = sf.getFilePath();
-		const id = toNodeId(fp, resolvedRoot);
+		const id = dedupeId(toNodeId(fp, resolvedRoot), fp, idSources);
 		nodeIdByFile.set(fp, id);
 		const base = fp.replace(/\.ts$/, "");
 		const baseShort = base.replace(
@@ -185,7 +231,7 @@ export async function analyze(
 	}
 
 	for (const sf of project.getSourceFiles()) {
-		if (!sf.getFilePath().startsWith(scopeDir)) continue;
+		if (!inScope(sf.getFilePath())) continue;
 		// biome-ignore lint/style/noNonNullAssertion: set in the previous loop for every file in scopeDir
 		const fromId = nodeIdByFile.get(sf.getFilePath())!;
 
@@ -204,7 +250,7 @@ export async function analyze(
 						...(names.length ? { importedNames: names } : {}),
 						...(typeOnly ? { typeOnly: true } : {}),
 					});
-			} else if (!targetPath.startsWith(scopeDir)) {
+			} else if (!inScope(targetPath)) {
 				oosEdges.push({
 					from: fromId,
 					toFile: targetPath,
