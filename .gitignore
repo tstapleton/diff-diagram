@@ -2,3 +2,4 @@ node_modules/
 dist/
 .claude/worktrees/
 test/snapshots/current/
+.DS_Store
