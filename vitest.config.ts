@@ -8,6 +8,8 @@ export default defineConfig({
 			".claude/**",
 			"fake-angular-app/**",
 			"fake-angular-app-base/**",
+			"sample-app/**",
+			"sample-app-base/**",
 			"src/renderer/visual.test.ts",
 		],
 	},
