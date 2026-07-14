@@ -31,7 +31,7 @@ async function main(): Promise<void> {
 		issue_number: pr.number,
 		per_page: 100,
 	});
-	const existingId = findExistingCommentId(comments);
+	const existingId = findExistingCommentId(comments, graph.meta.scopeDir);
 	if (existingId !== null) {
 		await octokit.rest.issues.updateComment({
 			owner,

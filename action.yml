@@ -45,11 +45,23 @@ runs:
           --source-root "${{ inputs.source-root }}" \
           --out-dir "${{ runner.temp }}/diff-diagram" \
           "${{ inputs.feature-dir }}"
+    - name: Stage diagram under a scope-unique name
+      id: stage
+      shell: bash
+      # With archive: false the artifact is named after the file's basename,
+      # so the staged copy must be unique when the action runs twice per job.
+      env:
+        FEATURE_DIR: ${{ inputs.feature-dir }}
+        OUT_DIR: ${{ runner.temp }}/diff-diagram
+      run: |
+        staged="$OUT_DIR/diagram-${FEATURE_DIR//[^a-zA-Z0-9]/-}.html"
+        cp "$OUT_DIR/diagram.html" "$staged"
+        echo "path=$staged" >> "$GITHUB_OUTPUT"
     - name: Upload diagram artifact
       id: upload
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        path: ${{ runner.temp }}/diff-diagram/diagram.html
+        path: ${{ steps.stage.outputs.path }}
         archive: false
     - name: Post PR comment
       shell: bash
