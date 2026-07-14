@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { analyze } from "./analyzer.js";
 import { diffGraphs } from "./diff-parser.js";
 import { addContext } from "./filter.js";
@@ -169,12 +170,21 @@ function buildModeData(
 
 // ─── HTML builder ────────────────────────────────────────────────────────────
 
-async function buildHtml(
+export async function buildHtml(
 	data: DiagramData,
 	templatePath: string,
 ): Promise<string> {
 	const template = await readFile(templatePath, "utf8");
-	return template.replace("__DIFF_DIAGRAM_DATA__", JSON.stringify(data));
+	// Escape "</" so a label/path containing "</script>" can't terminate the
+	// inline script block early; "\/" is a valid JSON escape for "/", so this
+	// still round-trips through JSON.parse.
+	const json = JSON.stringify(data).replaceAll("</", "<\\/");
+	// Passed as a function, the replacement value is used literally. Passed as
+	// a string (the previous behavior), String.replace treats it as a
+	// replacement *pattern* — "$&", "$'", "$`", "$$" are special substitution
+	// sequences, so any of those appearing inside the JSON (e.g. in a node
+	// label or file path) would corrupt the embedded data.
+	return template.replace("__DIFF_DIAGRAM_DATA__", () => json);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -294,7 +304,14 @@ async function main(): Promise<void> {
 	console.log(`Wrote ${jsonPath}`);
 }
 
-main().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+// Only run when invoked directly (`node dist/cli.js ...`), not when imported
+// as a module (e.g. by unit tests importing `buildHtml`).
+if (
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+	main().catch((err) => {
+		console.error(err);
+		process.exit(1);
+	});
+}
