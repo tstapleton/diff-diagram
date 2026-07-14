@@ -46,9 +46,10 @@ function compareWithSnapshot(svg: string, name: string): number {
 	writeFileSync(currentPath, data);
 
 	if (!existsSync(referencePath)) {
-		mkdirSync(SNAPSHOTS_REFERENCE, { recursive: true });
-		writeFileSync(referencePath, data);
-		return 0;
+		throw new Error(
+			`No reference snapshot for "${name}" at ${referencePath}. ` +
+				`Review the rendered output at ${currentPath}, then run \`npm run test:visual:approve\` to accept it as the new baseline.`,
+		);
 	}
 
 	const ref = PNG.sync.read(readFileSync(referencePath));
