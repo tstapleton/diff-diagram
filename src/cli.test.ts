@@ -46,6 +46,68 @@ beforeAll(() => {
 	}
 });
 
+// ─── tsconfig auto-detection: each pass resolves within its own repo root ─────
+
+describe("cli tsconfig auto-detection", () => {
+	let tmp: string;
+	let currentRoot: string;
+	let baseRoot: string;
+	let outDir: string;
+
+	const TSCONFIG = JSON.stringify({
+		compilerOptions: { baseUrl: ".", paths: { "@lib/*": ["lib/*"] } },
+	});
+	const A_TS = 'import { b } from "@lib/b";\nexport const a = b;\n';
+	const B_TS = "export const b = 1;\n";
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-tsconfig-"));
+		currentRoot = path.join(tmp, "current");
+		baseRoot = path.join(tmp, "base");
+		outDir = path.join(tmp, "out");
+
+		for (const root of [currentRoot, baseRoot]) {
+			await writeFixtureFile(path.join(root, "tsconfig.json"), TSCONFIG);
+			await writeFixtureFile(path.join(root, "lib/b.ts"), B_TS);
+			await writeFixtureFile(path.join(root, "src/app/features/f/a.ts"), A_TS);
+		}
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("identical alias imports in base and current diff as unchanged", async () => {
+		const result = await runCli([
+			"--repo-root",
+			currentRoot,
+			"--base-repo-root",
+			baseRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const graph: Graph = JSON.parse(
+			await readFile(path.join(outDir, "graph.json"), "utf8"),
+		);
+
+		// Each pass must pick up its own repo's tsconfig, so the alias target
+		// resolves inside each root — never into the other checkout (which would
+		// produce ../… paths and fake diffs).
+		const escaped = graph.nodes.filter((n) => n.file.startsWith(".."));
+		expect(escaped).toEqual([]);
+
+		const libNode = graph.nodes.find((n) => n.file === "lib/b.ts");
+		expect(libNode).toBeDefined();
+		expect(libNode?.diff).toBe("unchanged");
+
+		const aNode = graph.nodes.find((n) => n.file === "src/app/features/f/a.ts");
+		expect(aNode?.diff).toBe("unchanged");
+	}, 30_000);
+});
+
 // ─── GAP-01: missing feature directory handling ───────────────────────────────
 
 describe("cli feature directory existence checks", () => {

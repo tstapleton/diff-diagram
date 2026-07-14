@@ -130,17 +130,14 @@ export async function findTsConfig(
 
 export async function analyze(
 	scopeDir: string,
-	{
-		repoRoot,
-		tsConfigPath,
-	}: { repoRoot?: string; tsConfigPath?: string | null } = {},
+	{ repoRoot }: { repoRoot?: string } = {},
 ): Promise<Graph> {
 	scopeDir = path.resolve(scopeDir);
 	const resolvedRoot = repoRoot
 		? path.resolve(repoRoot)
 		: path.dirname(scopeDir);
 
-	if (!tsConfigPath) tsConfigPath = await findTsConfig(scopeDir, resolvedRoot);
+	const tsConfigPath = await findTsConfig(scopeDir, resolvedRoot);
 
 	const project = new Project({
 		...(tsConfigPath ? { tsConfigFilePath: tsConfigPath } : {}),

@@ -16,7 +16,6 @@ import type { Graph, GraphEdge, GraphNode } from "./types.js";
 interface Args {
 	baseRepoRoot: string | null;
 	outDir: string;
-	tsConfig: string | null;
 	repoRoot: string | null;
 	scopeDir: string | null;
 	sourceRoot: string;
@@ -43,9 +42,6 @@ function printHelp(): void {
 	);
 	console.log("  --out-dir <dir>          Output directory (default: dist)");
 	console.log(
-		"  --tsconfig <file>        Path to tsconfig.json (auto-detected)",
-	);
-	console.log(
 		"  --source-root <dir>      Source root prefix for label derivation (default: src/app)",
 	);
 	console.log("  -h, --help               Show this help message");
@@ -55,7 +51,6 @@ function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		baseRepoRoot: null,
 		outDir: "dist",
-		tsConfig: null,
 		repoRoot: null,
 		scopeDir: null,
 		sourceRoot: "src/app",
@@ -71,10 +66,6 @@ function parseArgs(argv: string[]): Args {
 		}
 		if (argv[i] === "--out-dir") {
 			args.outDir = argv[++i];
-			continue;
-		}
-		if (argv[i] === "--tsconfig") {
-			args.tsConfig = argv[++i];
 			continue;
 		}
 		if (argv[i] === "--repo-root") {
@@ -206,9 +197,7 @@ async function main(): Promise<void> {
 	}
 
 	console.log(`Analyzing ${path.relative(repoRoot, scopeDir)} ...`);
-	const current = addContext(
-		await analyze(scopeDir, { repoRoot, tsConfigPath: args.tsConfig }),
-	);
+	const current = addContext(await analyze(scopeDir, { repoRoot }));
 	console.log(
 		`  ${current.nodes.filter((n) => n.scope === "in-scope").length} in-scope nodes, ${current.edges.length} edges`,
 	);
@@ -234,10 +223,7 @@ async function main(): Promise<void> {
 			`Analyzing base at ${path.relative(baseRepoRoot, baseScopeDir)} ...`,
 		);
 		const base = addContext(
-			await analyze(baseScopeDir, {
-				repoRoot: baseRepoRoot,
-				tsConfigPath: args.tsConfig,
-			}),
+			await analyze(baseScopeDir, { repoRoot: baseRepoRoot }),
 		);
 		console.log(
 			`  ${base.nodes.filter((n) => n.scope === "in-scope").length} in-scope nodes`,

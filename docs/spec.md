@@ -28,7 +28,6 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 | `--repo-root` | no | current working directory | Repo root for the current branch |
 | `--base-repo-root` | no | — | Repo root for a pre-checked-out base branch; omit for single-branch mode |
 | `--out-dir` | no | `dist` | Where to write output files |
-| `--tsconfig` | no | auto-detected | Path to `tsconfig.json` for import resolution |
 | `--source-root` | no | `src/app` | Prefix stripped from file paths when deriving node labels |
 
 The tool does not manage git state. The caller is responsible for materializing the base branch (e.g., via `git worktree add`) and passing the path via `--base-repo-root`.
