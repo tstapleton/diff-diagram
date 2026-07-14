@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
 	analyze,
 	classifyByFilename,
+	dedupeId,
 	findTsConfig,
 	labelFromFile,
 	toNodeId,
@@ -341,6 +342,171 @@ describe("analyze (test and story markers)", { timeout: 15000 }, () => {
 		const node = graph.nodes.find((n) => n.file.includes("neither"));
 		expect(node?.hasTests).toBeUndefined();
 		expect(node?.hasStories).toBeUndefined();
+	});
+});
+
+// ─── analyze() — scope boundary (BUG-03) ────────────────────────────────────
+// A sibling directory sharing a name prefix (e.g. "users" vs "users-admin")
+// must not be misclassified as in-scope by a raw startsWith(scopeDir) check.
+
+describe("analyze (scope boundary — sibling directory guard)", {
+	timeout: 15000,
+}, () => {
+	let tmpRoot5: string;
+	let scopeDir5: string;
+
+	beforeAll(() => {
+		tmpRoot5 = mkdtempSync(path.join(tmpdir(), "diff-diagram-siblingscope-"));
+		scopeDir5 = path.join(tmpRoot5, "src", "app", "features", "users");
+		const siblingDir = path.join(
+			tmpRoot5,
+			"src",
+			"app",
+			"features",
+			"users-admin",
+		);
+		mkdirSync(scopeDir5, { recursive: true });
+		mkdirSync(siblingDir, { recursive: true });
+
+		writeFileSync(
+			path.join(siblingDir, "roles.service.ts"),
+			"export class RolesService {}",
+		);
+		writeFileSync(
+			path.join(scopeDir5, "consumer.ts"),
+			"import { RolesService } from '../users-admin/roles.service';\nexport const x = RolesService;",
+		);
+	});
+
+	afterAll(() => {
+		rmSync(tmpRoot5, { recursive: true, force: true });
+	});
+
+	it("surfaces an import from a name-prefixed sibling directory as an OOS edge, not a dropped edge", async () => {
+		const graph = await analyze(scopeDir5, { repoRoot: tmpRoot5 });
+		expect(
+			graph._oosEdges?.some((e) => e.toFile.endsWith("roles.service.ts")),
+		).toBe(true);
+	});
+
+	it("does not classify the sibling directory's file as in-scope", async () => {
+		const graph = await analyze(scopeDir5, { repoRoot: tmpRoot5 });
+		expect(graph.nodes.some((n) => n.file.includes("users-admin"))).toBe(false);
+	});
+});
+
+// ─── dedupeId (BUG-11) ───────────────────────────────────────────────────────
+
+describe("dedupeId", () => {
+	it("returns the same id for repeated calls with the same source key", () => {
+		const seen = new Map<string, string>();
+		const id1 = dedupeId(
+			"user_list_component",
+			"/repo/user-list.component.ts",
+			seen,
+		);
+		const id2 = dedupeId(
+			"user_list_component",
+			"/repo/user-list.component.ts",
+			seen,
+		);
+		expect(id1).toBe("user_list_component");
+		expect(id2).toBe("user_list_component");
+	});
+
+	it("disambiguates a colliding id from a different source key with a hash suffix", () => {
+		const seen = new Map<string, string>();
+		const id1 = dedupeId(
+			"user_list_component",
+			"/repo/user-list.component.ts",
+			seen,
+		);
+		const id2 = dedupeId(
+			"user_list_component",
+			"/repo/user.list.component.ts",
+			seen,
+		);
+		expect(id1).toBe("user_list_component");
+		expect(id2).not.toBe(id1);
+		expect(id2).toMatch(/^user_list_component_[0-9a-f]{6}$/);
+	});
+
+	it("is deterministic: the same source key always produces the same disambiguated id", () => {
+		const seenA = new Map<string, string>();
+		dedupeId("x", "/repo/a.ts", seenA);
+		const idA = dedupeId("x", "/repo/b.ts", seenA);
+
+		const seenB = new Map<string, string>();
+		dedupeId("x", "/repo/a.ts", seenB);
+		const idB = dedupeId("x", "/repo/b.ts", seenB);
+
+		expect(idA).toBe(idB);
+	});
+});
+
+// ─── analyze() — node id collisions (BUG-11) ────────────────────────────────
+
+describe("analyze (node id collisions)", { timeout: 15000 }, () => {
+	let tmpRoot6: string;
+	let scopeDir6: string;
+
+	beforeAll(() => {
+		tmpRoot6 = mkdtempSync(path.join(tmpdir(), "diff-diagram-idcollision-"));
+		scopeDir6 = path.join(tmpRoot6, "src", "app", "features", "users");
+		mkdirSync(scopeDir6, { recursive: true });
+
+		// These two file names sanitize to the same string
+		// ("user_list_component") under the naive toNodeId scheme.
+		writeFileSync(
+			path.join(scopeDir6, "user-list.component.ts"),
+			"export class UserListComponentA {}",
+		);
+		writeFileSync(
+			path.join(scopeDir6, "user.list.component.ts"),
+			"export class UserListComponentB {}",
+		);
+		writeFileSync(
+			path.join(scopeDir6, "consumer.ts"),
+			[
+				"import { UserListComponentA } from './user-list.component';",
+				"import { UserListComponentB } from './user.list.component';",
+				"export const both = [UserListComponentA, UserListComponentB];",
+			].join("\n"),
+		);
+	});
+
+	afterAll(() => {
+		rmSync(tmpRoot6, { recursive: true, force: true });
+	});
+
+	it("assigns distinct ids to files whose sanitized names collide, with edges correctly attributed", async () => {
+		const graph = await analyze(scopeDir6, { repoRoot: tmpRoot6 });
+
+		const nodeA = graph.nodes.find(
+			(n) => path.basename(n.file) === "user-list.component.ts",
+		);
+		const nodeB = graph.nodes.find(
+			(n) => path.basename(n.file) === "user.list.component.ts",
+		);
+		const consumer = graph.nodes.find(
+			(n) => path.basename(n.file) === "consumer.ts",
+		);
+
+		expect(nodeA).toBeDefined();
+		expect(nodeB).toBeDefined();
+		expect(nodeA?.id).not.toBe(nodeB?.id);
+
+		// Neither file was silently merged/dropped.
+		expect(graph.nodes).toHaveLength(3);
+
+		const edgeToA = graph.edges.find(
+			(e) => e.from === consumer?.id && e.to === nodeA?.id,
+		);
+		const edgeToB = graph.edges.find(
+			(e) => e.from === consumer?.id && e.to === nodeB?.id,
+		);
+		expect(edgeToA).toBeDefined();
+		expect(edgeToB).toBeDefined();
 	});
 });
 

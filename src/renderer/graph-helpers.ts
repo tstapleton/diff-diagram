@@ -1,4 +1,5 @@
 import path from "node:path";
+import { dedupeId } from "../analyzer.js";
 import type { Graph, GraphEdge, GraphNode } from "../types.js";
 
 // ─── computeViewNodes ─────────────────────────────────────────────────────────
@@ -37,13 +38,18 @@ export function computeViewNodes(
 
 	const outputNodes: GraphNode[] = [];
 	const collapsedMap = new Map<string, string>(); // original id → stub id
+	// Reverse index (generated stub id → source dir key) used to disambiguate
+	// stub ids when two different dirs sanitize to the same string, e.g.
+	// "shared/api" and "shared-api" both → "shared_api" (BUG-11).
+	const stubIdSources = new Map<string, string>();
 
 	for (const [subdir, nodes] of inScopeGroups) {
 		if (subdir === "__root__" || !allUnchanged(nodes)) {
 			for (const n of nodes) outputNodes.push(n);
 		} else {
+			const sourceKey = `in:${subdir}`;
 			const stub = makeStub(
-				`stub_${sanitize(subdir)}`,
+				dedupeId(`stub_${sanitize(subdir)}`, sourceKey, stubIdSources),
 				subdir,
 				path.join(scopeDir, subdir),
 				"in-scope",
@@ -64,8 +70,9 @@ export function computeViewNodes(
 		if (!allUnchanged(nodes)) {
 			for (const n of nodes) outputNodes.push(n);
 		} else {
+			const sourceKey = `oos:${dir}`;
 			const stub = makeStub(
-				`stub_oos_${sanitize(dir)}`,
+				dedupeId(`stub_oos_${sanitize(dir)}`, sourceKey, stubIdSources),
 				path.basename(dir),
 				dir,
 				"out-of-scope",
