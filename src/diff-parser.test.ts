@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffGraphs } from "./diff-parser.js";
+import { applyChangeMagnitude, diffGraphs } from "./diff-parser.js";
 import type { GraphEdge, GraphNode } from "./types.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -277,5 +277,162 @@ describe("diffGraphs — edge modified state", () => {
 		expect(
 			result.nodes.find((n) => n.file === "src/users/foo.component.ts")?.diff,
 		).toBe("modified");
+	});
+});
+
+// ─── change magnitude ────────────────────────────────────────────────────────
+
+describe("diffGraphs linesChanged", () => {
+	it("added node counts its full lineCount as linesChanged", () => {
+		const base = makeFullGraph("src/users", []);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { lineCount: 42 }),
+		]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(42);
+	});
+
+	it("removed ghost counts its full base lineCount as linesChanged", () => {
+		const base = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { lineCount: 17 }),
+		]);
+		const current = makeFullGraph("src/users", []);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(17);
+	});
+
+	it("modified node counts the absolute lineCount delta", () => {
+		const eBase = gEdge(
+			"src/users/foo.component.ts",
+			"src/users/bar.component.ts",
+			["A"],
+		);
+		const eCurrent = gEdge(
+			"src/users/foo.component.ts",
+			"src/users/bar.component.ts",
+			["A", "B"],
+		);
+		const base = makeFullGraph(
+			"src/users",
+			[
+				gNode("src/users/foo.component.ts", { lineCount: 30 }),
+				gNode("src/users/bar.component.ts", { lineCount: 10 }),
+			],
+			[eBase],
+		);
+		const current = makeFullGraph(
+			"src/users",
+			[
+				gNode("src/users/foo.component.ts", { lineCount: 18 }),
+				gNode("src/users/bar.component.ts", { lineCount: 10 }),
+			],
+			[eCurrent],
+		);
+		const result = diffGraphs(base, current);
+		const foo = result.nodes.find(
+			(n) => n.file === "src/users/foo.component.ts",
+		);
+		expect(foo?.diff).toBe("modified");
+		expect(foo?.linesChanged).toBe(12);
+	});
+
+	it("unchanged node gets no linesChanged and no magnitude", () => {
+		const node = gNode("src/users/foo.component.ts", { lineCount: 30 });
+		const base = makeFullGraph("src/users", [node]);
+		const current = makeFullGraph("src/users", [node]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].diff).toBe("unchanged");
+		expect(result.nodes[0].linesChanged).toBeUndefined();
+		expect(result.nodes[0].magnitude).toBeUndefined();
+	});
+
+	it("missing lineCount is treated as 0", () => {
+		const base = makeFullGraph("src/users", []);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts"),
+		]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(0);
+	});
+
+	it("assigns relative magnitudes across the diffed graph", () => {
+		const base = makeFullGraph("src/users", []);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/big.component.ts", { lineCount: 40 }),
+			gNode("src/users/small.component.ts", { lineCount: 10 }),
+		]);
+		const result = diffGraphs(base, current);
+		const big = result.nodes.find(
+			(n) => n.file === "src/users/big.component.ts",
+		);
+		const small = result.nodes.find(
+			(n) => n.file === "src/users/small.component.ts",
+		);
+		expect(big?.magnitude).toBe(1);
+		expect(small?.magnitude).toBe(0.25);
+	});
+});
+
+describe("applyChangeMagnitude", () => {
+	function mNode(
+		file: string,
+		diff: GraphNode["diff"],
+		linesChanged?: number,
+	): GraphNode {
+		return {
+			id: file,
+			label: file,
+			file,
+			type: "component",
+			scope: "in-scope",
+			diff,
+			...(linesChanged !== undefined ? { linesChanged } : {}),
+		};
+	}
+
+	it("scales each changed node relative to the max-changed node", () => {
+		const result = applyChangeMagnitude([
+			mNode("a.ts", "added", 50),
+			mNode("b.ts", "modified", 25),
+			mNode("c.ts", "removed", 10),
+		]);
+		expect(result.map((n) => n.magnitude)).toEqual([1, 0.5, 0.2]);
+	});
+
+	it("a single changed node gets magnitude 1", () => {
+		const result = applyChangeMagnitude([mNode("a.ts", "modified", 7)]);
+		expect(result[0].magnitude).toBe(1);
+	});
+
+	it("zero changed nodes: no division by zero, no magnitudes assigned", () => {
+		const result = applyChangeMagnitude([
+			mNode("a.ts", "unchanged"),
+			mNode("b.ts", null),
+		]);
+		expect(result.every((n) => n.magnitude === undefined)).toBe(true);
+	});
+
+	it("unchanged nodes are returned untouched even when others changed", () => {
+		const unchanged = mNode("a.ts", "unchanged");
+		const result = applyChangeMagnitude([unchanged, mNode("b.ts", "added", 5)]);
+		expect(result[0]).toEqual(unchanged);
+		expect(result[0].magnitude).toBeUndefined();
+	});
+
+	it("changed nodes all at zero linesChanged fall back to full magnitude", () => {
+		const result = applyChangeMagnitude([
+			mNode("a.ts", "modified", 0),
+			mNode("b.ts", "modified", 0),
+		]);
+		expect(result.map((n) => n.magnitude)).toEqual([1, 1]);
+	});
+
+	it("a changed node with zero linesChanged scales to 0 when others changed more", () => {
+		const result = applyChangeMagnitude([
+			mNode("a.ts", "modified", 0),
+			mNode("b.ts", "added", 20),
+		]);
+		expect(result[0].magnitude).toBe(0);
+		expect(result[1].magnitude).toBe(1);
 	});
 });

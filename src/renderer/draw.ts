@@ -33,6 +33,25 @@ const STUB_TEXT = "#94a3b8";
 const TEST_DOT = "#22c55e"; // green — has unit test
 const STORY_DOT = "#a855f7"; // purple — has storybook story
 
+// ─── Color interpolation ──────────────────────────────────────────────────────
+// Per-channel linear interpolation between two #rrggbb colors in sRGB space.
+// Both palette endpoints are dark, low-saturation colors, so gamma-space sRGB
+// lerp stays muted at low t (the goal) without visible banding or gray dead
+// zones a linear-light lerp would need to avoid.
+
+export function lerpHex(from: string, to: string, t: number): string {
+	const clamped = Math.min(1, Math.max(0, t));
+	const a = Number.parseInt(from.slice(1), 16);
+	const b = Number.parseInt(to.slice(1), 16);
+	const channel = (shift: number): number => {
+		const ca = (a >> shift) & 0xff;
+		const cb = (b >> shift) & 0xff;
+		return Math.round(ca + (cb - ca) * clamped);
+	};
+	const rgb = (channel(16) << 16) | (channel(8) << 8) | channel(0);
+	return `#${rgb.toString(16).padStart(6, "0")}`;
+}
+
 // ─── Label truncation ─────────────────────────────────────────────────────────
 
 const FONT_FAMILY = "Fira Code, monospace";
@@ -53,7 +72,14 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
 			: { fill: "#0f172a", stroke: "#334155" };
 	}
 	const diff = node.diff ?? "unchanged";
-	return { fill: NODE_FILL[diff], stroke: NODE_STROKE[diff] };
+	// Change magnitude: changed nodes fade from the unchanged fill (magnitude 0)
+	// to their full diff-state fill (magnitude 1). Nodes without a magnitude
+	// (single-branch mode) keep the full diff-state fill.
+	const fill =
+		diff !== "unchanged" && node.magnitude !== undefined
+			? lerpHex(NODE_FILL.unchanged, NODE_FILL[diff], node.magnitude)
+			: NODE_FILL[diff];
+	return { fill, stroke: NODE_STROKE[diff] };
 }
 
 function renderNode(

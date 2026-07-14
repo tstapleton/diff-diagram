@@ -179,6 +179,7 @@ export async function analyze(
 			type: classifyFile(sf),
 			scope: "in-scope",
 			diff: null,
+			lineCount: sf.getFullText().split("\n").length,
 			...(hasTests ? { hasTests: true } : {}),
 			...(hasStories ? { hasStories: true } : {}),
 		});

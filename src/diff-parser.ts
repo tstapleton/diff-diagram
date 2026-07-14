@@ -1,5 +1,33 @@
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
 
+// ─── applyChangeMagnitude ─────────────────────────────────────────────────────
+// Assigns each changed node (added/modified/removed) a relative change
+// magnitude in [0, 1]: its linesChanged divided by the largest linesChanged in
+// the graph. The heaviest-changed node always gets 1.0 (full diff-state color);
+// if every changed node has linesChanged 0 they all get full intensity.
+// Unchanged nodes are returned untouched.
+
+function isChanged(node: GraphNode): boolean {
+	return (
+		node.diff === "added" || node.diff === "modified" || node.diff === "removed"
+	);
+}
+
+export function applyChangeMagnitude(nodes: GraphNode[]): GraphNode[] {
+	let maxChanged = 0;
+	for (const node of nodes) {
+		if (isChanged(node)) {
+			maxChanged = Math.max(maxChanged, node.linesChanged ?? 0);
+		}
+	}
+	return nodes.map((node) => {
+		if (!isChanged(node)) return node;
+		const magnitude =
+			maxChanged > 0 ? (node.linesChanged ?? 0) / maxChanged : 1;
+		return { ...node, magnitude };
+	});
+}
+
 // ─── diffGraphs ───────────────────────────────────────────────────────────────
 // Compares two fully-expanded graphs (base vs current) and produces a single
 // diffed graph where every node and edge carries a diff state.
@@ -55,7 +83,11 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 
 	for (const node of current.nodes) {
 		if (!baseByFile.has(node.file)) {
-			diffedNodes.push({ ...node, diff: "added" });
+			diffedNodes.push({
+				...node,
+				diff: "added",
+				linesChanged: node.lineCount ?? 0,
+			});
 		} else {
 			// biome-ignore lint/style/noNonNullAssertion: guarded by baseByFile.has() in the if-branch above
 			const baseNode = baseByFile.get(node.file)!;
@@ -80,9 +112,17 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 				},
 			);
 
+			const isModified = outgoingChanged || outgoingRemoved;
 			diffedNodes.push({
 				...node,
-				diff: outgoingChanged || outgoingRemoved ? "modified" : "unchanged",
+				diff: isModified ? "modified" : "unchanged",
+				...(isModified
+					? {
+							linesChanged: Math.abs(
+								(node.lineCount ?? 0) - (baseNode.lineCount ?? 0),
+							),
+						}
+					: {}),
 			});
 		}
 	}
@@ -91,7 +131,12 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 	for (const node of base.nodes) {
 		if (node.scope === "out-of-scope") continue;
 		if (!currentByFile.has(node.file)) {
-			diffedNodes.push({ ...node, scope: "removed-ghost", diff: "removed" });
+			diffedNodes.push({
+				...node,
+				scope: "removed-ghost",
+				diff: "removed",
+				linesChanged: node.lineCount ?? 0,
+			});
 		}
 	}
 
@@ -152,7 +197,7 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 			nodeCount: diffedNodes.length,
 			edgeCount: diffedEdges.length,
 		},
-		nodes: diffedNodes,
+		nodes: applyChangeMagnitude(diffedNodes),
 		edges: diffedEdges,
 	};
 }
