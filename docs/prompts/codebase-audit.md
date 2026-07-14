@@ -11,7 +11,6 @@ Before starting, read the following as required context and treat them as the st
 - `docs/architecture.md`
 - `docs/initial-design.md`
 - `docs/glossary.md`
-- `docs/backlog.md`
 
 ## Scope
 

@@ -119,7 +119,7 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 
 ## Planned
 
-The following features are designed but not yet implemented. Full design decisions and implementation steps are in [docs/backlog.md](./backlog.md).
+The following features are designed but not yet implemented. Full design decisions and implementation steps are tracked as GitHub issues.
 
 - **GitHub Action** — runs on PR events, posts `diagram.svg` as an inline PR comment image, no external storage required
 - **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, all node types, sidecar markers), committed to the repo and referenced in the README
