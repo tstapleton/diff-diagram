@@ -1,6 +1,9 @@
 import type { DiffState, Graph, GraphNode } from "../types.js";
 
-export const COMMENT_MARKER = "<!-- diff-diagram -->";
+// Scope-specific so one PR can carry a separate comment per diagrammed dir.
+export function commentMarker(scopeDir: string): string {
+	return `<!-- diff-diagram:${scopeDir} -->`;
+}
 
 export interface CommentContext {
 	artifactUrl: string;
@@ -19,7 +22,7 @@ export function buildCommentBody(graph: Graph, ctx: CommentContext): string {
 	const importsRemoved = graph.edges.filter((e) => e.diff === "removed").length;
 
 	const lines = [
-		COMMENT_MARKER,
+		commentMarker(graph.meta.scopeDir),
 		`### 📊 Dependency diff — \`${graph.meta.scopeDir}\``,
 		"",
 		`**Files:** ${byDiff(inScope, "added").length} added · ${byDiff(inScope, "modified").length} modified · ${byDiff(inScope, "removed").length} removed`,
@@ -60,6 +63,8 @@ export function buildCommentBody(graph: Graph, ctx: CommentContext): string {
 
 export function findExistingCommentId(
 	comments: Array<{ id: number; body?: string }>,
+	scopeDir: string,
 ): number | null {
-	return comments.find((c) => c.body?.includes(COMMENT_MARKER))?.id ?? null;
+	const marker = commentMarker(scopeDir);
+	return comments.find((c) => c.body?.includes(marker))?.id ?? null;
 }

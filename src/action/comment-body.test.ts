@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Graph } from "../types.js";
 import {
 	buildCommentBody,
-	COMMENT_MARKER,
+	commentMarker,
 	findExistingCommentId,
 } from "./comment-body.js";
 
@@ -27,9 +27,11 @@ function graph(overrides: Partial<Graph> = {}): Graph {
 }
 
 describe("buildCommentBody", () => {
-	it("starts with the marker and names the feature dir", () => {
+	it("starts with a scope-specific marker and names the feature dir", () => {
 		const body = buildCommentBody(graph(), ctx);
-		expect(body.startsWith(COMMENT_MARKER)).toBe(true);
+		expect(
+			body.startsWith("<!-- diff-diagram:src/app/features/users -->"),
+		).toBe(true);
 		expect(body).toContain("`src/app/features/users`");
 	});
 
@@ -165,18 +167,33 @@ describe("buildCommentBody", () => {
 });
 
 describe("findExistingCommentId", () => {
-	it("returns the id of the comment containing the marker", () => {
+	it("returns the id of the comment containing the marker for the same scope", () => {
 		expect(
-			findExistingCommentId([
-				{ id: 1, body: "unrelated" },
-				{ id: 2, body: `${COMMENT_MARKER}\nold summary` },
-			]),
+			findExistingCommentId(
+				[
+					{ id: 1, body: "unrelated" },
+					{ id: 2, body: `${commentMarker("src")}\nold summary` },
+				],
+				"src",
+			),
 		).toBe(2);
 	});
 
+	it("ignores comments for other scopes, even when one scope prefixes the other", () => {
+		expect(
+			findExistingCommentId(
+				[
+					{ id: 1, body: `${commentMarker("src/app/features/users")}\nother` },
+					{ id: 2, body: `${commentMarker("src2")}\nother` },
+				],
+				"src",
+			),
+		).toBe(null);
+	});
+
 	it("returns null when no comment has the marker, including undefined bodies", () => {
-		expect(findExistingCommentId([{ id: 1 }, { id: 2, body: "hi" }])).toBe(
-			null,
-		);
+		expect(
+			findExistingCommentId([{ id: 1 }, { id: 2, body: "hi" }], "src"),
+		).toBe(null);
 	});
 });

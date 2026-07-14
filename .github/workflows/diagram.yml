@@ -16,7 +16,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: ./
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      # Both checkouts need node_modules so imports resolve identically on both
+      # sides; otherwise every test file shows a phantom diff on its vitest edge.
+      - name: Install dependencies in base checkout
+        working-directory: base
+        run: npm ci --no-audit --no-fund --ignore-scripts
+      - name: Diagram the diff-diagram source
+        uses: ./
+        with:
+          feature-dir: src
+          base-repo-root: ${{ github.workspace }}/base
+          source-root: src
+      - name: Diagram the fake app fixtures
+        uses: ./
         with:
           feature-dir: src/app/features/users
           repo-root: fake-angular-app
