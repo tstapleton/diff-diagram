@@ -10,6 +10,27 @@ CLI tool for Angular PR review that generates a dependency diagram for a feature
 | `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
 | `dist/graph.json` | Full diffed graph JSON for downstream tooling |
 
+## Reading the diagram
+
+![Sample diagram](docs/sample.svg)
+
+The sample above is generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run sample` (build first: the script assumes `dist/` is current). It shows every visual element the tool renders:
+
+| Element | Meaning |
+|---|---|
+| Green border, dark green fill | File added in this PR |
+| Amber border, dark amber fill | File modified in this PR (its imports changed) |
+| Red border, dark red fill | File removed in this PR (kept as a ghost so you can see what pointed at it) |
+| Grey border, slate fill | File unchanged |
+| Darker box outside the feature container | Out-of-scope dependency (imported from outside the feature directory), with its directory path under the name |
+| Dashed border, italic name | Type-only dependency (every import of it is `import type`) |
+| Solid arrow | Import; color follows its diff state (green added, amber changed, red removed, grey unchanged) |
+| Dashed faded arrow | Removed import |
+| Green dot | File has a unit test (`.spec.ts` sidecar) |
+| Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
+
+The outlined box around the in-scope files is the feature directory being diagrammed, labeled with its name in the top-left corner.
+
 ## Setup
 
 ```bash

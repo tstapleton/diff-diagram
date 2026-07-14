@@ -6,7 +6,13 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist", "!!.claude", "!!skills-lock.json"]
+		"includes": [
+			"**",
+			"!!**/dist",
+			"!!.claude",
+			"!!skills-lock.json",
+			"!!docs/sample.svg"
+		]
 	},
 	"formatter": {
 		"enabled": true,

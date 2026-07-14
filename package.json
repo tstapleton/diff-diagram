@@ -10,6 +10,7 @@
 		"lint": "biome lint",
 		"lint:fix": "biome lint --write --unsafe",
 		"format": "biome format --write",
+		"sample": "node dist/cli.js --repo-root sample-app --base-repo-root sample-app-base src/app/features/dashboard && cp dist/diagram.svg docs/sample.svg",
 		"verify": "npm run build && biome check && npm run test && npm run test:visual",
 		"prepare": "husky"
 	},
