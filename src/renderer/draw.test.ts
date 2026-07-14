@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "../types.js";
-import { edgeStroke, nodeColor, toSvg, truncateLabel } from "./draw.js";
+import {
+	edgeStroke,
+	lerpHex,
+	nodeColor,
+	toSvg,
+	truncateLabel,
+} from "./draw.js";
 import type { Layout } from "./layout.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -247,5 +253,95 @@ describe("toSvg", () => {
 		const n = node("plain");
 		const svg = toSvg(layout([n]), [n], []);
 		expect(svg).not.toContain("<circle");
+	});
+});
+
+// ─── lerpHex ─────────────────────────────────────────────────────────────────
+
+describe("lerpHex", () => {
+	it("returns the from color at t = 0", () => {
+		expect(lerpHex("#1e293b", "#78350f", 0)).toBe("#1e293b");
+	});
+
+	it("returns the to color at t = 1", () => {
+		expect(lerpHex("#1e293b", "#78350f", 1)).toBe("#78350f");
+	});
+
+	it("returns the per-channel midpoint at t = 0.5", () => {
+		expect(lerpHex("#000000", "#ffffff", 0.5)).toBe("#808080");
+	});
+
+	it("interpolates each channel independently", () => {
+		// #1e293b = (30,41,59), #78350f = (120,53,15) → mid (75,47,37) = #4b2f25
+		expect(lerpHex("#1e293b", "#78350f", 0.5)).toBe("#4b2f25");
+	});
+
+	it("clamps t below 0", () => {
+		expect(lerpHex("#1e293b", "#78350f", -1)).toBe("#1e293b");
+	});
+
+	it("clamps t above 1", () => {
+		expect(lerpHex("#1e293b", "#78350f", 2)).toBe("#78350f");
+	});
+
+	it("pads channels so the result is always 6 hex digits", () => {
+		expect(lerpHex("#000000", "#00000f", 1)).toBe("#00000f");
+	});
+});
+
+// ─── nodeColor with change magnitude ─────────────────────────────────────────
+
+describe("nodeColor with magnitude", () => {
+	it("magnitude 1 keeps exactly the full diff-state fill", () => {
+		const { fill } = nodeColor(node("a", { diff: "added", magnitude: 1 }));
+		expect(fill).toBe("#14532d");
+	});
+
+	it("magnitude 0 renders the unchanged fill", () => {
+		const { fill } = nodeColor(node("a", { diff: "modified", magnitude: 0 }));
+		expect(fill).toBe("#1e293b");
+	});
+
+	it("intermediate magnitude lerps toward the diff-state fill", () => {
+		const { fill } = nodeColor(node("a", { diff: "modified", magnitude: 0.5 }));
+		expect(fill).toBe("#4b2f25");
+	});
+
+	it("removed nodes lerp toward the removed fill", () => {
+		// #1e293b = (30,41,59), #7f1d1d = (127,29,29) → mid (79,35,44) = #4f232c
+		const { fill } = nodeColor(node("a", { diff: "removed", magnitude: 0.5 }));
+		expect(fill).toBe("#4f232c");
+	});
+
+	it("added nodes lerp toward the added fill", () => {
+		// #1e293b = (30,41,59), #14532d = (20,83,45) → mid (25,62,52) = #193e34
+		const { fill } = nodeColor(node("a", { diff: "added", magnitude: 0.5 }));
+		expect(fill).toBe("#193e34");
+	});
+
+	it("changed node without magnitude keeps the full diff-state fill", () => {
+		const { fill } = nodeColor(node("a", { diff: "modified" }));
+		expect(fill).toBe("#78350f");
+	});
+
+	it("unchanged node keeps its exact fill even if magnitude is present", () => {
+		const { fill } = nodeColor(
+			node("a", { diff: "unchanged", magnitude: 0.5 }),
+		);
+		expect(fill).toBe("#1e293b");
+	});
+
+	it("magnitude does not affect the stroke", () => {
+		const { stroke } = nodeColor(
+			node("a", { diff: "modified", magnitude: 0.1 }),
+		);
+		expect(stroke).toBe("#f59e0b");
+	});
+
+	it("out-of-scope nodes ignore magnitude", () => {
+		const { fill } = nodeColor(
+			node("a", { scope: "out-of-scope", diff: "added", magnitude: 0.5 }),
+		);
+		expect(fill).toBe("#0a1829");
 	});
 });

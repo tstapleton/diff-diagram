@@ -35,7 +35,7 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
+- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, lineCount?: number, linesChanged?: number, magnitude?: number }`
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
 - `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount, diffSha?: string | null }` (`scopeDir` is the JSON field name for the feature directory path)
@@ -80,6 +80,9 @@ Algorithm:
 6. Current edges not in base → `diff: 'added'`
 7. Current edges in base → compare imported-name sets: `diff: 'modified'` if the set changed, else `'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
+9. Changed nodes carry `linesChanged` (added/removed → full `lineCount`; modified → absolute `lineCount` delta vs base) and `applyChangeMagnitude` assigns `magnitude = linesChanged / max(linesChanged)` in `[0, 1]` (max-changed node = 1; if every changed node has `linesChanged` 0, all get 1)
+
+**`applyChangeMagnitude(nodes)`** — pure helper (exported): assigns relative change magnitude to changed nodes; unchanged nodes are untouched.
 
 ### `src/renderer/graph-helpers.ts`
 
@@ -122,8 +125,9 @@ Color scheme:
 - Out-of-scope fill: `#0a1829`, stroke: `#1e3a5f`
 - Stub: fill `#0f172a`, stroke `#334155`, dashed border
 - Edge stroke same as node stroke; removed edges are dashed + 50% opacity
+- Change magnitude: a changed node's fill is `lerpHex(unchangedFill, diffStateFill, magnitude)` — per-channel sRGB interpolation, so lightly-changed nodes render muted and the max-changed node renders at full diff-state color. Nodes without `magnitude` keep the full diff-state fill.
 
-Exports: `toSvg`, `nodeColor`, `edgeStroke`, `truncateLabel`
+Exports: `toSvg`, `nodeColor`, `edgeStroke`, `truncateLabel`, `lerpHex`
 
 **`truncateLabel(label, maxWidth)`** — uses approx 7px/char at 11px monospace font, leaves 16px padding. Returns label with `…` if truncated.
 

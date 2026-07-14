@@ -162,6 +162,12 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 			"import { Component } from '@angular/core';\nexport default {};",
 		);
 
+		// Multi-line file with a known line count (3 lines, no trailing newline)
+		writeFileSync(
+			path.join(scopeDir, "line-count-fixture.ts"),
+			"export const a = 1;\nexport const b = 2;\nexport const c = 3;",
+		);
+
 		// Should be excluded: node_modules inside scope (BUG: currently included)
 		const nmDir = path.join(scopeDir, "node_modules", "some-lib");
 		mkdirSync(nmDir, { recursive: true });
@@ -206,6 +212,16 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
 		const files = graph.nodes.map((n) => n.file);
 		expect(files.every((f) => !f.endsWith(".stories.ts"))).toBe(true);
+	});
+
+	it("records lineCount for each in-scope node", async () => {
+		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+		const multiLine = graph.nodes.find((n) =>
+			n.file.includes("line-count-fixture"),
+		);
+		expect(multiLine?.lineCount).toBe(3);
+		const singleLine = graph.nodes.find((n) => n.file.includes("users.routes"));
+		expect(singleLine?.lineCount).toBe(1);
 	});
 });
 

@@ -28,9 +28,10 @@ const FIXTURE = {
 				node("alpha", "unchanged", 10),
 				node("beta", "added", 150),
 				node("gamma", "unchanged", 290),
+				{ ...node("delta", "modified", 430), magnitude: 0.5 },
 			],
 			edges: [],
-			width: 440,
+			width: 580,
 			height: 120,
 		},
 		diffFocused: {
@@ -90,8 +91,8 @@ describe("renderer.html view-mode switching", () => {
 		const window = await loadDiagram();
 
 		modeButton(window, "All nodes").click();
-		expect(window.document.querySelectorAll(".node-group")).toHaveLength(3);
-		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("3");
+		expect(window.document.querySelectorAll(".node-group")).toHaveLength(4);
+		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("4");
 
 		modeButton(window, "Diff-focused").click();
 		expect(window.document.querySelectorAll(".node-group")).toHaveLength(2);
@@ -102,5 +103,43 @@ describe("renderer.html view-mode switching", () => {
 		expect(modeButton(window, "All nodes").classList.contains("active")).toBe(
 			false,
 		);
+	});
+});
+
+describe("renderer.html change magnitude", () => {
+	it("node with magnitude renders a lerped fill", async () => {
+		const window = await loadDiagram();
+		modeButton(window, "All nodes").click();
+		// delta has diff modified + magnitude 0.5 → lerp(#1e293b, #78350f, 0.5) = #4b2f25
+		const rect = window.document.querySelector(
+			'.node-group[data-id="delta"] rect',
+		);
+		expect(rect?.getAttribute("fill")).toBe("#4b2f25");
+	});
+
+	it("changed node without magnitude keeps the full diff-state fill", async () => {
+		const window = await loadDiagram();
+		modeButton(window, "All nodes").click();
+		const rect = window.document.querySelector(
+			'.node-group[data-id="beta"] rect',
+		);
+		expect(rect?.getAttribute("fill")).toBe("#14532d");
+	});
+
+	it("unchanged node keeps the exact unchanged fill", async () => {
+		const window = await loadDiagram();
+		modeButton(window, "All nodes").click();
+		const rect = window.document.querySelector(
+			'.node-group[data-id="alpha"] rect',
+		);
+		expect(rect?.getAttribute("fill")).toBe("#1e293b");
+	});
+
+	it("legend contains a change-magnitude row", async () => {
+		const window = await loadDiagram();
+		const rows = [...window.document.querySelectorAll(".legend-row")];
+		expect(
+			rows.some((r) => r.textContent?.toLowerCase().includes("magnitude")),
+		).toBe(true);
 	});
 });

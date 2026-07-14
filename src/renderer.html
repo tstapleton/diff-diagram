@@ -63,6 +63,7 @@
       <div class="legend-row"><div class="swatch" style="background:#78350f;border:1.5px solid #f59e0b"></div>Modified</div>
       <div class="legend-row"><div class="swatch" style="background:#7f1d1d;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
       <div class="legend-row"><div class="swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
+      <div class="legend-row"><div class="swatch" style="background:linear-gradient(90deg,#1e293b,#78350f);border:1.5px solid #f59e0b"></div>Change magnitude (least → most lines changed)</div>
       <div class="legend-row"><div class="swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>External (1-hop)</div>
       <div class="legend-row"><div class="swatch" style="background:#0f172a;border:1px dashed #334155"></div>Collapsed dir</div>
       <div class="legend-row"><svg aria-hidden="true" width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#22c55e"/></svg>Has unit test</div>
@@ -97,7 +98,26 @@ const NODE_FILL   = { added: '#14532d', modified: '#78350f', removed: '#7f1d1d',
 const NODE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#475569' };
 const EDGE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#475569' };
 
-function nodeFill(n)   { if (n.scope==='out-of-scope') return '#0a1829'; if (n.type==='stub') return '#0f172a'; return NODE_FILL[n.diff]  || NODE_FILL.unchanged; }
+// Per-channel sRGB lerp between two #rrggbb colors (same as draw.ts lerpHex)
+function lerpHex(from, to, t) {
+  const clamped = Math.min(1, Math.max(0, t));
+  const a = parseInt(from.slice(1), 16), b = parseInt(to.slice(1), 16);
+  const ch = shift => {
+    const ca = (a >> shift) & 0xff, cb = (b >> shift) & 0xff;
+    return Math.round(ca + (cb - ca) * clamped);
+  };
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
+}
+
+function nodeFill(n) {
+  if (n.scope==='out-of-scope') return '#0a1829';
+  if (n.type==='stub') return '#0f172a';
+  const diff = n.diff || 'unchanged';
+  const fill = NODE_FILL[diff] || NODE_FILL.unchanged;
+  // Change magnitude: fade changed nodes from the unchanged fill toward their diff-state fill
+  if (diff === 'unchanged' || n.magnitude === undefined) return fill;
+  return lerpHex(NODE_FILL.unchanged, fill, n.magnitude);
+}
 function nodeStroke(n) { if (n.scope==='out-of-scope') return '#1e3a5f'; if (n.type==='stub') return '#334155'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
 function edgeColor(d)  { return EDGE_STROKE[d] || EDGE_STROKE.unchanged; }
 

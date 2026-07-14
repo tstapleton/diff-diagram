@@ -23,6 +23,12 @@ export interface GraphNode {
 	typeOnly?: boolean;
 	hasTests?: boolean;
 	hasStories?: boolean;
+	/** Total line count of the file (set by the analyzer for in-scope nodes). */
+	lineCount?: number;
+	/** Absolute lines-changed delta vs base (set by diffGraphs on changed nodes). */
+	linesChanged?: number;
+	/** Relative change magnitude 0–1, linesChanged / max(linesChanged) (set by diffGraphs on changed nodes). */
+	magnitude?: number;
 }
 
 export interface GraphEdge {
