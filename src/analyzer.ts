@@ -296,7 +296,6 @@ export async function analyze(
 			generatedAt: new Date().toISOString(),
 			nodeCount: nodes.length,
 			edgeCount: dedupedEdges.length,
-			diffSha: null,
 		},
 		nodes,
 		edges: dedupedEdges,
