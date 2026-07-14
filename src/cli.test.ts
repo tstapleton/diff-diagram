@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { detectRepoRoot, parseArgs } from "./cli.js";
 import type { Graph } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -289,4 +290,97 @@ describe("cli graph.json output", () => {
 		expect(graph.meta).not.toHaveProperty("repoRoot");
 		expect(JSON.stringify(graph)).not.toContain(repoRoot);
 	}, 30_000);
+});
+
+// ─── BUG-02: --repo-root auto-detection via .git ──────────────────────────────
+
+describe("detectRepoRoot", () => {
+	let tmp: string;
+
+	beforeAll(() => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-detect-repo-root-"));
+	});
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("walks up to the nearest ancestor containing .git", () => {
+		const repoRoot = path.join(tmp, "repo");
+		const nested = path.join(repoRoot, "src", "app", "features", "f");
+		mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+		mkdirSync(nested, { recursive: true });
+
+		expect(detectRepoRoot(nested)).toBe(repoRoot);
+	});
+
+	it("falls back to the start dir when no .git is found", () => {
+		const noGit = path.join(tmp, "no-git", "sub", "dir");
+		mkdirSync(noGit, { recursive: true });
+
+		expect(detectRepoRoot(noGit)).toBe(noGit);
+	});
+
+	it("returns the start dir itself when it directly contains .git", () => {
+		const repoRoot = path.join(tmp, "direct-repo");
+		mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+
+		expect(detectRepoRoot(repoRoot)).toBe(repoRoot);
+	});
+});
+
+// ─── GAP-02: parseArgs validation ──────────────────────────────────────────────
+
+describe("parseArgs", () => {
+	it("parses the happy path as before", () => {
+		const args = parseArgs([
+			"--repo-root",
+			"/repo",
+			"--base-repo-root",
+			"/base",
+			"--out-dir",
+			"out",
+			"--source-root",
+			"app",
+			"src/app/features/f",
+		]);
+		expect(args).toEqual({
+			baseRepoRoot: "/base",
+			outDir: "out",
+			repoRoot: "/repo",
+			scopeDir: "src/app/features/f",
+			sourceRoot: "app",
+		});
+	});
+
+	it("defaults outDir and sourceRoot, and leaves repoRoot/baseRepoRoot null", () => {
+		const args = parseArgs(["src/app/features/f"]);
+		expect(args).toEqual({
+			baseRepoRoot: null,
+			outDir: "dist",
+			repoRoot: null,
+			scopeDir: "src/app/features/f",
+			sourceRoot: "src/app",
+		});
+	});
+
+	it("throws when a flag is the last token (missing value)", () => {
+		expect(() => parseArgs(["--out-dir"])).toThrow();
+	});
+
+	it("throws when a flag's value looks like another flag (missing value)", () => {
+		expect(() => parseArgs(["--out-dir", "--source-root", "app"])).toThrow();
+	});
+
+	it("throws on an unrecognized flag instead of silently rebinding the positional", () => {
+		expect(() =>
+			parseArgs(["--base-repo", "/base", "src/app/features/f"]),
+		).toThrow();
+	});
+
+	it("throws when a second positional argument appears", () => {
+		expect(() =>
+			parseArgs(["src/app/features/f", "src/app/features/g"]),
+		).toThrow();
+	});
 });
