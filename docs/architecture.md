@@ -53,7 +53,8 @@ Runs ts-morph on a directory. Produces a `Graph` with:
 The `analyze()` function takes:
 - `scopeDir` — absolute path to the feature directory
 - `options.repoRoot` — absolute path to repo root (used to compute relative file paths for node IDs)
-- `options.tsConfigPath` — optional; auto-detected via `.git` walk-up
+
+The tsconfig is auto-detected by walking up from `scopeDir`, stopping at `repoRoot`; each analysis pass therefore resolves imports against its own checkout's tsconfig.
 
 Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`, `oosDisplayPath`
 
@@ -151,14 +152,14 @@ Hover: `mouseover` on `[data-id]` → connected edges keep full opacity (1), all
 
 Orchestrates the full pipeline. Entry point: `node dist/cli.js`.
 
-Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--tsconfig`, `--source-root`, positional `<feature-dir>`.
+Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--source-root`, positional `<feature-dir>`.
 
 When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs current-branch-only analysis.
 
 Writes three files:
 - `diagram.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout
 - `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_DATA__` replaced by JSON
-- `graph.json` — full diffed graph without internal `_oosEdges`
+- `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
 
 ## Adding a new view mode
 

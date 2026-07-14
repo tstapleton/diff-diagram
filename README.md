@@ -31,7 +31,6 @@ node dist/cli.js \
 | `--repo-root` | Repo root for the current branch | current working directory |
 | `--base-repo-root` | Repo root for a pre-checked-out base branch | single-branch mode |
 | `--out-dir` | Output directory | `dist` |
-| `--tsconfig` | Path to tsconfig.json | auto-detected |
 | `--source-root` | Source root prefix (used for label derivation) | `src/app` |
 
 Run `node dist/cli.js --help` for the full usage message.

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
 	analyze,
 	classifyByFilename,
+	findTsConfig,
 	labelFromFile,
 	toNodeId,
 } from "./analyzer.js";
@@ -340,5 +341,52 @@ describe("analyze (test and story markers)", { timeout: 15000 }, () => {
 		const node = graph.nodes.find((n) => n.file.includes("neither"));
 		expect(node?.hasTests).toBeUndefined();
 		expect(node?.hasStories).toBeUndefined();
+	});
+});
+
+// ─── findTsConfig ────────────────────────────────────────────────────────────
+
+describe("findTsConfig", () => {
+	let tmpRoot4: string;
+
+	beforeAll(() => {
+		// root/tsconfig.json          ← outside the repo, must never be picked up
+		// root/repo/                  ← repoRoot (no tsconfig)
+		// root/repo/src/feature/      ← scope dir
+		tmpRoot4 = mkdtempSync(path.join(tmpdir(), "diff-diagram-tsconfig-"));
+		mkdirSync(path.join(tmpRoot4, "repo/src/feature"), { recursive: true });
+		writeFileSync(path.join(tmpRoot4, "tsconfig.json"), "{}");
+	});
+
+	afterAll(() => {
+		rmSync(tmpRoot4, { recursive: true, force: true });
+	});
+
+	it("returns null instead of a tsconfig above the repo root", async () => {
+		const result = await findTsConfig(
+			path.join(tmpRoot4, "repo/src/feature"),
+			path.join(tmpRoot4, "repo"),
+		);
+		expect(result).toBeNull();
+	});
+
+	it("finds a tsconfig at the repo root (boundary is inclusive)", async () => {
+		writeFileSync(path.join(tmpRoot4, "repo/tsconfig.json"), "{}");
+		const result = await findTsConfig(
+			path.join(tmpRoot4, "repo/src/feature"),
+			path.join(tmpRoot4, "repo"),
+		);
+		expect(result).toBe(path.join(tmpRoot4, "repo/tsconfig.json"));
+		rmSync(path.join(tmpRoot4, "repo/tsconfig.json"));
+	});
+
+	it("finds a tsconfig between the scope dir and the repo root", async () => {
+		writeFileSync(path.join(tmpRoot4, "repo/src/tsconfig.json"), "{}");
+		const result = await findTsConfig(
+			path.join(tmpRoot4, "repo/src/feature"),
+			path.join(tmpRoot4, "repo"),
+		);
+		expect(result).toBe(path.join(tmpRoot4, "repo/src/tsconfig.json"));
+		rmSync(path.join(tmpRoot4, "repo/src/tsconfig.json"));
 	});
 });

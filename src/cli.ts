@@ -16,7 +16,6 @@ import type { Graph, GraphEdge, GraphNode } from "./types.js";
 interface Args {
 	baseRepoRoot: string | null;
 	outDir: string;
-	tsConfig: string | null;
 	repoRoot: string | null;
 	scopeDir: string | null;
 	sourceRoot: string;
@@ -43,9 +42,6 @@ function printHelp(): void {
 	);
 	console.log("  --out-dir <dir>          Output directory (default: dist)");
 	console.log(
-		"  --tsconfig <file>        Path to tsconfig.json (auto-detected)",
-	);
-	console.log(
 		"  --source-root <dir>      Source root prefix for label derivation (default: src/app)",
 	);
 	console.log("  -h, --help               Show this help message");
@@ -55,7 +51,6 @@ function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		baseRepoRoot: null,
 		outDir: "dist",
-		tsConfig: null,
 		repoRoot: null,
 		scopeDir: null,
 		sourceRoot: "src/app",
@@ -71,10 +66,6 @@ function parseArgs(argv: string[]): Args {
 		}
 		if (argv[i] === "--out-dir") {
 			args.outDir = argv[++i];
-			continue;
-		}
-		if (argv[i] === "--tsconfig") {
-			args.tsConfig = argv[++i];
 			continue;
 		}
 		if (argv[i] === "--repo-root") {
@@ -135,6 +126,7 @@ interface ModeData {
 interface DiagramData {
 	meta: Omit<Graph["meta"], "repoRoot">;
 	sourceRoot: string;
+	initialMode?: "all" | "diffFocused";
 	modes: { all: ModeData; diffFocused: ModeData };
 }
 
@@ -199,16 +191,24 @@ async function main(): Promise<void> {
 	const scopeDir = path.resolve(repoRoot, args.scopeDir);
 	const outDir = path.resolve(args.outDir);
 
+	if (!existsSync(scopeDir)) {
+		console.error(`Error: feature directory not found: ${scopeDir}`);
+		process.exit(1);
+	}
+
 	console.log(`Analyzing ${path.relative(repoRoot, scopeDir)} ...`);
-	const current = addContext(
-		await analyze(scopeDir, { repoRoot, tsConfigPath: args.tsConfig }),
-	);
+	const current = addContext(await analyze(scopeDir, { repoRoot }));
 	console.log(
 		`  ${current.nodes.filter((n) => n.scope === "in-scope").length} in-scope nodes, ${current.edges.length} edges`,
 	);
 	console.log(
 		`  +${current.nodes.filter((n) => n.scope === "out-of-scope").length} out-of-scope context nodes`,
 	);
+	if (current.nodes.length === 0) {
+		console.warn(
+			`Warning: current graph has 0 nodes — no TypeScript files found in ${scopeDir}`,
+		);
+	}
 
 	let diffed: Graph = current;
 
@@ -216,14 +216,14 @@ async function main(): Promise<void> {
 		const baseRepoRoot = path.resolve(args.baseRepoRoot);
 		const baseScopeDir = path.resolve(baseRepoRoot, args.scopeDir);
 
+		if (!existsSync(baseScopeDir)) {
+			console.log("Feature dir absent in base — treating all files as added");
+		}
 		console.log(
 			`Analyzing base at ${path.relative(baseRepoRoot, baseScopeDir)} ...`,
 		);
 		const base = addContext(
-			await analyze(baseScopeDir, {
-				repoRoot: baseRepoRoot,
-				tsConfigPath: args.tsConfig,
-			}),
+			await analyze(baseScopeDir, { repoRoot: baseRepoRoot }),
 		);
 		console.log(
 			`  ${base.nodes.filter((n) => n.scope === "in-scope").length} in-scope nodes`,
@@ -250,11 +250,15 @@ async function main(): Promise<void> {
 
 	await mkdir(outDir, { recursive: true });
 
-	// diagram.svg — diff-focused, real layout
+	// diagram.svg — diff-focused, real layout. In single-branch mode every diff
+	// state is null, so diff-focused would collapse everything into stubs — use
+	// the all-nodes view instead.
+	const svgView = args.baseRepoRoot ? diffView : allView;
+	const svgLayout = args.baseRepoRoot ? diffLayout : allLayout;
 	const svg = toSvg(
-		diffLayout,
-		diffView.nodes,
-		diffView.edges,
+		svgLayout,
+		svgView.nodes,
+		svgView.edges,
 		path.basename(scopeDir),
 		args.sourceRoot,
 	);
@@ -267,6 +271,10 @@ async function main(): Promise<void> {
 	const diagramData: DiagramData = {
 		meta: metaWithoutRoot,
 		sourceRoot: args.sourceRoot,
+		// Single-branch mode: open the interactive diagram in the all-nodes view
+		// (there is no diff to focus on). Omitted in diff mode so the template's
+		// own default applies.
+		...(args.baseRepoRoot ? {} : { initialMode: "all" as const }),
 		modes: {
 			all: buildModeData(allView.nodes, allView.edges, allLayout),
 			diffFocused: buildModeData(diffView.nodes, diffView.edges, diffLayout),
@@ -279,8 +287,8 @@ async function main(): Promise<void> {
 	await writeFile(htmlPath, html);
 	console.log(`Wrote ${htmlPath}`);
 
-	// graph.json
-	const { _oosEdges, ...graphOut } = diffed;
+	// graph.json — strip meta.repoRoot (absolute local path) like the HTML does
+	const { _oosEdges, ...graphOut } = { ...diffed, meta: metaWithoutRoot };
 	const jsonPath = path.join(outDir, "graph.json");
 	await writeFile(jsonPath, JSON.stringify(graphOut, null, 2));
 	console.log(`Wrote ${jsonPath}`);

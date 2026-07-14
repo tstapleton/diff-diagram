@@ -44,7 +44,7 @@ node dist/cli.js \
   src/app/features/my-feature
 ```
 
-Optional flags: `--out-dir <dir>` (default `dist`), `--tsconfig <file>`, `--source-root <dir>` (default `src/app`).
+Optional flags: `--out-dir <dir>` (default `dist`), `--source-root <dir>` (default `src/app`).
 
 ## Fake app fixtures
 
