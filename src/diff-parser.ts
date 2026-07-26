@@ -141,6 +141,8 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 				to: toId,
 				kind: e.kind,
 				diff: "removed",
+				...(e.typeOnly ? { typeOnly: true } : {}),
+				...(e.importedNames ? { importedNames: e.importedNames } : {}),
 			});
 		}
 	}

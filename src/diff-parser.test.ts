@@ -260,6 +260,21 @@ describe("diffGraphs — edge modified state", () => {
 		expect(result.edges.find((e) => e.diff === "removed")).toBeDefined();
 	});
 
+	it("removed edge retains typeOnly and importedNames from the base edge", () => {
+		const eBase = {
+			...gEdge("src/users/foo.component.ts", "src/users/bar.component.ts", [
+				"A",
+			]),
+			typeOnly: true,
+		};
+		const base = makeFullGraph("src/users", [foo, bar], [eBase]);
+		const current = makeFullGraph("src/users", [foo, bar], []);
+		const result = diffGraphs(base, current);
+		const removed = result.edges.find((e) => e.diff === "removed");
+		expect(removed?.typeOnly).toBe(true);
+		expect(removed?.importedNames).toEqual(["A"]);
+	});
+
 	it("node whose only outgoing edge changed importedNames gets diff modified", () => {
 		const eBase = gEdge(
 			"src/users/foo.component.ts",

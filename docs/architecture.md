@@ -38,7 +38,7 @@ Key types:
 - `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
-- `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount, diffSha?: string | null }` (`scopeDir` is the JSON field name for the feature directory path)
+- `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount }` (`scopeDir` is the JSON field name for the feature directory path)
 - `DiffState` — `'added' | 'modified' | 'removed' | 'unchanged'`
 - `NodeScope` — `'in-scope' | 'out-of-scope' | 'removed-ghost'`
 - `NodeType` — `'component' | 'service' | 'pipe' | 'guard' | 'resolver' | 'interceptor' | 'routing' | 'module' | 'model' | 'constants'` (Angular file types only; `'stub'` is a separate rendering-layer value on `GraphNode.type`)

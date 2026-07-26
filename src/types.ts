@@ -40,7 +40,6 @@ export interface GraphMeta {
 	generatedAt: string;
 	nodeCount: number;
 	edgeCount: number;
-	diffSha?: string | null;
 }
 
 export interface Graph {
