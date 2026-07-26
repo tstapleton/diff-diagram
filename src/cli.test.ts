@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { buildHtml } from "./cli.js";
 import type { Graph } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -289,4 +290,73 @@ describe("cli graph.json output", () => {
 		expect(graph.meta).not.toHaveProperty("repoRoot");
 		expect(JSON.stringify(graph)).not.toContain(repoRoot);
 	}, 30_000);
+});
+
+// ─── BUG-04: buildHtml must not corrupt JSON via String.replace patterns ──────
+
+describe("buildHtml embedded JSON", () => {
+	let tmp: string;
+	let templatePath: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-buildhtml-"));
+		templatePath = path.join(tmp, "template.html");
+		await writeFixtureFile(
+			templatePath,
+			"<script>\nconst DIFF_DIAGRAM = __DIFF_DIAGRAM_DATA__;\n</script>\n",
+		);
+	});
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("round-trips a label containing $-substitution sequences and </script>", async () => {
+		const data = {
+			meta: {
+				scopeDir: "src/app/features/f",
+				generatedAt: "2026-01-01T00:00:00.000Z",
+				nodeCount: 1,
+				edgeCount: 0,
+			},
+			sourceRoot: "src/app",
+			modes: {
+				all: {
+					nodes: [
+						{
+							id: "n1",
+							x: 0,
+							y: 0,
+							width: 10,
+							height: 10,
+							// "$&", "$'", "$$" are String.replace substitution
+							// sequences; "</script>" would terminate the inline
+							// <script> block early if not escaped.
+							label: "$& $' $$ </script>",
+							type: "component",
+							diff: null,
+							scope: "in-scope",
+							file: "a</script>b.ts",
+						},
+					],
+					edges: [],
+					width: 100,
+					height: 100,
+				},
+				diffFocused: { nodes: [], edges: [], width: 100, height: 100 },
+			},
+		};
+
+		const html = await buildHtml(data, templatePath);
+
+		// Only the template's own closing tag should survive as a real
+		// "</script>" — any occurrence coming from embedded data must be escaped.
+		const scriptCloses = html.match(/<\/script>/g) ?? [];
+		expect(scriptCloses).toHaveLength(1);
+
+		const match = html.match(/const DIFF_DIAGRAM = (.*);/);
+		expect(match).not.toBeNull();
+		const roundTripped = JSON.parse(match?.[1] ?? "");
+		expect(roundTripped).toEqual(data);
+	});
 });
