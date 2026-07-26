@@ -68,10 +68,11 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 **Always:**
 - Run `npm run verify` before asking the user to review output.
 - Build (`npm run build`) before running the CLI.
+- When a change intentionally alters rendering: visually review the output, run `npm run test:visual:approve`, re-run `npm run verify`, and call out the regenerated snapshots prominently in the PR body — the new reference images get reviewed as part of the PR.
 
 **Never:**
 - Commit or push directly to `main` — all changes land through pull requests (enforced by a branch ruleset).
-- Run `npm run test:visual:approve` without explicit user instruction — snapshot approval is a user decision.
+- Run `npm run test:visual:approve` to silence a visual test failure you can't explain — approval is only for intentional rendering changes; an unexpected failure is a bug to investigate.
 - Use `--no-verify` to bypass the pre-commit hook.
 - Open a PR containing more than one commit.
 - Add features, refactoring, or abstractions beyond what the current task requires.
