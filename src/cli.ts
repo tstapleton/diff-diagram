@@ -48,7 +48,18 @@ function printHelp(): void {
 	console.log("  -h, --help               Show this help message");
 }
 
-function parseArgs(argv: string[]): Args {
+// Reads the value for a flag at `argv[index]`, erroring if it's missing or
+// looks like another flag (e.g. `--out-dir` as the last token, or immediately
+// followed by another `-`-prefixed option).
+function requireFlagValue(argv: string[], index: number, flag: string): string {
+	const value = argv[index];
+	if (value === undefined || value.startsWith("-")) {
+		throw new Error(`Error: ${flag} requires a value`);
+	}
+	return value;
+}
+
+export function parseArgs(argv: string[]): Args {
 	const args: Args = {
 		baseRepoRoot: null,
 		outDir: "dist",
@@ -57,36 +68,43 @@ function parseArgs(argv: string[]): Args {
 		sourceRoot: "src/app",
 	};
 	for (let i = 0; i < argv.length; i++) {
-		if (argv[i] === "-h" || argv[i] === "--help") {
+		const token = argv[i];
+		if (token === "-h" || token === "--help") {
 			printHelp();
 			process.exit(0);
 		}
-		if (argv[i] === "--base-repo-root") {
-			args.baseRepoRoot = argv[++i];
+		if (token === "--base-repo-root") {
+			args.baseRepoRoot = requireFlagValue(argv, ++i, token);
 			continue;
 		}
-		if (argv[i] === "--out-dir") {
-			args.outDir = argv[++i];
+		if (token === "--out-dir") {
+			args.outDir = requireFlagValue(argv, ++i, token);
 			continue;
 		}
-		if (argv[i] === "--repo-root") {
-			args.repoRoot = argv[++i];
+		if (token === "--repo-root") {
+			args.repoRoot = requireFlagValue(argv, ++i, token);
 			continue;
 		}
-		if (argv[i] === "--source-root") {
-			args.sourceRoot = argv[++i];
+		if (token === "--source-root") {
+			args.sourceRoot = requireFlagValue(argv, ++i, token);
 			continue;
 		}
-		if (!argv[i].startsWith("-")) {
-			args.scopeDir = argv[i];
+		if (token.startsWith("-")) {
+			throw new Error(`Error: unknown option: ${token}`);
 		}
+		if (args.scopeDir !== null) {
+			throw new Error(
+				`Error: unexpected extra argument "${token}" (feature directory already set to "${args.scopeDir}")`,
+			);
+		}
+		args.scopeDir = token;
 	}
 	return args;
 }
 
 // ─── Repo root detection ──────────────────────────────────────────────────────
 
-function _detectRepoRoot(startDir: string): string {
+export function detectRepoRoot(startDir: string): string {
 	let dir = startDir;
 	while (path.dirname(dir) !== dir) {
 		if (existsSync(path.join(dir, ".git"))) return dir;
@@ -190,14 +208,23 @@ export async function buildHtml(
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-	const args = parseArgs(process.argv.slice(2));
+	let args: Args;
+	try {
+		args = parseArgs(process.argv.slice(2));
+	} catch (err) {
+		console.error(err instanceof Error ? err.message : String(err));
+		printHelp();
+		process.exit(1);
+	}
 
 	if (!args.scopeDir) {
 		printHelp();
 		process.exit(1);
 	}
 
-	const repoRoot = args.repoRoot ? path.resolve(args.repoRoot) : process.cwd();
+	const repoRoot = args.repoRoot
+		? path.resolve(args.repoRoot)
+		: detectRepoRoot(process.cwd());
 	const scopeDir = path.resolve(repoRoot, args.scopeDir);
 	const outDir = path.resolve(args.outDir);
 
@@ -305,7 +332,7 @@ async function main(): Promise<void> {
 }
 
 // Only run when invoked directly (`node dist/cli.js ...`), not when imported
-// as a module (e.g. by unit tests importing `buildHtml`).
+// as a module (e.g. by unit tests importing `buildHtml`/`parseArgs`/`detectRepoRoot`).
 if (
 	process.argv[1] &&
 	import.meta.url === pathToFileURL(process.argv[1]).href
