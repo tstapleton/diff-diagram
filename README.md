@@ -14,7 +14,7 @@ CLI tool for Angular PR review that generates a dependency diagram for a feature
 
 ![Sample diagram](docs/sample.svg)
 
-The sample above is generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run sample` (build first: the script assumes `dist/` is current). It shows every visual element the tool renders:
+The sample above is generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run diagram:sample` (build first: the script assumes `dist/` is current). It shows every visual element the tool renders:
 
 | Element | Meaning |
 |---|---|
