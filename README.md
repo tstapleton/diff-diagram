@@ -24,12 +24,11 @@ The sample above is generated from the `sample-app/` + `sample-app-base/` fixtur
 | Grey border, slate fill | File unchanged |
 | Darker box outside the feature container | Out-of-scope dependency (imported from outside the feature directory), with its directory path under the name |
 | Dashed border, italic name | Type-only dependency (every import of it is `import type`) |
-| Solid arrow | Import; color follows its diff state (green added, amber changed, red removed, grey unchanged) |
-| Dashed faded arrow | Removed import |
+| Solid arrow | Import; color follows its diff state (green added, amber changed, grey unchanged) |
+| Dashed, faded, red arrow | Removed import (existed in the base branch, gone in current) |
 | Green dot | File has a unit test (`.spec.ts` sidecar) |
 | Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
-
-The outlined box around the in-scope files is the feature directory being diagrammed, labeled with its name in the top-left corner.
+| Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
 
 ## Setup
 
@@ -95,7 +94,12 @@ Tests are colocated with source files in `src/`.
 `fake-angular-app/` — "after PR" state  
 `fake-angular-app-base/` — "before PR" state
 
-Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch.
+Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch. Used by the integration and visual regression tests.
+
+`sample-app/` — "after PR" state for the "Reading the diagram" sample above  
+`sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
+
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers). Not used by any automated test.
 
 ## Architecture
 
