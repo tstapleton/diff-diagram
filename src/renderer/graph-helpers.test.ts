@@ -408,6 +408,45 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		expect(r2.edges[0].diff).toBe("removed");
 	});
 
+	it("assigns distinct stub ids to OOS parent dirs that sanitize to the same string (BUG-11)", () => {
+		// "src/app/shared/api" and "src/app/shared-api" both sanitize to
+		// "src_app_shared_api" under naive character replacement.
+		const inNode = node(
+			"in",
+			`${SCOPE}/user-list/users-list.component.ts`,
+			"in-scope",
+			"modified",
+		);
+		const oos1 = node(
+			"oos_a",
+			"src/app/shared/api/foo.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const oos2 = node(
+			"oos_b",
+			"src/app/shared-api/bar.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const e1 = edge("in", "oos_a");
+		const e2 = edge("in", "oos_b");
+		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
+		const { nodes, edges } = computeViewNodes(g, "diff-focused");
+
+		const stubs = nodes.filter((n) => n.type === "stub");
+		expect(stubs).toHaveLength(2);
+		expect(stubs[0].id).not.toBe(stubs[1].id);
+
+		const stubIds = new Set(stubs.map((n) => n.id));
+		expect(edges).toHaveLength(2);
+		for (const e of edges) {
+			expect(e.from).toBe("in");
+			expect(stubIds.has(e.to)).toBe(true);
+		}
+		expect(new Set(edges.map((e) => e.to)).size).toBe(2);
+	});
+
 	it("preserves edge diff state when remapping", () => {
 		const inNode = node(
 			"in",
