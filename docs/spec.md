@@ -12,11 +12,12 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 
 | File | Purpose |
 |---|---|
-| `<out-dir>/diagram.svg` | Static diff-focused diagram — paste as an image into a PR comment |
+| `<out-dir>/diagram-diff.svg` | Static diff-focused diagram — paste as an image into a PR comment. Only written when `--base-repo-root` is given. |
+| `<out-dir>/diagram-all.svg` | Static all-nodes diagram — same diff coloring, no collapsing |
 | `<out-dir>/diagram.html` | Interactive diagram — mode switching, hover highlighting |
 | `<out-dir>/graph.json` | Full diffed graph in JSON — for debugging or downstream tooling |
 
-`diagram.svg` uses the diff-focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact.
+`diagram-diff.svg` uses the diff-focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-all.svg` uses the all-nodes view with the same diff coloring.
 
 `diagram.html` embeds pre-computed layouts for all view modes. No server required — open the file directly in a browser.
 
@@ -32,7 +33,7 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 
 The tool does not manage git state. The caller is responsible for materializing the base branch (e.g., via `git worktree add`) and passing the path via `--base-repo-root`.
 
-When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring. In this mode both `diagram.svg` and `diagram.html` default to the all-nodes view, since without a diff the diff-focused view would collapse everything into stubs.
+When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring. In this mode `diagram-diff.svg` is not written; `diagram-all.svg` and `diagram.html` default to the all-nodes view, since without a diff the diff-focused view would collapse everything into stubs.
 
 ## Core Behaviors
 
@@ -78,7 +79,7 @@ Rules:
 
 ### View modes
 
-Two view modes are available in `diagram.html`. `diagram.svg` always uses the diff-focused mode.
+Two view modes are available in `diagram.html`. `diagram-diff.svg` always uses the diff-focused mode; `diagram-all.svg` always uses the all-nodes mode.
 
 **All nodes** — every node is shown individually. Useful for seeing the full architecture of a feature without any collapsing.
 

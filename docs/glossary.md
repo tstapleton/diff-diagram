@@ -33,10 +33,10 @@ The state of the repository before the PR changes. The CLI requires a pre-materi
 The out-of-scope nodes added by `filter.ts`. The analyzer finds all imports that point outside the feature directory (`_oosEdges`). Filter follows each of those edges one level and creates an OOS node for the target file. No further hops are followed.
 
 **diff-focused view**  
-A collapsed view mode that reduces the diagram to what matters for a PR review. Subdirectories with no changed files are replaced by stub nodes. Subdirectories with any change (added/modified/removed file) are fully expanded. This is the default view and the layout used for `diagram.svg`.
+A collapsed view mode that reduces the diagram to what matters for a PR review. Subdirectories with no changed files are replaced by stub nodes. Subdirectories with any change (added/modified/removed file) are fully expanded. This is the default view and the layout used for `diagram-diff.svg`.
 
 **all-nodes view**  
-A view mode that shows every node individually with no collapsing. Useful for understanding the full architecture but can be dense for large feature directories.
+A view mode that shows every node individually with no collapsing. Useful for understanding the full architecture but can be dense for large feature directories. This is the layout used for `diagram-all.svg`.
 
 **layout**  
 The output of `computeLayout(nodes, edges)` — x/y positions and dimensions for each node, plus bend-point coordinates for each edge. Computed server-side by elkjs and embedded in `diagram.html` as JSON. The browser renderer draws from these pre-computed positions without running elkjs.
