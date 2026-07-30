@@ -90,7 +90,12 @@ async function buildSvg(
 	]);
 	const diffed = diffGraphs(base, current);
 	const { nodes, edges } = computeViewNodes(diffed, mode);
-	const layout = await computeLayout(nodes, edges, fixture.sourceRoot);
+	const layout = await computeLayout(
+		nodes,
+		edges,
+		fixture.sourceRoot,
+		diffed.meta.scopeDir,
+	);
 	return toSvg(
 		layout,
 		nodes,

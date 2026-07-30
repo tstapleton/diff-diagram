@@ -1,8 +1,8 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { DashboardChartComponent } from "./dashboard-chart.component";
-import { DashboardSettingsComponent } from "./dashboard-settings.component";
 import { DashboardStatsComponent } from "./dashboard-stats.component";
+import { DashboardSettingsComponent } from "./settings/dashboard-settings.component";
+import { DashboardChartComponent } from "./widgets/dashboard-chart.component";
 
 @Component({
 	selector: "app-dashboard",

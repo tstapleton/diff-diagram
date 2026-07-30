@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
-import { ChartPoint } from "../../shared/models/chart-point.model";
+import { ChartPoint } from "../../../shared/models/chart-point.model";
 
 @Component({
 	selector: "app-dashboard-chart",

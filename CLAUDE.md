@@ -63,6 +63,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 - One PR per task, one commit per PR, one logical change per commit. Never batch multiple tasks into a single PR — split them into separate branches, each with its own PR. (Enforced by `.claude/hooks/block-multi-commit-pr.sh`, wired up as a PreToolUse hook in `.claude/settings.json`, which blocks `gh pr create` on branches more than one commit ahead of the base.)
 - Do not add features, refactoring, or cleanup beyond what the current task requires.
 - Read through relevant code and check for obvious bugs before asking the user to review output.
+- **Before writing any code, confirm you're in an isolated worktree, not the canonical repo checkout.** This repo routinely has many worktrees checked out at once (`.claude/worktrees/*`) alongside direct work in the canonical checkout — if two sessions (or a subagent that loses track of its working directory) edit the canonical checkout's working tree or its currently-checked-out branch, their writes and commits interleave with no error, silently corrupting or misattributing both sessions' work. Verify with `git rev-parse --show-toplevel` (should be a worktree path, not the repo root) or `[ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ]`. If not isolated, use the native worktree tool (e.g. `EnterWorktree`) or `git worktree add` before making any edits.
 
 ## Always / Never
 

@@ -468,3 +468,48 @@ describe("parseArgs", () => {
 		).toThrow();
 	});
 });
+
+// ─── subdirectory grouping (issue #28) ────────────────────────────────────────
+
+describe("cli subdirectory grouping", () => {
+	let tmp: string;
+	let repoRoot: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-subdir-"));
+		repoRoot = path.join(tmp, "repo");
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/widgets/alpha.component.ts"),
+			"export const alpha = 1;\n",
+		);
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/widgets/beta.component.ts"),
+			"export const beta = 1;\n",
+		);
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("diagram.svg draws a subdirectory group box labeled with the subdirectory name", async () => {
+		const outDir = path.join(tmp, "out");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const svg = await readFile(path.join(outDir, "diagram.svg"), "utf8");
+		expect(svg).toContain(">widgets<");
+	}, 30_000);
+
+	it("diagram.html embeds subdirContainers data", async () => {
+		const html = await readFile(path.join(tmp, "out/diagram.html"), "utf8");
+		expect(html).toContain('"subdirContainers"');
+		expect(html).toContain('"label":"widgets"');
+	}, 30_000);
+});
