@@ -23,7 +23,8 @@ npm run build   # compiles TypeScript → dist/
 | `npm test` | Unit + integration tests |
 | `npm run test:visual` | Visual regression tests (pixel-level SVG comparison) |
 | `npm run test:visual:approve` | Update visual snapshots after intentional rendering changes |
-| `npm run verify` | Full check: build + lint + unit tests + visual tests (runs on pre-commit) |
+| `npm run verify` | Full check: build + lint + unit tests + visual tests + sample drift check (runs on pre-commit) |
+| `npm run check:sample-drift` | Regenerate `docs/sample.svg` to a scratch dir and fail if it differs from the committed file |
 | `npm run lint` | Lint with Biome |
 | `npm run format` | Format with Biome |
 
@@ -81,7 +82,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 
 **If a gate fails, change approach — do not skip.**
 
-- Gate 1: `npm run verify` — build, lint, unit tests, and visual tests all pass
+- Gate 1: `npm run verify` — build, lint, unit tests, visual tests, and the sample drift check all pass
 - Gate 2: `node dist/cli.js --repo-root fake-angular-app --base-repo-root fake-angular-app-base src/app/features/users` — runs without error, produces `dist/diagram.svg` and `dist/diagram.html`
 - Gate 3 (visual, user): open `dist/diagram.html` — both view modes render, hover highlights edges, diff colors correct
 - Gate 4 (visual, user): open `dist/diagram.svg` — real graph layout with edges, not a list of boxes

@@ -12,7 +12,8 @@
 		"format": "biome format --write",
 		"diagram:sample": "node dist/cli.js --repo-root sample-app --base-repo-root sample-app-base src/app/features/dashboard && cp dist/diagram.svg docs/sample.svg",
 		"diagram:fixtures": "node dist/cli.js --repo-root fake-angular-app --base-repo-root fake-angular-app-base src/app/features/users",
-		"verify": "npm run build && biome check && npm run test && npm run test:visual",
+		"check:sample-drift": "node dist/cli.js --repo-root sample-app --base-repo-root sample-app-base --out-dir dist/sample-check src/app/features/dashboard && (diff docs/sample.svg dist/sample-check/diagram.svg || (echo 'docs/sample.svg is stale — run npm run diagram:sample and commit the result' >&2 && exit 1))",
+		"verify": "npm run build && biome check && npm run test && npm run test:visual && npm run check:sample-drift",
 		"prepare": "husky"
 	},
 	"dependencies": {
