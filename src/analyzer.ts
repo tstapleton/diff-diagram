@@ -190,9 +190,12 @@ export async function analyze(
 	project.addSourceFilesAtPaths([
 		path.join(scopeDir, "**/*.ts"),
 		`!${path.join(scopeDir, "**/*.spec.ts")}`,
+		`!${path.join(scopeDir, "**/*.test.ts")}`,
 		`!${path.join(scopeDir, "**/*.stories.ts")}`,
 		`!${path.join(scopeDir, "**/*.d.ts")}`,
 		`!${path.join(scopeDir, "**/node_modules/**")}`,
+		`!${path.join(scopeDir, "**/__fixtures__/**")}`,
+		`!${path.join(scopeDir, "**/__mocks__/**")}`,
 	]);
 
 	const nodes: GraphNode[] = [];

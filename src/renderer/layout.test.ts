@@ -114,3 +114,37 @@ describe("computeLayout — output shape", () => {
 		expect(byId.get("b")?.x).toBeLessThan(byId.get("c")?.x);
 	});
 });
+
+// ─── in-scope container box ──────────────────────────────────────────────────
+
+describe("computeLayout — in-scope container box", () => {
+	it("computes a container box when in-scope and out-of-scope nodes both exist", async () => {
+		const inScope = node("a");
+		const oos = { ...node("b"), scope: "out-of-scope" as const };
+		const layout = await computeLayout([inScope, oos], []);
+		expect(layout.container).toBeDefined();
+	});
+
+	it("computes a container box when there are no out-of-scope nodes", async () => {
+		const layout = await computeLayout(
+			[node("a"), node("b")],
+			[edge("a", "b")],
+		);
+		expect(layout.container).toBeDefined();
+	});
+
+	it("leaves room above the container for its label when there are no out-of-scope nodes", async () => {
+		const layout = await computeLayout(
+			[node("a"), node("b")],
+			[edge("a", "b")],
+		);
+		// biome-ignore lint/style/noNonNullAssertion: asserted above
+		expect(layout.container!.y).toBeGreaterThanOrEqual(0);
+	});
+
+	it("omits the container box when there are no in-scope nodes", async () => {
+		const oos = { ...node("a"), scope: "out-of-scope" as const };
+		const layout = await computeLayout([oos], []);
+		expect(layout.container).toBeUndefined();
+	});
+});

@@ -149,6 +149,21 @@ describe("addContext", () => {
 			const result = addContext(graph);
 			expect(result.nodes).toHaveLength(0);
 		});
+
+		it("skips .d.mts and .d.cts declaration files, not just .d.ts", () => {
+			const dMts = path.join(tmpDir, "index.d.mts");
+			const dCts = path.join(tmpDir, "index.d.cts");
+			writeFileSync(dMts, "export declare const x: string;\n");
+			writeFileSync(dCts, "export declare const y: string;\n");
+			const graph = makeGraph({
+				oosEdges: [
+					{ from: "foo", toFile: dMts },
+					{ from: "foo", toFile: dCts },
+				],
+			});
+			const result = addContext(graph);
+			expect(result.nodes).toHaveLength(0);
+		});
 	});
 
 	describe("edge creation", () => {

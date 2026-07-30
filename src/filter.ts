@@ -22,7 +22,11 @@ export function addContext(graph: Graph): Graph {
 
 	for (const oe of oosEdges) {
 		const { from, toFile } = oe;
-		if (!toFile || !path.isAbsolute(toFile) || toFile.endsWith(".d.ts"))
+		if (
+			!toFile ||
+			!path.isAbsolute(toFile) ||
+			/\.d\.(ts|mts|cts)$/.test(toFile)
+		)
 			continue;
 
 		const id = toNodeId(toFile, repoRoot);
