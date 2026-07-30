@@ -305,21 +305,34 @@ async function main(): Promise<void> {
 
 	await mkdir(outDir, { recursive: true });
 
-	// diagram.svg — diff-focused, real layout. In single-branch mode every diff
-	// state is null, so diff-focused would collapse everything into stubs — use
-	// the all-nodes view instead.
-	const svgView = args.baseRepoRoot ? diffView : allView;
-	const svgLayout = args.baseRepoRoot ? diffLayout : allLayout;
-	const svg = toSvg(
-		svgLayout,
-		svgView.nodes,
-		svgView.edges,
+	// diagram-all.svg — all-nodes view, real layout. Always written, since it's
+	// the same content regardless of whether a diff is available.
+	const allSvg = toSvg(
+		allLayout,
+		allView.nodes,
+		allView.edges,
 		path.basename(scopeDir),
 		args.sourceRoot,
 	);
-	const svgPath = path.join(outDir, "diagram.svg");
-	await writeFile(svgPath, svg);
-	console.log(`Wrote ${svgPath}`);
+	const allSvgPath = path.join(outDir, "diagram-all.svg");
+	await writeFile(allSvgPath, allSvg);
+	console.log(`Wrote ${allSvgPath}`);
+
+	// diagram-diff.svg — diff-focused view. Only meaningful with a base to diff
+	// against; in single-branch mode every diff state is null, so this file is
+	// skipped rather than writing a misleadingly-named duplicate of diagram-all.svg.
+	if (args.baseRepoRoot) {
+		const diffSvg = toSvg(
+			diffLayout,
+			diffView.nodes,
+			diffView.edges,
+			path.basename(scopeDir),
+			args.sourceRoot,
+		);
+		const diffSvgPath = path.join(outDir, "diagram-diff.svg");
+		await writeFile(diffSvgPath, diffSvg);
+		console.log(`Wrote ${diffSvgPath}`);
+	}
 
 	// diagram.html — interactive, all modes embedded
 	const { repoRoot: _root, ...metaWithoutRoot } = diffed.meta;

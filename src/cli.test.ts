@@ -212,7 +212,7 @@ describe("cli single-branch mode output views", () => {
 		rmSync(tmp, { recursive: true, force: true });
 	});
 
-	it("diagram.svg shows individual nodes, not collapsed stubs", async () => {
+	it("diagram-all.svg shows individual nodes, not collapsed stubs", async () => {
 		const outDir = path.join(tmp, "out-single");
 		const result = await runCli([
 			"--repo-root",
@@ -223,10 +223,16 @@ describe("cli single-branch mode output views", () => {
 		]);
 		expect(result.code).toBe(0);
 
-		const svg = await readFile(path.join(outDir, "diagram.svg"), "utf8");
+		const svg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
 		expect(svg).toContain(">AlphaComponent<");
 		expect(svg).toContain(">BetaComponent<");
 	}, 30_000);
+
+	it("does not write diagram-diff.svg in single-branch mode", () => {
+		expect(existsSync(path.join(tmp, "out-single/diagram-diff.svg"))).toBe(
+			false,
+		);
+	});
 
 	it("diagram.html embeds initialMode 'all' in single-branch mode", async () => {
 		const html = await readFile(
@@ -252,6 +258,12 @@ describe("cli single-branch mode output views", () => {
 		const html = await readFile(path.join(outDir, "diagram.html"), "utf8");
 		expect(html).not.toContain('"initialMode"');
 	}, 30_000);
+
+	it("writes both diagram-diff.svg and diagram-all.svg when a base repo is given", () => {
+		const outDir = path.join(tmp, "out-diff");
+		expect(existsSync(path.join(outDir, "diagram-diff.svg"))).toBe(true);
+		expect(existsSync(path.join(outDir, "diagram-all.svg"))).toBe(true);
+	});
 });
 
 // ─── GAP-08: graph.json must not leak the local filesystem path ───────────────
@@ -492,7 +504,7 @@ describe("cli subdirectory grouping", () => {
 		rmSync(tmp, { recursive: true, force: true });
 	});
 
-	it("diagram.svg draws a subdirectory group box labeled with the subdirectory name", async () => {
+	it("diagram-all.svg draws a subdirectory group box labeled with the subdirectory name", async () => {
 		const outDir = path.join(tmp, "out");
 		const result = await runCli([
 			"--repo-root",
@@ -503,7 +515,7 @@ describe("cli subdirectory grouping", () => {
 		]);
 		expect(result.code).toBe(0);
 
-		const svg = await readFile(path.join(outDir, "diagram.svg"), "utf8");
+		const svg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
 		expect(svg).toContain(">widgets<");
 	}, 30_000);
 

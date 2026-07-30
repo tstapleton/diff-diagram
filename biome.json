@@ -11,7 +11,8 @@
 			"!!**/dist",
 			"!!.claude",
 			"!!skills-lock.json",
-			"!!docs/sample.svg"
+			"!!docs/sample-diff.svg",
+			"!!docs/sample-all.svg"
 		]
 	},
 	"formatter": {

@@ -6,15 +6,20 @@ CLI tool for Angular PR review that generates a dependency diagram for a feature
 
 | File | Purpose |
 |---|---|
-| `dist/diagram.svg` | Diff-focused graph (paste as image in PR comment) |
+| `dist/diagram-diff.svg` | Diff-focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
+| `dist/diagram-all.svg` | All-nodes graph, same diff coloring, no collapsing |
 | `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
 | `dist/graph.json` | Full diffed graph JSON for downstream tooling |
 
 ## Reading the diagram
 
-![Sample diagram](docs/sample.svg)
+The tool renders two view modes from the same diff. **Diff-focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **All-nodes** shows every file individually with the same diff coloring — useful for seeing the full architecture at once.
 
-The sample above is generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run diagram:sample` (build first: the script assumes `dist/` is current). It shows every visual element the tool renders:
+![Sample diagram, diff-focused view](docs/sample-diff.svg)
+
+![Sample diagram, all-nodes view](docs/sample-all.svg)
+
+Both samples above are generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
 
 | Element | Meaning |
 |---|---|
@@ -100,7 +105,7 @@ Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, 
 `sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files), and a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` file, demonstrating that nested files still group under their first-level subdirectory). Not used by any automated test.
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` file, demonstrating that nested files still group under their first-level subdirectory), and a `layout/` subdirectory whose one file is unchanged between branches — the only subdirectory diff-focused mode collapses to a stub, so it's the one place the two sample images above actually differ. Not used by any automated test.
 
 ## Architecture
 

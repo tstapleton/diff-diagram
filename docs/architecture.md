@@ -23,7 +23,8 @@ CLI args
   ├─ computeViewNodes(diffed, 'diff-focused') → { nodes, edges }
   │    computeLayout(nodes, edges) → Layout (diff-mode positions)
   │
-  ├─ toSvg(diffLayout, ...) → SVG string → diagram.svg
+  ├─ toSvg(allLayout, ...) → SVG string → diagram-all.svg
+  ├─ toSvg(diffLayout, ...) → SVG string → diagram-diff.svg (only when --base-repo-root given)
   ├─ buildHtml(data, template) → HTML string → diagram.html
   └─ graph.json
 ```
@@ -168,8 +169,9 @@ Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--source-root`, posi
 
 When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs current-branch-only analysis.
 
-Writes three files:
-- `diagram.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout
+Writes three or four files:
+- `diagram-all.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — all-nodes, real layout. Always written.
+- `diagram-diff.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout. Only written when `--base-repo-root` is given.
 - `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_DATA__` replaced by JSON
 - `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
 
