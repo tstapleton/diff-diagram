@@ -13,10 +13,30 @@ import { computeLayout } from "./layout.js";
 
 const SNAPSHOTS_REFERENCE = path.resolve("test/snapshots/reference");
 const SNAPSHOTS_CURRENT = path.resolve("test/snapshots/current");
-const REPO_ROOT = path.resolve("fake-angular-app");
-const BASE_ROOT = path.resolve("fake-angular-app-base");
-const SCOPE = path.resolve("fake-angular-app/src/app/features/users");
-const BASE_SCOPE = path.resolve("fake-angular-app-base/src/app/features/users");
+
+interface Fixture {
+	repoRoot: string;
+	baseRoot: string;
+	scope: string;
+	baseScope: string;
+	sourceRoot: string;
+}
+
+const FAKE_ANGULAR_APP: Fixture = {
+	repoRoot: path.resolve("fake-angular-app"),
+	baseRoot: path.resolve("fake-angular-app-base"),
+	scope: path.resolve("fake-angular-app/src/app/features/users"),
+	baseScope: path.resolve("fake-angular-app-base/src/app/features/users"),
+	sourceRoot: "src/app",
+};
+
+const SAMPLE_APP: Fixture = {
+	repoRoot: path.resolve("sample-app"),
+	baseRoot: path.resolve("sample-app-base"),
+	scope: path.resolve("sample-app/src/app/features/dashboard"),
+	baseScope: path.resolve("sample-app-base/src/app/features/dashboard"),
+	sourceRoot: "src/app",
+};
 
 const FIRA_CODE_PATH = path.resolve("test/fixtures/fonts/FiraCode-Regular.ttf");
 
@@ -60,30 +80,50 @@ function compareWithSnapshot(svg: string, name: string): number {
 	});
 }
 
-async function buildSvg(mode: "all" | "diff-focused"): Promise<string> {
+async function buildSvg(
+	fixture: Fixture,
+	mode: "all" | "diff-focused",
+): Promise<string> {
 	const [base, current] = await Promise.all([
-		analyze(BASE_SCOPE, { repoRoot: BASE_ROOT }).then(addContext),
-		analyze(SCOPE, { repoRoot: REPO_ROOT }).then(addContext),
+		analyze(fixture.baseScope, { repoRoot: fixture.baseRoot }).then(addContext),
+		analyze(fixture.scope, { repoRoot: fixture.repoRoot }).then(addContext),
 	]);
 	const diffed = diffGraphs(base, current);
-	const { nodes, edges } = computeViewNodes(
-		diffed,
-		mode === "diff-focused" ? "diff-focused" : "all",
+	const { nodes, edges } = computeViewNodes(diffed, mode);
+	const layout = await computeLayout(nodes, edges, fixture.sourceRoot);
+	return toSvg(
+		layout,
+		nodes,
+		edges,
+		path.basename(fixture.scope),
+		fixture.sourceRoot,
 	);
-	const layout = await computeLayout(nodes, edges, "src/app");
-	return toSvg(layout, nodes, edges, "users", "src/app");
 }
 
-describe("visual regression", () => {
+describe("visual regression — fake-angular-app fixture", () => {
 	it("diff-focused mode renders correctly", async () => {
-		const svg = await buildSvg("diff-focused");
+		const svg = await buildSvg(FAKE_ANGULAR_APP, "diff-focused");
 		const diff = compareWithSnapshot(svg, "diff-focused");
 		expect(diff).toBe(0);
 	});
 
 	it("all-nodes mode renders correctly", async () => {
-		const svg = await buildSvg("all");
+		const svg = await buildSvg(FAKE_ANGULAR_APP, "all");
 		const diff = compareWithSnapshot(svg, "all-nodes");
+		expect(diff).toBe(0);
+	});
+});
+
+describe("visual regression — sample-app fixture", () => {
+	it("diff-focused mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "diff-focused");
+		const diff = compareWithSnapshot(svg, "sample-diff-focused");
+		expect(diff).toBe(0);
+	});
+
+	it("all-nodes mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "all");
+		const diff = compareWithSnapshot(svg, "sample-all-nodes");
 		expect(diff).toBe(0);
 	});
 });
