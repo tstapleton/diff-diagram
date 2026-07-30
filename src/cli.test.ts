@@ -290,6 +290,21 @@ describe("cli graph.json output", () => {
 		expect(graph.meta).not.toHaveProperty("repoRoot");
 		expect(JSON.stringify(graph)).not.toContain(repoRoot);
 	}, 30_000);
+
+	it("does not contain the internal _content field on any node", async () => {
+		const outDir = path.join(tmp, "out-content");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const raw = await readFile(path.join(outDir, "graph.json"), "utf8");
+		expect(raw).not.toContain("_content");
+	}, 30_000);
 });
 
 // ─── BUG-04: buildHtml must not corrupt JSON via String.replace patterns ──────

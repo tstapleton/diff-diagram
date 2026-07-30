@@ -324,10 +324,16 @@ async function main(): Promise<void> {
 	await writeFile(htmlPath, html);
 	console.log(`Wrote ${htmlPath}`);
 
-	// graph.json — strip meta.repoRoot (absolute local path) like the HTML does
+	// graph.json — strip meta.repoRoot (absolute local path) and each node's
+	// internal _content field (raw file text, used only for diffing), same
+	// spirit as the repoRoot strip above.
 	const { _oosEdges, ...graphOut } = { ...diffed, meta: metaWithoutRoot };
+	const strippedNodes = graphOut.nodes.map(({ _content, ...rest }) => rest);
 	const jsonPath = path.join(outDir, "graph.json");
-	await writeFile(jsonPath, JSON.stringify(graphOut, null, 2));
+	await writeFile(
+		jsonPath,
+		JSON.stringify({ ...graphOut, nodes: strippedNodes }, null, 2),
+	);
 	console.log(`Wrote ${jsonPath}`);
 }
 

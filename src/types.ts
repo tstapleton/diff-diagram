@@ -23,6 +23,11 @@ export interface GraphNode {
 	typeOnly?: boolean;
 	hasTests?: boolean;
 	hasStories?: boolean;
+	/**
+	 * Internal only: the file's raw text, used by diffGraphs to detect content
+	 * changes. Never serialized — stripped from graph.json before it's written.
+	 */
+	_content?: string;
 }
 
 export interface GraphEdge {
