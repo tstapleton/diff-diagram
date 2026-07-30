@@ -19,7 +19,7 @@ The sample above is generated from the `sample-app/` + `sample-app-base/` fixtur
 | Element | Meaning |
 |---|---|
 | Green border, dark green fill | File added in this PR |
-| Amber border, dark amber fill | File modified in this PR (its imports changed) |
+| Amber border, dark amber fill | File modified in this PR (its content changed) |
 | Red border, dark red fill | File removed in this PR (kept as a ghost so you can see what pointed at it) |
 | Grey border, slate fill | File unchanged |
 | Darker box outside the feature container | Out-of-scope dependency (imported from outside the feature directory), with its directory path under the name |

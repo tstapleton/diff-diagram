@@ -79,17 +79,31 @@ describe("diffGraphs", () => {
 			expect(result.nodes[0].diff).toBe("removed");
 		});
 
-		it("marks a node in both with unchanged edges as unchanged", () => {
-			const n = gNode("src/users/foo.component.ts");
-			const base = makeFullGraph("src/users", [n]);
-			const current = makeFullGraph("src/users", [n]);
+		it("marks a node in both with identical content as unchanged", () => {
+			const base = makeFullGraph("src/users", [
+				gNode("src/users/foo.component.ts", { _content: "same" }),
+			]);
+			const current = makeFullGraph("src/users", [
+				gNode("src/users/foo.component.ts", { _content: "same" }),
+			]);
 			const result = diffGraphs(base, current);
 			expect(result.nodes[0].diff).toBe("unchanged");
 		});
 
-		it("marks a node as modified when an outgoing edge is added", () => {
-			const foo = gNode("src/users/foo.component.ts");
-			const bar = gNode("src/users/bar.component.ts");
+		it("marks a node as modified when its content differs, independent of edges", () => {
+			const base = makeFullGraph("src/users", [
+				gNode("src/users/foo.component.ts", { _content: "before" }),
+			]);
+			const current = makeFullGraph("src/users", [
+				gNode("src/users/foo.component.ts", { _content: "after" }),
+			]);
+			const result = diffGraphs(base, current);
+			expect(result.nodes[0].diff).toBe("modified");
+		});
+
+		it("marks a node as unchanged when its edges differ but its content does not", () => {
+			const foo = gNode("src/users/foo.component.ts", { _content: "same" });
+			const bar = gNode("src/users/bar.component.ts", { _content: "same" });
 			const base = makeFullGraph("src/users", [foo, bar], []);
 			const current = makeFullGraph(
 				"src/users",
@@ -99,22 +113,7 @@ describe("diffGraphs", () => {
 			const result = diffGraphs(base, current);
 			expect(
 				result.nodes.find((n) => n.file === "src/users/foo.component.ts")?.diff,
-			).toBe("modified");
-		});
-
-		it("marks a node as modified when an outgoing edge is removed", () => {
-			const foo = gNode("src/users/foo.component.ts");
-			const bar = gNode("src/users/bar.component.ts");
-			const base = makeFullGraph(
-				"src/users",
-				[foo, bar],
-				[gEdge("src/users/foo.component.ts", "src/users/bar.component.ts")],
-			);
-			const current = makeFullGraph("src/users", [foo, bar], []);
-			const result = diffGraphs(base, current);
-			expect(
-				result.nodes.find((n) => n.file === "src/users/foo.component.ts")?.diff,
-			).toBe("modified");
+			).toBe("unchanged");
 		});
 
 		it("does not create a ghost node for a removed out-of-scope node", () => {
@@ -273,24 +272,5 @@ describe("diffGraphs — edge modified state", () => {
 		const removed = result.edges.find((e) => e.diff === "removed");
 		expect(removed?.typeOnly).toBe(true);
 		expect(removed?.importedNames).toEqual(["A"]);
-	});
-
-	it("node whose only outgoing edge changed importedNames gets diff modified", () => {
-		const eBase = gEdge(
-			"src/users/foo.component.ts",
-			"src/users/bar.component.ts",
-			["A"],
-		);
-		const eCurrent = gEdge(
-			"src/users/foo.component.ts",
-			"src/users/bar.component.ts",
-			["A", "B"],
-		);
-		const base = makeFullGraph("src/users", [foo, bar], [eBase]);
-		const current = makeFullGraph("src/users", [foo, bar], [eCurrent]);
-		const result = diffGraphs(base, current);
-		expect(
-			result.nodes.find((n) => n.file === "src/users/foo.component.ts")?.diff,
-		).toBe("modified");
 	});
 });

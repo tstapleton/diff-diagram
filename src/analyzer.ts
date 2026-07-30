@@ -225,6 +225,7 @@ export async function analyze(
 			type: classifyFile(sf),
 			scope: "in-scope",
 			diff: null,
+			_content: sf.getFullText(),
 			...(hasTests ? { hasTests: true } : {}),
 			...(hasStories ? { hasStories: true } : {}),
 		});

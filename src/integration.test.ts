@@ -75,6 +75,12 @@ describe("diffGraphs integration — node diff states", () => {
 		expect(n?.diff).toBe("unchanged");
 	});
 
+	it("user-table-header.component is modified (content changed, imports unchanged)", () => {
+		const n = nodeByFile("user-list/user-table-header.component.ts");
+		expect(n).toBeDefined();
+		expect(n?.diff).toBe("modified");
+	});
+
 	it("out-of-scope nodes do not become removed-ghosts", () => {
 		const ghosts = diffed.nodes.filter((n) => n.scope === "removed-ghost");
 		const oosGhosts = ghosts.filter((n) => {

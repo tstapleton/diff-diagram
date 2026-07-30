@@ -55,8 +55,8 @@ The tool runs the analyzer twice — once on the base branch, once on the curren
 **Node diff states:**
 - `added` — file exists in current branch, not in base
 - `removed` — file exists in base, not in current; shown as a ghost node
-- `modified` — file exists in both branches but its outgoing import set changed
-- `unchanged` — file exists in both branches with the same import set
+- `modified` — file exists in both branches but its own content differs
+- `unchanged` — file exists in both branches with identical content
 
 **Edge diff states:**
 - `added` — import exists in current, not in base
@@ -64,7 +64,7 @@ The tool runs the analyzer twice — once on the base branch, once on the curren
 - `modified` — import exists in both, but its set of imported names changed
 - `unchanged` — import exists in both with the same imported names
 
-Modification is detected at the import level, not at the file content level: a node is `modified` when any outgoing import was added or removed, or when the set of names imported over a persisting edge changed. A file that changed internally but whose imports did not change is `unchanged` in the diagram. See [architecture.md](./architecture.md) for the full diff algorithm.
+Node modification is detected at the file-content level: a node is `modified` when its own raw text differs between base and current branches, regardless of whether its imports changed. Edge modification is still detected at the import level (see edge diff states above) — node color and edge color are independent signals. See [architecture.md](./architecture.md) for the full diff algorithm.
 
 ### Out-of-scope context
 
@@ -114,7 +114,7 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 - **Rename tracking** — a renamed file is treated as removed + added. No git-based rename detection.
 - **CI integration** — posting comments, uploading images, and publishing to GitHub Pages are out of scope for this repo.
 - **Full repo diagrams** — the tool scopes to a single feature directory. Whole-repo analysis is not a goal.
-- **File content diff** — modification is detected by import-set change, not line-level content diff. Internal-only changes (refactors that don't add or remove imports) appear as `unchanged`.
+- **Change magnitude** — the tool detects *that* a file's content changed (node `modified` state), but not *how much*. Line-level diff statistics are not computed today; see "Change magnitude styling" under Planned.
 - **Runtime dependency analysis** — the diagram shows static TypeScript imports only. Dynamic imports, lazy-loaded modules, and Angular DI injection chains are not traced.
 
 ## Planned

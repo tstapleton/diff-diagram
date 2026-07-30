@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { classifyByFilename, labelFromFile, toNodeId } from "./analyzer.js";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
@@ -33,6 +34,7 @@ export function addContext(graph: Graph): Graph {
 				type: classifyOutOfScope(toFile),
 				scope: "out-of-scope",
 				diff: null,
+				_content: readFileSync(toFile, "utf8"),
 			});
 		}
 

@@ -35,7 +35,7 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean }`
+- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, _content?: string }` (`_content` is internal only — raw file text used by `diffGraphs` to detect content changes, stripped from `graph.json` before it's written)
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
 - `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount }` (`scopeDir` is the JSON field name for the feature directory path)
@@ -76,7 +76,7 @@ Algorithm:
 1. Index base and current nodes by `node.file` (repo-relative path — stable across branches)
 2. Index base and current edges by `"fromFile→toFile"` key
 3. Current nodes not in base → `diff: 'added'`
-4. Current nodes in base → `diff: 'modified'` if any outgoing edge was added, removed, or changed its imported-name set, else `'unchanged'`
+4. Current nodes in base → `diff: 'modified'` if the node's `_content` differs from its base counterpart, else `'unchanged'`
 5. Base in-scope nodes not in current → ghost node, `scope: 'removed-ghost'`, `diff: 'removed'`
    - Out-of-scope removed nodes are dropped (no ghost)
 6. Current edges not in base → `diff: 'added'`
@@ -193,6 +193,6 @@ If a file moves (rename), `diffGraphs` treats it as removed + added. Rename trac
 Fixture diff:
 - Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`; also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
 - Removed: `user-list/user-search-results.component.ts`
-- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`, dropped import of the removed component), `user-detail/user-detail.component.ts` (dropped `CacheService`)
+- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`, dropped import of the removed component), `user-detail/user-detail.component.ts` (dropped `CacheService`), `user-list/user-table-header.component.ts` (template content changed, imports unchanged — demonstrates node diff is content-based, not import-based)
 
 Integration tests in `src/integration.test.ts` run the full analyze→addContext→diffGraphs pipeline against these fixtures and assert all 5 node diff states and 3 edge diff states.

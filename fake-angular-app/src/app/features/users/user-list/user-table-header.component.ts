@@ -13,6 +13,7 @@ import type { SortStateService } from "./sort-state.service";
         <th (click)="sort('lastName')">Name</th>
         <th (click)="sort('email')">Email</th>
         <th (click)="sort('statusId')">Status</th>
+        <th (click)="sort('roleId')">Role</th>
       </tr>
     </thead>
   `,

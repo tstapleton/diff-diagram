@@ -210,6 +210,40 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 	});
 });
 
+// ─── analyze() — file content capture ───────────────────────────────────────
+
+describe("analyze (file content capture)", { timeout: 15000 }, () => {
+	let tmpRootContent: string;
+	let scopeDirContent: string;
+
+	beforeAll(() => {
+		tmpRootContent = mkdtempSync(path.join(tmpdir(), "diff-diagram-content-"));
+		scopeDirContent = path.join(
+			tmpRootContent,
+			"src",
+			"app",
+			"features",
+			"users",
+		);
+		mkdirSync(scopeDirContent, { recursive: true });
+
+		writeFileSync(
+			path.join(scopeDirContent, "foo.component.ts"),
+			"export class FooComponent {}\n",
+		);
+	});
+
+	afterAll(() => {
+		rmSync(tmpRootContent, { recursive: true, force: true });
+	});
+
+	it("attaches the file's raw text as an internal _content field", async () => {
+		const graph = await analyze(scopeDirContent, { repoRoot: tmpRootContent });
+		const node = graph.nodes.find((n) => n.file.includes("foo.component"));
+		expect(node?._content).toBe("export class FooComponent {}\n");
+	});
+});
+
 // ─── analyze() — type-only imports ──────────────────────────────────────────
 
 describe("analyze (type-only imports)", { timeout: 15000 }, () => {
