@@ -167,6 +167,29 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 		const nmDir = path.join(scopeDir, "node_modules", "some-lib");
 		mkdirSync(nmDir, { recursive: true });
 		writeFileSync(path.join(nmDir, "index.ts"), "export const lib = {};");
+
+		// Should be excluded: test file (vitest/jest convention, as opposed to
+		// the Angular .spec.ts convention already excluded above)
+		writeFileSync(
+			path.join(scopeDir, "users.routes.test.ts"),
+			'describe("test", () => {});',
+		);
+
+		// Should be excluded: files inside a __fixtures__ directory
+		const fixturesDir = path.join(scopeDir, "__fixtures__");
+		mkdirSync(fixturesDir, { recursive: true });
+		writeFileSync(
+			path.join(fixturesDir, "mock-users.ts"),
+			"export const mockUsers = [];",
+		);
+
+		// Should be excluded: files inside a __mocks__ directory
+		const mocksDir = path.join(scopeDir, "__mocks__");
+		mkdirSync(mocksDir, { recursive: true });
+		writeFileSync(
+			path.join(mocksDir, "api.service.ts"),
+			"export class ApiService {}",
+		);
 	});
 
 	afterAll(() => {
@@ -207,6 +230,24 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
 		const files = graph.nodes.map((n) => n.file);
 		expect(files.every((f) => !f.endsWith(".stories.ts"))).toBe(true);
+	});
+
+	it("excludes .test.ts files", async () => {
+		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+		const files = graph.nodes.map((n) => n.file);
+		expect(files.every((f) => !f.includes(".test."))).toBe(true);
+	});
+
+	it("excludes files inside a __fixtures__ directory", async () => {
+		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+		const files = graph.nodes.map((n) => n.file);
+		expect(files.every((f) => !f.includes("__fixtures__"))).toBe(true);
+	});
+
+	it("excludes files inside a __mocks__ directory", async () => {
+		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+		const files = graph.nodes.map((n) => n.file);
+		expect(files.every((f) => !f.includes("__mocks__"))).toBe(true);
 	});
 });
 

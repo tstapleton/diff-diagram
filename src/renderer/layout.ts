@@ -100,6 +100,10 @@ export async function computeLayout(
 	);
 	const oosNodes = nodes.filter((n) => n.scope === "out-of-scope");
 	const usePartitions = inScopeNodes.length > 0 && oosNodes.length > 0;
+	// The in-scope container box (drawn below) only needs in-scope nodes to
+	// exist — it doesn't depend on partitioning, which is solely about keeping
+	// oos nodes out of that box when oos nodes are present.
+	const showContainer = inScopeNodes.length > 0;
 
 	const elkNodes: ElkNode[] = nodes.map((n) => ({
 		id: n.id,
@@ -133,9 +137,10 @@ export async function computeLayout(
 			...(usePartitions ? { "elk.partitioning.activate": "true" } : {}),
 			"elk.spacing.nodeNode": "20",
 			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
-			// When partitioning, top needs 55px so the container label (minY − 35) stays above y=0.
-			// Left needs 40px so the container left edge (minX − 15) isn't cramped.
-			"elk.padding": usePartitions
+			// When the container box will be drawn, top needs 55px so its label
+			// (minY − 35) stays above y=0. Left needs 40px so the container left
+			// edge (minX − 15) isn't cramped.
+			"elk.padding": showContainer
 				? "[top=55, left=40, bottom=35, right=35]"
 				: "[top=20, left=20, bottom=20, right=20]",
 		},
@@ -173,10 +178,10 @@ export async function computeLayout(
 	);
 
 	// Compute the in-scope container box from actual node positions post-layout.
-	// Partitioning guarantees all oos nodes are at higher x values, so no oos node
-	// falls inside this bounding box.
+	// When oos nodes are present, partitioning guarantees they're at higher x
+	// values, so none fall inside this bounding box.
 	let container: LayoutContainer | undefined;
-	if (usePartitions) {
+	if (showContainer) {
 		const inScopeIds = new Set(inScopeNodes.map((n) => n.id));
 		const inScopeLayout = layoutNodes.filter((n) => inScopeIds.has(n.id));
 		if (inScopeLayout.length > 0) {
