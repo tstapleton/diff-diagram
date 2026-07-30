@@ -29,6 +29,7 @@ The sample above is generated from the `sample-app/` + `sample-app-base/` fixtur
 | Green dot | File has a unit test (`.spec.ts` sidecar) |
 | Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
 | Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
+| Dashed subtle box inside the feature container | Files grouped by first-level subdirectory (e.g. `user-list/`); files at the feature root get no box |
 
 ## Setup
 
@@ -99,7 +100,7 @@ Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, 
 `sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers). Not used by any automated test.
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files), and a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` file, demonstrating that nested files still group under their first-level subdirectory). Not used by any automated test.
 
 ## Architecture
 

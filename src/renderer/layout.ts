@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import path from "node:path";
 import type {
 	ELK as ELKInstance,
 	ElkExtendedEdge,
@@ -46,12 +47,18 @@ export interface LayoutContainer {
 	height: number;
 }
 
+// One box per in-scope first-level subdirectory (issue #28).
+export interface LayoutSubdirContainer extends LayoutContainer {
+	label: string;
+}
+
 export interface Layout {
 	nodes: LayoutNode[];
 	edges: LayoutEdge[];
 	width: number;
 	height: number;
 	container?: LayoutContainer;
+	subdirContainers?: LayoutSubdirContainer[];
 }
 
 // ─── Node dimensions ──────────────────────────────────────────────────────────
@@ -79,6 +86,12 @@ function nodeDims(
 	return { width, height: NODE_HEIGHT };
 }
 
+const SUBDIR_CONTAINER_PREFIX = "__subdir__";
+
+function subdirContainerId(key: string): string {
+	return `${SUBDIR_CONTAINER_PREFIX}${key}`;
+}
+
 // ─── computeLayout ────────────────────────────────────────────────────────────
 // Pure async function; runs in Node only (elkjs uses WASM).
 //
@@ -87,11 +100,21 @@ function nodeDims(
 // place in-scope nodes in earlier (leftward) layers than oos nodes, guaranteeing
 // no oos node falls inside the in-scope bounding box. All edges remain flat so
 // ELK routes them normally — no cross-hierarchy issues.
+//
+// When scopeDir is given, in-scope nodes under a first-level subdirectory are
+// additionally nested as real ELK compound children of a per-subdir container
+// node (issue #28), instead of being flat siblings. ELK's hierarchical layout
+// sizes each container from its own children and never overlaps sibling nodes
+// at a given level (compound or leaf), so subdir boxes are a structural
+// guarantee rather than a bounding box inferred after the fact from loose
+// positions — see docs/superpowers/specs/2026-07-30-subdir-grouping-design.md
+// for why an ELK-partitioning-based approach was tried first and rejected.
 
 export async function computeLayout(
 	nodes: GraphNode[],
 	edges: GraphEdge[],
 	sourceRoot = "src/app",
+	scopeDir?: string,
 ): Promise<Layout> {
 	const elk = new ELKClass();
 
@@ -105,29 +128,94 @@ export async function computeLayout(
 	// oos nodes out of that box when oos nodes are present.
 	const showContainer = inScopeNodes.length > 0;
 
-	const elkNodes: ElkNode[] = nodes.map((n) => ({
-		id: n.id,
-		...nodeDims(n, sourceRoot),
-		...(usePartitions
-			? {
-					layoutOptions: {
-						"elk.partitioning.partition":
-							n.scope === "out-of-scope" ? "1" : "0",
-					},
-				}
-			: {}),
-	}));
+	// node id -> first-level subdir under scopeDir ("" = feature-root, no box)
+	const subdirOf = new Map<string, string>();
+	if (scopeDir) {
+		for (const n of inScopeNodes) {
+			const rel = path.relative(scopeDir, n.file);
+			const parts = rel.split(path.sep);
+			subdirOf.set(n.id, parts.length > 1 ? parts[0] : "");
+		}
+	}
+	const subdirKeys = [...new Set(subdirOf.values())].filter((k) => k !== "");
+	subdirKeys.sort();
+	const useSubdirGroups = subdirKeys.length > 0;
 
-	// Deduplicate edges (same from→to pair may appear with different diff states)
+	function leafElkNode(n: GraphNode): ElkNode {
+		return {
+			id: n.id,
+			...nodeDims(n, sourceRoot),
+			...(usePartitions
+				? {
+						layoutOptions: {
+							"elk.partitioning.partition":
+								n.scope === "out-of-scope" ? "1" : "0",
+						},
+					}
+				: {}),
+		};
+	}
+
+	const rootLevelInScope = inScopeNodes.filter(
+		(n) => (subdirOf.get(n.id) ?? "") === "",
+	);
+	const bySubdir = new Map<string, GraphNode[]>(subdirKeys.map((k) => [k, []]));
+	for (const n of inScopeNodes) {
+		const key = subdirOf.get(n.id) ?? "";
+		if (key !== "") bySubdir.get(key)?.push(n);
+	}
+
+	// Deduplicate edges, then route each to the ELK node whose `edges` array it
+	// belongs on. ELK requires an edge to be declared on the lowest common
+	// ancestor of its endpoints; with a 2-level hierarchy (root -> subdir ->
+	// file) that reduces to: the subdir itself when both endpoints share one,
+	// otherwise the root graph.
+	type ElkEdgeInput = { id: string; sources: string[]; targets: string[] };
 	const seen = new Set<string>();
-	const elkEdges = edges
-		.map((e, i) => ({ id: `e${i}`, sources: [e.from], targets: [e.to] }))
-		.filter((e) => {
-			const k = `${e.sources[0]}→${e.targets[0]}`;
-			if (seen.has(k)) return false;
-			seen.add(k);
-			return true;
-		});
+	const rootEdges: ElkEdgeInput[] = [];
+	const subdirEdges = new Map<string, ElkEdgeInput[]>(
+		subdirKeys.map((k) => [k, []]),
+	);
+	edges.forEach((e, i) => {
+		const key = `${e.from}→${e.to}`;
+		if (seen.has(key)) return;
+		seen.add(key);
+		const elkEdge: ElkEdgeInput = {
+			id: `e${i}`,
+			sources: [e.from],
+			targets: [e.to],
+		};
+		const fromKey = subdirOf.get(e.from) ?? "";
+		const toKey = subdirOf.get(e.to) ?? "";
+		if (fromKey !== "" && fromKey === toKey) {
+			subdirEdges.get(fromKey)?.push(elkEdge);
+		} else {
+			rootEdges.push(elkEdge);
+		}
+	});
+
+	const subdirContainerNodes: ElkNode[] = subdirKeys.map((key) => ({
+		id: subdirContainerId(key),
+		layoutOptions: {
+			"elk.algorithm": "layered",
+			"elk.direction": "RIGHT",
+			"elk.spacing.nodeNode": "20",
+			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
+			// Top reserves room for the subdir label drawn inside the box.
+			"elk.padding": "[top=16, left=6, bottom=6, right=6]",
+			...(usePartitions ? { "elk.partitioning.partition": "0" } : {}),
+		},
+		children: (bySubdir.get(key) ?? []).map(leafElkNode),
+		edges: subdirEdges.get(key) ?? [],
+	}));
+	const labelByContainerId = new Map(
+		subdirKeys.map((key) => [subdirContainerId(key), key]),
+	);
+
+	const rootLeafNodes: ElkNode[] = [
+		...rootLevelInScope.map(leafElkNode),
+		...oosNodes.map(leafElkNode),
+	];
 
 	const graph: ElkNode = {
 		id: "root",
@@ -143,25 +231,54 @@ export async function computeLayout(
 			"elk.padding": showContainer
 				? "[top=55, left=40, bottom=35, right=35]"
 				: "[top=20, left=20, bottom=20, right=20]",
+			// Without this, ELK treats each subdir compound node as an isolated
+			// sub-layout and silently fails to route any edge crossing into or
+			// out of it (0 sections returned, nothing drawn) — every edge
+			// touching a subdir-grouped node needs the whole hierarchy
+			// considered together.
+			...(useSubdirGroups
+				? { "elk.hierarchyHandling": "INCLUDE_CHILDREN" }
+				: {}),
 		},
-		children: elkNodes,
-		edges: elkEdges,
+		children: [...rootLeafNodes, ...subdirContainerNodes],
+		edges: rootEdges,
 	};
 
 	const result = await elk.layout(graph);
 
-	const layoutNodes: LayoutNode[] = (result.children ?? []).map(
-		(c: ElkNode) => ({
-			id: c.id,
-			x: c.x ?? 0,
-			y: c.y ?? 0,
-			width: c.width ?? MIN_NODE_WIDTH,
-			height: c.height ?? NODE_HEIGHT,
-		}),
-	);
+	// Recursively flatten the (at most 2-level) hierarchy back to absolute
+	// canvas coordinates. ELK returns each child's x/y relative to its own
+	// parent's origin, and edge sections declared on a compound node are in
+	// that same local frame — so both need the accumulated parent offset added.
+	const layoutNodes: LayoutNode[] = [];
+	const layoutEdges: LayoutEdge[] = [];
+	const subdirContainers: LayoutSubdirContainer[] = [];
 
-	const layoutEdges: LayoutEdge[] = (result.edges ?? []).map(
-		(e: ElkExtendedEdge) => {
+	function walk(node: ElkNode, offsetX: number, offsetY: number): void {
+		for (const child of node.children ?? []) {
+			const absX = offsetX + (child.x ?? 0);
+			const absY = offsetY + (child.y ?? 0);
+			const label = labelByContainerId.get(child.id);
+			if (label !== undefined) {
+				subdirContainers.push({
+					x: absX,
+					y: absY,
+					width: child.width ?? 0,
+					height: child.height ?? 0,
+					label,
+				});
+				walk(child, absX, absY);
+			} else {
+				layoutNodes.push({
+					id: child.id,
+					x: absX,
+					y: absY,
+					width: child.width ?? MIN_NODE_WIDTH,
+					height: child.height ?? NODE_HEIGHT,
+				});
+			}
+		}
+		for (const e of node.edges ?? []) {
 			const ext = e as ElkExtendedEdge & {
 				sources?: string[];
 				targets?: string[];
@@ -169,13 +286,24 @@ export async function computeLayout(
 			const from = ext.sources?.[0] ?? "";
 			const to = ext.targets?.[0] ?? "";
 			const sections: LayoutEdgeSection[] = (ext.sections ?? []).map((s) => ({
-				startPoint: s.startPoint,
-				endPoint: s.endPoint,
-				...(s.bendPoints ? { bendPoints: s.bendPoints } : {}),
+				startPoint: {
+					x: s.startPoint.x + offsetX,
+					y: s.startPoint.y + offsetY,
+				},
+				endPoint: { x: s.endPoint.x + offsetX, y: s.endPoint.y + offsetY },
+				...(s.bendPoints
+					? {
+							bendPoints: s.bendPoints.map((bp) => ({
+								x: bp.x + offsetX,
+								y: bp.y + offsetY,
+							})),
+						}
+					: {}),
 			}));
-			return { from, to, sections };
-		},
-	);
+			layoutEdges.push({ from, to, sections });
+		}
+	}
+	walk(result, 0, 0);
 
 	// Compute the in-scope container box from actual node positions post-layout.
 	// When oos nodes are present, partitioning guarantees they're at higher x
@@ -206,5 +334,6 @@ export async function computeLayout(
 		width: result.width ?? 0,
 		height: result.height ?? 0,
 		container,
+		subdirContainers: useSubdirGroups ? subdirContainers : undefined,
 	};
 }

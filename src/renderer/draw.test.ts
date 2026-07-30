@@ -249,3 +249,37 @@ describe("toSvg", () => {
 		expect(svg).not.toContain("<circle");
 	});
 });
+
+// ─── subdirectory group boxes (issue #28) ─────────────────────────────────────
+
+describe("toSvg — subdirectory group boxes", () => {
+	it("renders a dashed rect and label for each subdirContainers entry", () => {
+		const nodes = [node("a"), node("b")];
+		const l = layout(nodes);
+		l.subdirContainers = [
+			{ x: 10, y: 20, width: 300, height: 100, label: "widgets" },
+		];
+		const svg = toSvg(l, nodes, [], "feature");
+		expect(svg).toContain('stroke-dasharray="3,2"');
+		expect(svg).toContain(">widgets<");
+	});
+
+	it("renders one box per entry when there are multiple subdirectories", () => {
+		const nodes = [node("a"), node("b")];
+		const l = layout(nodes);
+		l.subdirContainers = [
+			{ x: 0, y: 0, width: 100, height: 50, label: "alpha" },
+			{ x: 200, y: 0, width: 100, height: 50, label: "beta" },
+		];
+		const svg = toSvg(l, nodes, [], "feature");
+		expect(svg).toContain(">alpha<");
+		expect(svg).toContain(">beta<");
+	});
+
+	it("renders nothing extra when subdirContainers is absent", () => {
+		const nodes = [node("a")];
+		const l = layout(nodes);
+		const svg = toSvg(l, nodes, [], "feature");
+		expect(svg).not.toContain('stroke-dasharray="3,2"');
+	});
+});

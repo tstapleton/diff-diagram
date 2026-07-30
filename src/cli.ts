@@ -140,6 +140,13 @@ interface ModeData {
 	width: number;
 	height: number;
 	container?: { x: number; y: number; width: number; height: number };
+	subdirContainers?: Array<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+		label: string;
+	}>;
 }
 
 interface DiagramData {
@@ -183,6 +190,7 @@ function buildModeData(
 		width: layout.width,
 		height: layout.height,
 		container: layout.container,
+		subdirContainers: layout.subdirContainers,
 	};
 }
 
@@ -281,8 +289,18 @@ async function main(): Promise<void> {
 	const diffView = computeViewNodes(diffed, "diff-focused");
 
 	const [allLayout, diffLayout] = await Promise.all([
-		computeLayout(allView.nodes, allView.edges, args.sourceRoot),
-		computeLayout(diffView.nodes, diffView.edges, args.sourceRoot),
+		computeLayout(
+			allView.nodes,
+			allView.edges,
+			args.sourceRoot,
+			diffed.meta.scopeDir,
+		),
+		computeLayout(
+			diffView.nodes,
+			diffView.edges,
+			args.sourceRoot,
+			diffed.meta.scopeDir,
+		),
 	]);
 
 	await mkdir(outDir, { recursive: true });

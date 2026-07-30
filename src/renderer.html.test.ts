@@ -32,6 +32,9 @@ const FIXTURE = {
 			edges: [],
 			width: 440,
 			height: 120,
+			subdirContainers: [
+				{ x: 5, y: 5, width: 400, height: 60, label: "widgets" },
+			],
 		},
 		diffFocused: {
 			nodes: [node("alpha", "unchanged", 10), node("beta", "added", 150)],
@@ -102,5 +105,22 @@ describe("renderer.html view-mode switching", () => {
 		expect(modeButton(window, "All nodes").classList.contains("active")).toBe(
 			false,
 		);
+	});
+});
+
+describe("renderer.html subdirectory group boxes", () => {
+	it("renders one .subdir-group element per subdirContainers entry", async () => {
+		const window = await loadDiagram();
+		modeButton(window, "All nodes").click();
+		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(1);
+		expect(window.document.querySelector(".subdir-group")?.textContent).toBe(
+			"widgets",
+		);
+	});
+
+	it("renders no .subdir-group elements when subdirContainers is absent", async () => {
+		const window = await loadDiagram();
+		// starts in diff-focused mode by default, which has no subdirContainers
+		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(0);
 	});
 });

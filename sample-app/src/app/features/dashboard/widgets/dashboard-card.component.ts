@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
-import type { CardConfig } from "../../shared/models/card-config.model";
+import type { CardConfig } from "../../../shared/models/card-config.model";
 
 @Component({
 	selector: "app-dashboard-card",

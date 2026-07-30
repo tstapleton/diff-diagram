@@ -104,15 +104,25 @@ Stub nodes have `type: 'stub'`, `diff: 'unchanged'`. They are a rendering abstra
 
 ### `src/renderer/layout.ts`
 
-**`computeLayout(nodes, edges)`** — async elkjs wrapper. Takes `GraphNode[]` and `GraphEdge[]`, returns `Layout` with `{ nodes: LayoutNode[], edges: LayoutEdge[], width, height }`.
+**`computeLayout(nodes, edges, sourceRoot?, scopeDir?)`** — async elkjs wrapper. Takes `GraphNode[]` and `GraphEdge[]`, returns `Layout` with `{ nodes: LayoutNode[], edges: LayoutEdge[], width, height, container?, subdirContainers? }`.
 
-ELK settings: `layered` algorithm, `RIGHT` direction, 20px node spacing, 40px layer spacing, 20px padding.
+ELK settings: `layered` algorithm, `RIGHT` direction, 20px node spacing, 40px layer spacing. Root graph padding is `[top=20,left=20,bottom=20,right=20]`, or `[top=55,left=40,bottom=35,right=35]` when the in-scope/out-of-scope partitioning below is active (extra room for the outer container's label). Each subdirectory compound node (see below) uses its own smaller padding, `[top=16,left=6,bottom=6,right=6]`.
 
 Node dimensions: regular nodes 140×40px, stub nodes 120×32px.
 
 Uses `createRequire` to import elkjs (CJS module in an ESM project).
 
 LayoutEdge sections contain `startPoint`, `endPoint`, and optional `bendPoints` — these are the raw ELK output coordinates used for bezier path rendering.
+
+**Subdirectory grouping (`scopeDir` parameter, issue #28):** when given, each in-scope node's first-level subdirectory under `scopeDir` becomes a real ELK compound node (`children: [...]`), instead of a flat sibling of the root graph — the same relative-path computation `computeViewNodes` uses for its own subdir grouping (`path.relative(scopeDir, node.file)`, first path segment; deeper nesting folds into that same first-level key). ELK's hierarchical layout sizes and positions each compound node from its own children, so non-overlap between subdir boxes is a structural guarantee, not inferred from post-layout positions. Two things this depends on:
+- **Edge placement follows ELK's lowest-common-ancestor rule.** In this 2-level hierarchy (root → subdir container → file), an edge whose endpoints share a subdirectory is declared on that subdirectory's own `edges` array; every other edge (cross-subdirectory, touching a root-level node, or touching an out-of-scope node) is declared on the root graph's `edges` array.
+- **`elk.hierarchyHandling: INCLUDE_CHILDREN`** must be set on the root graph whenever subdir groups are used, or ELK silently returns 0 sections (no routing at all) for any edge crossing a subdirectory boundary.
+
+After `elk.layout()`, the result tree is flattened recursively back to absolute canvas coordinates — ELK returns each child's `x`/`y` relative to its own parent's origin, and edge sections declared on a compound node are in that same local frame, so both need the accumulated parent offset added during the walk.
+
+An ELK-partitioning-based alternative (one partition per subdirectory, reusing the in-scope/out-of-scope partition trick below) was tried first and rejected: it only reliably orders nodes when there are 2 partitions and a guaranteed direction between them; with N independent subdirectories and no such direction, weakly-connected nodes fall back to normal longest-path layering and partition membership stops correlating with position, producing boxes that overlapped and enclosed unrelated nodes. See `docs/superpowers/specs/2026-07-30-subdir-grouping-design.md` for the full comparison.
+
+When both in-scope and out-of-scope nodes exist, ELK partitioning is enabled for the outer container: in-scope nodes (and any subdirectory container) get partition 0, out-of-scope partition 1. This forces ELK to place in-scope content in earlier (leftward) layers than oos nodes, guaranteeing no oos node falls inside the in-scope bounding box. This part is unchanged by subdirectory grouping.
 
 ### `src/renderer/draw.ts`
 

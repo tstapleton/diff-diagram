@@ -214,6 +214,15 @@ export function toSvg(
 		].join("\n");
 	}
 
+	// Subdirectory group boxes (issue #28): one subtle dashed rect + label per
+	// entry, subordinate to the outer feature container above it.
+	const subdirRects = (layout.subdirContainers ?? []).map((c) => {
+		return [
+			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#2d3f5c" stroke-width="1" stroke-dasharray="3,2"/>`,
+			`  <text x="${c.x + 8}" y="${c.y + 11}" font-family="${FONT_FAMILY}" font-size="8" fill="#5a7096">${c.label}</text>`,
+		].join("\n");
+	});
+
 	const { width, height } = layout;
 
 	return [
@@ -221,6 +230,7 @@ export function toSvg(
 		`<defs>${arrowMarkers()}</defs>`,
 		`<rect width="${width}" height="${height}" fill="#0f172a"/>`,
 		...(containerRect ? [containerRect] : []),
+		...subdirRects,
 		...renderedEdges,
 		...renderedNodes,
 		`</svg>`,
