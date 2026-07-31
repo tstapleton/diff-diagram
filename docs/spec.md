@@ -99,7 +99,9 @@ Collapse rules for diff-focused:
 - `removed` — red
 - `unchanged` — dark slate
 
-Out-of-scope nodes use a distinct dark background and blue stroke regardless of diff state.
+For `added`, `modified`, and `removed` nodes, fill intensity additionally scales with **change magnitude** — how much of the file changed (a real line-level diff for `modified` nodes, the file's own length for `added`/`removed`), relative to the 80th percentile of change size among changed nodes in the diagram (not the single largest node — a lone outlier file was found to crush every other node's magnitude toward zero in real PRs). Nodes at or above that percentile render at full diff-state color; more lightly changed nodes fade toward the unchanged fill. Border color always stays at full diff-state intensity regardless of magnitude, so a node's diff state is never ambiguous even when barely changed.
+
+Out-of-scope nodes use a distinct dark background and blue stroke regardless of diff state, and do not participate in change-magnitude styling.
 
 Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 
@@ -115,7 +117,6 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 - **Rename tracking** — a renamed file is treated as removed + added. No git-based rename detection.
 - **CI integration** — posting comments, uploading images, and publishing to GitHub Pages are out of scope for this repo.
 - **Full repo diagrams** — the tool scopes to a single feature directory. Whole-repo analysis is not a goal.
-- **Change magnitude** — the tool detects *that* a file's content changed (node `modified` state), but not *how much*. Line-level diff statistics are not computed today; see "Change magnitude styling" under Planned.
 - **Runtime dependency analysis** — the diagram shows static TypeScript imports only. Dynamic imports, lazy-loaded modules, and Angular DI injection chains are not traced.
 
 ## Planned
@@ -127,6 +128,5 @@ The following features are designed but not yet implemented. Full design decisio
 - **Clustered view mode** — a third view that collapses every directory to a single box regardless of diff state, for high-level orientation in large features
 - **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
 - **Out-of-scope grouping** — collapse OOS nodes by parent directory into a single group node, reducing clutter when a feature imports many things from the same shared area
-- **Change magnitude styling** — visually encode how much a file changed, so a reviewer's eye is drawn to the most heavily modified files first
 - **Type-only import detection** — style edges differently when an import is type-only (no runtime dependency), pending adoption of `verbatimModuleSyntax` in the target codebase
 - **Subdirectory grouping** — visually group in-scope nodes by their first-level subdirectory using background rects, requiring compound/hierarchical ELK layout

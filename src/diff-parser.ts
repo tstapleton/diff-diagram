@@ -1,4 +1,20 @@
+import { diffLines } from "diff";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
+
+// Note: for a "modified" node this sums both removed and added lines from
+// diffLines, so a same-length single-line edit scores 2 — while "added"/
+// "removed" nodes score their own line count once (via diffLines("", content)
+// or diffLines(content, "")). This is intentional, not a unit mismatch: a
+// full rewrite touches roughly twice as much text as an equivalent fresh
+// addition, in terms of what a reviewer has to read.
+function countChangedLines(
+	base: string | undefined,
+	current: string | undefined,
+): number {
+	return diffLines(base ?? "", current ?? "")
+		.filter((change) => change.added || change.removed)
+		.reduce((sum, change) => sum + change.count, 0);
+}
 
 // ─── diffGraphs ───────────────────────────────────────────────────────────────
 // Compares two fully-expanded graphs (base vs current) and produces a single
@@ -44,13 +60,21 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 
 	for (const node of current.nodes) {
 		if (!baseByFile.has(node.file)) {
-			diffedNodes.push({ ...node, diff: "added" });
+			diffedNodes.push({
+				...node,
+				diff: "added",
+				linesChanged: countChangedLines(undefined, node._content),
+			});
 		} else {
 			// biome-ignore lint/style/noNonNullAssertion: guarded by baseByFile.has() in the if-branch above
 			const baseNode = baseByFile.get(node.file)!;
+			const changed = baseNode._content !== node._content;
 			diffedNodes.push({
 				...node,
-				diff: baseNode._content === node._content ? "unchanged" : "modified",
+				diff: changed ? "modified" : "unchanged",
+				linesChanged: changed
+					? countChangedLines(baseNode._content, node._content)
+					: 0,
 			});
 		}
 	}
@@ -59,7 +83,12 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 	for (const node of base.nodes) {
 		if (node.scope === "out-of-scope") continue;
 		if (!currentByFile.has(node.file)) {
-			diffedNodes.push({ ...node, scope: "removed-ghost", diff: "removed" });
+			diffedNodes.push({
+				...node,
+				scope: "removed-ghost",
+				diff: "removed",
+				linesChanged: countChangedLines(undefined, node._content),
+			});
 		}
 	}
 
@@ -115,14 +144,70 @@ export function diffGraphs(base: Graph, current: Graph): Graph {
 		}
 	}
 
+	const nodesWithMagnitude = applyChangeMagnitude(diffedNodes);
+
 	return {
 		...current,
 		meta: {
 			...current.meta,
-			nodeCount: diffedNodes.length,
+			nodeCount: nodesWithMagnitude.length,
 			edgeCount: diffedEdges.length,
 		},
-		nodes: diffedNodes,
+		nodes: nodesWithMagnitude,
 		edges: diffedEdges,
 	};
+}
+
+// ─── applyChangeMagnitude ───────────────────────────────────────────────────
+// Scales each changed node's linesChanged into a magnitude in [0, 1], among
+// those that will actually render a magnitude fill (in-scope and
+// removed-ghost — see docs/superpowers/specs/2026-07-30-change-magnitude-design.md).
+// Out-of-scope nodes keep linesChanged but never get a magnitude, so a large
+// unrelated OOS diff can't flatten every in-scope magnitude.
+//
+// Scaled relative to the 80th percentile of eligible linesChanged, not the
+// max, with anything above that percentile clamped to 1. Real PR data showed
+// plain max-relative scaling is dominated by a single outlier file: one
+// large rewrite among many small changes left the majority of changed files
+// scored below magnitude 0.2, effectively invisible (see the design spec's
+// "Revision: percentile-clamped scaling" section for the analysis). This
+// trades away rank distinction among the very largest files — they all
+// render at full intensity — for much better visibility across the
+// small-to-medium majority, which is what a reviewer's eye actually needs.
+// With 5 or fewer eligible nodes this reduces to plain max-relative scaling,
+// since the 80th percentile of a small set is always its largest value.
+
+function isMagnitudeEligible(node: GraphNode): boolean {
+	return (
+		(node.scope === "in-scope" || node.scope === "removed-ghost") &&
+		node.diff !== null &&
+		node.diff !== "unchanged"
+	);
+}
+
+// Nearest-rank percentile over an ascending-sorted array.
+function percentile(sortedAscending: number[], p: number): number {
+	const idx = Math.min(
+		sortedAscending.length - 1,
+		Math.floor(sortedAscending.length * (p / 100)),
+	);
+	return sortedAscending[idx];
+}
+
+export function applyChangeMagnitude(nodes: GraphNode[]): GraphNode[] {
+	const eligibleLinesChanged = nodes
+		.filter(isMagnitudeEligible)
+		.map((n) => n.linesChanged ?? 0)
+		.sort((a, b) => a - b);
+
+	const scale =
+		eligibleLinesChanged.length > 0 ? percentile(eligibleLinesChanged, 80) : 0;
+
+	return nodes.map((node) => {
+		if (!isMagnitudeEligible(node)) return node;
+		return {
+			...node,
+			magnitude: scale > 0 ? Math.min(1, (node.linesChanged ?? 0) / scale) : 1,
+		};
+	});
 }

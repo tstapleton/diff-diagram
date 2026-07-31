@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffGraphs } from "./diff-parser.js";
+import { applyChangeMagnitude, diffGraphs } from "./diff-parser.js";
 import type { GraphEdge, GraphNode } from "./types.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -272,5 +272,146 @@ describe("diffGraphs — edge modified state", () => {
 		const removed = result.edges.find((e) => e.diff === "removed");
 		expect(removed?.typeOnly).toBe(true);
 		expect(removed?.importedNames).toEqual(["A"]);
+	});
+});
+
+// ─── diffGraphs — linesChanged ────────────────────────────────────────────────
+
+describe("diffGraphs — linesChanged", () => {
+	it("added node's linesChanged is its own line count", () => {
+		const base = makeFullGraph("src/users", []);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "a\nb\nc" }),
+		]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(3);
+	});
+
+	it("removed ghost's linesChanged is the base file's line count", () => {
+		const base = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "a\nb" }),
+		]);
+		const current = makeFullGraph("src/users", []);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(2);
+	});
+
+	it("modified node's linesChanged counts actual changed lines, not the net line-count delta", () => {
+		// Same line count in both (2 lines), but line 1's content differs. A
+		// naive |current.lineCount - base.lineCount| would score this 0 —
+		// exactly the flaw in PR #40 this design fixes.
+		const base = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "foo\nbar" }),
+		]);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "baz\nbar" }),
+		]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].diff).toBe("modified");
+		expect(result.nodes[0].linesChanged).toBe(2); // 1 removed + 1 added
+	});
+
+	it("unchanged node has linesChanged 0", () => {
+		const base = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "same" }),
+		]);
+		const current = makeFullGraph("src/users", [
+			gNode("src/users/foo.component.ts", { _content: "same" }),
+		]);
+		const result = diffGraphs(base, current);
+		expect(result.nodes[0].linesChanged).toBe(0);
+	});
+});
+
+// ─── applyChangeMagnitude ──────────────────────────────────────────────────────
+
+describe("applyChangeMagnitude", () => {
+	it("scales linesChanged relative to the 80th percentile (equals the max for small eligible sets)", () => {
+		const nodes = [
+			gNode("a.ts", { diff: "added", linesChanged: 10 }),
+			gNode("b.ts", { diff: "added", linesChanged: 40 }),
+		];
+		const result = applyChangeMagnitude(nodes);
+		expect(result[0].magnitude).toBeCloseTo(0.25);
+		expect(result[1].magnitude).toBeCloseTo(1);
+	});
+
+	it("single changed node gets magnitude 1", () => {
+		const nodes = [gNode("a.ts", { diff: "modified", linesChanged: 7 })];
+		const result = applyChangeMagnitude(nodes);
+		expect(result[0].magnitude).toBe(1);
+	});
+
+	it("unchanged nodes get no magnitude", () => {
+		const nodes = [gNode("a.ts", { diff: "unchanged", linesChanged: 0 })];
+		const result = applyChangeMagnitude(nodes);
+		expect(result[0].magnitude).toBeUndefined();
+	});
+
+	it("out-of-scope nodes are excluded from the max computation and get no magnitude", () => {
+		const nodes = [
+			gNode("a.ts", {
+				diff: "modified",
+				linesChanged: 5,
+				scope: "in-scope",
+			}),
+			gNode("b.ts", {
+				diff: "modified",
+				linesChanged: 500,
+				scope: "out-of-scope",
+			}),
+		];
+		const result = applyChangeMagnitude(nodes);
+		expect(result[0].magnitude).toBe(1); // not flattened by the huge OOS diff
+		expect(result[1].magnitude).toBeUndefined();
+	});
+
+	it("removed-ghost nodes are eligible for magnitude", () => {
+		const nodes = [
+			gNode("a.ts", {
+				diff: "removed",
+				linesChanged: 20,
+				scope: "removed-ghost",
+			}),
+		];
+		const result = applyChangeMagnitude(nodes);
+		expect(result[0].magnitude).toBe(1);
+	});
+
+	it("a graph with no changed nodes does not divide by zero", () => {
+		const nodes = [gNode("a.ts", { diff: "unchanged", linesChanged: 0 })];
+		expect(() => applyChangeMagnitude(nodes)).not.toThrow();
+	});
+
+	it("with 6+ eligible nodes, scales relative to the 80th percentile and clamps values above it to 1", () => {
+		// Mirrors real-world PR data: one outlier (100) among many small
+		// changes. Scaling by the plain max would crush every value below 9
+		// down near 0 (e.g. 1/100 = 0.01); percentile-clamping instead treats
+		// the second-largest value (9) as "already fully changed", trading
+		// away rank distinction between 9 and 100 for much better visibility
+		// across the small-to-medium majority.
+		const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100];
+		const nodes = values.map((v, i) =>
+			gNode(`f${i}.ts`, { diff: "modified", linesChanged: v }),
+		);
+		const result = applyChangeMagnitude(nodes);
+		const magnitudeByLines = new Map(
+			result.map((n) => [n.linesChanged, n.magnitude]),
+		);
+		expect(magnitudeByLines.get(1)).toBeCloseTo(1 / 9);
+		expect(magnitudeByLines.get(9)).toBe(1); // at the 80th-percentile threshold
+		expect(magnitudeByLines.get(100)).toBe(1); // clamped, indistinguishable from 9
+	});
+
+	it("with 5 or fewer eligible nodes, the 80th percentile is always the max (no clamping effect)", () => {
+		const nodes = [1, 2, 3, 4, 5].map((v, i) =>
+			gNode(`f${i}.ts`, { diff: "modified", linesChanged: v }),
+		);
+		const result = applyChangeMagnitude(nodes);
+		const magnitudeByLines = new Map(
+			result.map((n) => [n.linesChanged, n.magnitude]),
+		);
+		expect(magnitudeByLines.get(1)).toBeCloseTo(1 / 5);
+		expect(magnitudeByLines.get(5)).toBe(1);
 	});
 });

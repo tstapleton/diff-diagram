@@ -24,6 +24,19 @@ export interface GraphNode {
 	hasTests?: boolean;
 	hasStories?: boolean;
 	/**
+	 * Lines changed vs. the base branch: the file's own line count for
+	 * added/removed nodes, a real line-level diff count for modified nodes,
+	 * 0 for unchanged. Set by diffGraphs; absent in single-branch mode (no
+	 * base to diff against).
+	 */
+	linesChanged?: number;
+	/**
+	 * linesChanged scaled to [0, 1], relative to the most-changed node among
+	 * those that render a magnitude fill (in-scope and removed-ghost nodes).
+	 * Set by applyChangeMagnitude; absent on out-of-scope and unchanged nodes.
+	 */
+	magnitude?: number;
+	/**
 	 * Internal only: the file's raw text, used by diffGraphs to detect content
 	 * changes. Never serialized — stripped from graph.json before it's written.
 	 */

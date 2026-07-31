@@ -33,6 +33,28 @@ const STUB_TEXT = "#94a3b8";
 const TEST_DOT = "#22c55e"; // green — has unit test
 const STORY_DOT = "#a855f7"; // purple — has storybook story
 
+// ─── Color interpolation ──────────────────────────────────────────────────────
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+	const n = Number.parseInt(hex.slice(1), 16);
+	return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+	return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+export function lerpHex(from: string, to: string, t: number): string {
+	const clamped = Math.min(1, Math.max(0, t));
+	const a = hexToRgb(from);
+	const b = hexToRgb(to);
+	return rgbToHex(
+		Math.round(a.r + (b.r - a.r) * clamped),
+		Math.round(a.g + (b.g - a.g) * clamped),
+		Math.round(a.b + (b.b - a.b) * clamped),
+	);
+}
+
 // ─── Label truncation ─────────────────────────────────────────────────────────
 
 const FONT_FAMILY = "Fira Code, monospace";
@@ -53,7 +75,11 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
 			: { fill: "#0f172a", stroke: "#334155" };
 	}
 	const diff = node.diff ?? "unchanged";
-	return { fill: NODE_FILL[diff], stroke: NODE_STROKE[diff] };
+	const fill =
+		node.magnitude !== undefined
+			? lerpHex(NODE_FILL.unchanged, NODE_FILL[diff], node.magnitude)
+			: NODE_FILL[diff];
+	return { fill, stroke: NODE_STROKE[diff] };
 }
 
 function renderNode(

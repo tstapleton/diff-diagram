@@ -45,15 +45,12 @@ const FIXTURE = {
 	},
 };
 
-async function loadDiagram() {
+async function loadDiagram(data: unknown = FIXTURE) {
 	const template = await readFile(
 		new URL("./renderer.html", import.meta.url),
 		"utf8",
 	);
-	const html = template.replace(
-		"__DIFF_DIAGRAM_DATA__",
-		JSON.stringify(FIXTURE),
-	);
+	const html = template.replace("__DIFF_DIAGRAM_DATA__", JSON.stringify(data));
 	// The template's inline script is our own trusted code, so JavaScript
 	// evaluation is safe to enable here.
 	const window = new Window({
@@ -122,5 +119,47 @@ describe("renderer.html subdirectory group boxes", () => {
 		const window = await loadDiagram();
 		// starts in diff-focused mode by default, which has no subdirContainers
 		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(0);
+	});
+});
+
+describe("renderer.html change magnitude", () => {
+	const MAGNITUDE_FIXTURE = {
+		meta: { scopeDir: "src/app/features/users" },
+		sourceRoot: "src/app",
+		modes: {
+			all: {
+				nodes: [
+					{ ...node("low", "added", 10), magnitude: 0.1 },
+					{ ...node("high", "added", 150), magnitude: 1 },
+				],
+				edges: [],
+				width: 300,
+				height: 120,
+			},
+			diffFocused: {
+				nodes: [
+					{ ...node("low", "added", 10), magnitude: 0.1 },
+					{ ...node("high", "added", 150), magnitude: 1 },
+				],
+				edges: [],
+				width: 300,
+				height: 120,
+			},
+		},
+	};
+
+	it("scales a changed node's fill by magnitude instead of using the flat diff color", async () => {
+		const window = await loadDiagram(MAGNITUDE_FIXTURE);
+		const rects = [...window.document.querySelectorAll(".node-group rect")];
+		const lowFill = rects[0].getAttribute("fill");
+		const highFill = rects[1].getAttribute("fill");
+		expect(highFill).toBe("#14532d");
+		expect(lowFill).not.toBe("#14532d");
+		expect(lowFill).not.toBe("#1e293b");
+	});
+
+	it("includes a change-magnitude legend row", async () => {
+		const window = await loadDiagram();
+		expect(window.document.body.textContent).toContain("Change magnitude");
 	});
 });
