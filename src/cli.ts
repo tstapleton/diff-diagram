@@ -130,6 +130,8 @@ interface ModeData {
 		typeOnly?: boolean;
 		hasTests?: boolean;
 		hasStories?: boolean;
+		linesChanged?: number;
+		magnitude?: number;
 	}>;
 	edges: Array<{
 		from: string;
@@ -176,6 +178,10 @@ function buildModeData(
 			...(gn?.typeOnly ? { typeOnly: true } : {}),
 			...(gn?.hasTests ? { hasTests: true } : {}),
 			...(gn?.hasStories ? { hasStories: true } : {}),
+			...(gn?.linesChanged !== undefined
+				? { linesChanged: gn.linesChanged }
+				: {}),
+			...(gn?.magnitude !== undefined ? { magnitude: gn.magnitude } : {}),
 		};
 	});
 

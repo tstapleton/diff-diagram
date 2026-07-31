@@ -69,6 +69,16 @@ describe("diffGraphs integration — node diff states", () => {
 		expect(n?.diff).toBe("modified");
 	});
 
+	it("users-list.component (the largest modified diff) has the maximum magnitude", () => {
+		const n = nodeByFile("user-list/users-list.component.ts");
+		expect(n?.magnitude).toBe(1);
+	});
+
+	it("user-table-header.component (a 1-line diff) has a much lower magnitude", () => {
+		const n = nodeByFile("user-list/user-table-header.component.ts");
+		expect(n?.magnitude).toBeLessThan(0.2);
+	});
+
 	it("user-card.component is unchanged", () => {
 		const n = nodeByFile("user-list/user-card.component.ts");
 		expect(n).toBeDefined();

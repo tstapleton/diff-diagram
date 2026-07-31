@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "../types.js";
-import { edgeStroke, nodeColor, toSvg, truncateLabel } from "./draw.js";
+import {
+	edgeStroke,
+	lerpHex,
+	nodeColor,
+	toSvg,
+	truncateLabel,
+} from "./draw.js";
 import type { Layout } from "./layout.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -82,6 +88,55 @@ describe("nodeColor", () => {
 	it("removed node has red stroke", () => {
 		const { stroke } = nodeColor(node("a", { diff: "removed" }));
 		expect(stroke).toBe("#ef4444");
+	});
+});
+
+// ─── lerpHex ─────────────────────────────────────────────────────────────────
+
+describe("lerpHex", () => {
+	it("returns the from color at t=0", () => {
+		expect(lerpHex("#000000", "#ffffff", 0)).toBe("#000000");
+	});
+
+	it("returns the to color at t=1", () => {
+		expect(lerpHex("#000000", "#ffffff", 1)).toBe("#ffffff");
+	});
+
+	it("returns the midpoint color at t=0.5", () => {
+		expect(lerpHex("#000000", "#ffffff", 0.5)).toBe("#808080");
+	});
+
+	it("clamps t below 0", () => {
+		expect(lerpHex("#000000", "#ffffff", -1)).toBe("#000000");
+	});
+
+	it("clamps t above 1", () => {
+		expect(lerpHex("#000000", "#ffffff", 2)).toBe("#ffffff");
+	});
+});
+
+// ─── nodeColor — magnitude ─────────────────────────────────────────────────────
+
+describe("nodeColor — magnitude", () => {
+	it("scales fill toward the diff color by magnitude, leaving stroke fixed", () => {
+		const low = nodeColor(node("a", { diff: "added", magnitude: 0.1 }));
+		const high = nodeColor(node("a", { diff: "added", magnitude: 1 }));
+		expect(high.fill).toBe("#14532d"); // full intensity at magnitude 1
+		expect(low.fill).toBe(lerpHex("#1e293b", "#14532d", 0.1));
+		expect(low.stroke).toBe(high.stroke);
+		expect(low.stroke).toBe("#22c55e");
+	});
+
+	it("falls back to the flat diff fill when magnitude is absent", () => {
+		const { fill } = nodeColor(node("a", { diff: "modified" }));
+		expect(fill).toBe("#78350f");
+	});
+
+	it("out-of-scope node ignores magnitude entirely", () => {
+		const { fill } = nodeColor(
+			node("a", { scope: "out-of-scope", diff: "added", magnitude: 0.1 }),
+		);
+		expect(fill).toBe("#0a1829");
 	});
 });
 

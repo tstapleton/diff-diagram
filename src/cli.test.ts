@@ -319,6 +319,60 @@ describe("cli graph.json output", () => {
 	}, 30_000);
 });
 
+// ─── change magnitude ───────────────────────────────────────────────────────
+
+describe("cli change-magnitude output", () => {
+	let tmp: string;
+	let baseRepoRoot: string;
+	let repoRoot: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-magnitude-"));
+		baseRepoRoot = path.join(tmp, "base");
+		repoRoot = path.join(tmp, "repo");
+		await writeFixtureFile(
+			path.join(baseRepoRoot, "src/app/features/f/a.component.ts"),
+			"export const a = 1;\n",
+		);
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/a.component.ts"),
+			"export const a = 2;\nexport const b = 3;\n",
+		);
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("graph.json's changed node carries linesChanged and magnitude", async () => {
+		const outDir = path.join(tmp, "out");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--base-repo-root",
+			baseRepoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const graph: Graph = JSON.parse(
+			await readFile(path.join(outDir, "graph.json"), "utf8"),
+		);
+		const node = graph.nodes.find((n) => n.file.endsWith("a.component.ts"));
+		expect(node?.diff).toBe("modified");
+		expect(node?.linesChanged).toBeGreaterThan(0);
+		expect(node?.magnitude).toBe(1);
+	}, 30_000);
+
+	it("diagram.html embeds magnitude on the changed node", async () => {
+		const outDir = path.join(tmp, "out");
+		const html = await readFile(path.join(outDir, "diagram.html"), "utf8");
+		expect(html).toContain('"magnitude"');
+	}, 30_000);
+});
+
 // ─── BUG-04: buildHtml must not corrupt JSON via String.replace patterns ──────
 
 describe("buildHtml embedded JSON", () => {

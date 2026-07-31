@@ -26,6 +26,9 @@ One of four values indicating how a node or edge changed between base and curren
 - `modified` — present in both but changed: a node whose own content differs between branches, or an edge whose set of imported names changed
 - `unchanged` — identical in both branches
 
+**change magnitude**  
+A `[0, 1]` value on changed nodes (`added`, `modified`, `removed`) indicating how much a node's content differs from its base version, relative to the 80th percentile of change size among eligible nodes in the graph (not the single largest — see `applyChangeMagnitude` in `diff-parser.ts`), clamped to 1 above that percentile. Computed from a real line-level diff (`countChangedLines` in `diff-parser.ts`) and used to scale fill-color intensity in both renderers. `magnitude` in the graph schema; absent on `unchanged` and out-of-scope nodes.
+
 **base branch / base repo root**  
 The state of the repository before the PR changes. The CLI requires a pre-materialized checkout of the base branch (e.g. via `git worktree add`) passed via `--base-repo-root`. The CLI does not manage git state.
 

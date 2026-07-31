@@ -36,7 +36,7 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, _content?: string }` (`_content` is internal only — raw file text used by `diffGraphs` to detect content changes, stripped from `graph.json` before it's written)
+- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, linesChanged?: number, magnitude?: number, _content?: string }` (`linesChanged`/`magnitude` are set by `diffGraphs`/`applyChangeMagnitude` — see below; `_content` is internal only — raw file text used by `diffGraphs` to detect content changes, stripped from `graph.json` before it's written)
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
 - `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount }` (`scopeDir` is the JSON field name for the feature directory path)
@@ -76,13 +76,14 @@ Adds one-hop out-of-scope context to a Graph. Reads `_oosEdges`, creates `GraphN
 Algorithm:
 1. Index base and current nodes by `node.file` (repo-relative path — stable across branches)
 2. Index base and current edges by `"fromFile→toFile"` key
-3. Current nodes not in base → `diff: 'added'`
-4. Current nodes in base → `diff: 'modified'` if the node's `_content` differs from its base counterpart, else `'unchanged'`
-5. Base in-scope nodes not in current → ghost node, `scope: 'removed-ghost'`, `diff: 'removed'`
+3. Current nodes not in base → `diff: 'added'`, `linesChanged` = the file's own line count
+4. Current nodes in base → `diff: 'modified'` if the node's `_content` differs from its base counterpart (else `'unchanged'`); `linesChanged` = a real line-level diff count (via the `diff` npm package's `diffLines`) between base and current content, or 0 if unchanged
+5. Base in-scope nodes not in current → ghost node, `scope: 'removed-ghost'`, `diff: 'removed'`, `linesChanged` = the base file's own line count
    - Out-of-scope removed nodes are dropped (no ghost)
 6. Current edges not in base → `diff: 'added'`
 7. Current edges in base → compare imported-name sets: `diff: 'modified'` if the set changed, else `'unchanged'`
 8. Base edges not in current → re-keyed to current/ghost node IDs, `diff: 'removed'`
+9. `applyChangeMagnitude(nodes)` scales each node's `linesChanged` into `magnitude` ∈ [0, 1], relative to the 80th percentile of `linesChanged` among in-scope and removed-ghost nodes, clamping anything above that percentile to 1 (out-of-scope nodes are excluded from this computation, and never receive a `magnitude`, so an unrelated large OOS diff can't flatten every in-scope node's magnitude toward zero). Percentile-clamping, not the max, is used because a single outlier file dominating the max was found to crush most other changed files' magnitude toward zero in real PRs — see the design spec's "Revision: percentile-clamped scaling" section. With 5 or fewer eligible nodes this is identical to scaling by the max, since the 80th percentile of a small set is always its largest value.
 
 ### `src/renderer/graph-helpers.ts`
 
@@ -135,8 +136,9 @@ Color scheme:
 - Out-of-scope fill: `#0a1829`, stroke: `#1e3a5f`
 - Stub: fill `#0f172a`, stroke `#334155`, dashed border
 - Edge stroke same as node stroke; removed edges are dashed + 50% opacity
+- **Change magnitude:** when a node has a `magnitude` (in-scope and removed-ghost changed nodes — see `diffGraphs` above), its fill is `lerpHex(unchangedFill, diffStateFill, magnitude)` — an sRGB per-channel lerp — instead of the flat diff-state fill. Stroke is unaffected by magnitude; it always renders at full diff-state intensity, so even a barely-changed node's diff state stays unambiguous.
 
-Exports: `toSvg`, `nodeColor`, `edgeStroke`, `truncateLabel`
+Exports: `toSvg`, `nodeColor`, `edgeStroke`, `truncateLabel`, `lerpHex`
 
 **`truncateLabel(label, maxWidth)`** — uses approx 7px/char at 11px monospace font, leaves 16px padding. Returns label with `…` if truncated.
 
@@ -157,7 +159,7 @@ Data structure embedded by CLI:
 
 Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope }` and `ModeEdge` augments `LayoutEdge` with `{ diff? }`.
 
-Client-side renderer: builds SVG string from layout positions using the same color palette as `draw.ts`. Adds `data-id` to node groups and `data-from`/`data-to` to edge paths for hover event delegation.
+Client-side renderer: builds SVG string from layout positions using the same color palette and magnitude-fill logic (`lerpHex`, mirrored from `draw.ts`) as `draw.ts`. Adds `data-id` to node groups and `data-from`/`data-to` to edge paths for hover event delegation.
 
 Hover: `mouseover` on `[data-id]` → connected edges keep full opacity (1), all other edges dim to opacity 0.2. `mouseleave` restores.
 
@@ -199,12 +201,12 @@ If a file moves (rename), `diffGraphs` treats it as removed + added. Rename trac
 
 ## Test fixtures
 
-`fake-angular-app/` — 79 .ts files, represents the "after PR" state.
+`fake-angular-app/` — 80 .ts files, represents the "after PR" state.
 `fake-angular-app-base/` — 76 .ts files, represents the "before PR" state.
 
 Fixture diff:
-- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`; also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
+- Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`, `user-settings/security-session.model.ts` (a deliberately tiny 5-line model, next to the two ~35-line components above — gives the change-magnitude gradient visible range on the `added` side); also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
 - Removed: `user-list/user-search-results.component.ts`
-- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (new OOS dep `AnalyticsService`, dropped import of the removed component), `user-detail/user-detail.component.ts` (dropped `CacheService`), `user-list/user-table-header.component.ts` (template content changed, imports unchanged — demonstrates node diff is content-based, not import-based)
+- Modified: `user-settings/user-settings.component.ts` (new imports), `user-list/users-list.component.ts` (wires up the previously-unused `SortStateService`/`sortComparator` and adds row-selection UI — a substantially larger rewrite than the other three modified files, deliberately the "hottest" node, to give the change-magnitude gradient visible range on the `modified` side), `user-detail/user-detail.component.ts` (dropped `CacheService`), `user-list/user-table-header.component.ts` (template content changed, imports unchanged — demonstrates node diff is content-based, not import-based)
 
 Integration tests in `src/integration.test.ts` run the full analyze→addContext→diffGraphs pipeline against these fixtures and assert all 5 node diff states and 3 edge diff states.

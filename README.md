@@ -27,6 +27,7 @@ Both samples above are generated from the `sample-app/` + `sample-app-base/` fix
 | Amber border, dark amber fill | File modified in this PR (its content changed) |
 | Red border, dark red fill | File removed in this PR (kept as a ghost so you can see what pointed at it) |
 | Grey border, slate fill | File unchanged |
+| Fill intensity, within a diff color | Change magnitude — how much of the file changed, relative to the most heavily changed files in the diagram. The border always shows full diff-state color regardless of magnitude; only the fill fades toward the unchanged slate for smaller edits, so a one-line tweak stays visually distinct from a full rewrite. |
 | Darker box outside the feature container | Out-of-scope dependency (imported from outside the feature directory), with its directory path under the name |
 | Dashed border, italic name | Type-only dependency (every import of it is `import type`) |
 | Solid arrow | Import; color follows its diff state (green added, amber changed, grey unchanged) |
@@ -100,7 +101,7 @@ Tests are colocated with source files in `src/`.
 `fake-angular-app/` — "after PR" state  
 `fake-angular-app-base/` — "before PR" state
 
-Fixture diff: two files added in `user-settings/`, one removed in `user-list/`, three files with changed imports, plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch. Used by the integration and visual regression tests.
+Fixture diff: three files added in `user-settings/` (two components plus a small model, deliberately sized apart to show the change-magnitude gradient's range), one removed in `user-list/`, four files modified (three small, one substantially larger — also demonstrating the gradient), plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch. Used by the integration and visual regression tests.
 
 `sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
