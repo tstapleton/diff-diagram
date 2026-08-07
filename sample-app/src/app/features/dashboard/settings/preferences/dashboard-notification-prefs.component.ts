@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component } from "@angular/core";
+import type { NotificationPrefs } from "./notification-prefs.model";
 
 @Component({
 	selector: "app-dashboard-notification-prefs",
@@ -35,9 +36,13 @@ import { Component } from "@angular/core";
   `,
 })
 export class DashboardNotificationPrefsComponent {
-	prefs = { weeklySummary: true, mentions: true, digest: false };
+	prefs: NotificationPrefs = {
+		weeklySummary: true,
+		mentions: true,
+		digest: false,
+	};
 
-	toggle(key: keyof typeof this.prefs): void {
+	toggle(key: keyof NotificationPrefs): void {
 		this.prefs[key] = !this.prefs[key];
 	}
 }

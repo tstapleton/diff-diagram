@@ -35,7 +35,7 @@ Both samples above are generated from the `sample-app/` + `sample-app-base/` fix
 | Green dot | File has a unit test (`.spec.ts` sidecar) |
 | Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
 | Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
-| Dashed subtle box inside the feature container | Files grouped by first-level subdirectory (e.g. `user-list/`); files at the feature root get no box |
+| Dashed subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
 
 ## Setup
 
@@ -106,7 +106,7 @@ Fixture diff: three files added in `user-settings/` (two components plus a small
 `sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` file, demonstrating that nested files still group under their first-level subdirectory), and a `layout/` subdirectory whose one file is unchanged between branches — the only subdirectory diff-focused mode collapses to a stub, so it's the one place the two sample images above actually differ. Not used by any automated test.
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), and a `layout/` subdirectory whose one file is unchanged between branches — the only subdirectory diff-focused mode collapses to a stub, so it's the one place the two sample images above actually differ. Not used by any automated test.
 
 ## Architecture
 

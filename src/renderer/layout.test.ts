@@ -236,7 +236,7 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		expect(within(lorphan!, box!)).toBe(true);
 	});
 
-	it("groups a file nested two levels deep under its first-level subdirectory", async () => {
+	it("groups a file nested two levels deep under a nested second-level box, distinct from its first-level sibling", async () => {
 		const shallow = nodeInDir("shallow", `${scopeDir}/sub/shallow.ts`);
 		const deep = nodeInDir("deep", `${scopeDir}/sub/nested/deep.ts`);
 		const layout = await computeLayout(
@@ -245,12 +245,19 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			"src/app",
 			scopeDir,
 		);
-		expect(layout.subdirContainers).toHaveLength(1);
-		expect(layout.subdirContainers?.[0].label).toBe("sub");
-		const box = layout.subdirContainers?.[0];
+		expect(layout.subdirContainers).toHaveLength(2);
+		const outer = layout.subdirContainers?.find((c) => c.label === "sub");
+		const inner = layout.subdirContainers?.find((c) => c.label === "nested");
+		expect(outer).toBeDefined();
+		expect(inner).toBeDefined();
+		const lshallow = layout.nodes.find((n) => n.id === "shallow");
 		const ldeep = layout.nodes.find((n) => n.id === "deep");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
-		expect(within(ldeep!, box!)).toBe(true);
+		expect(within(lshallow!, outer!)).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(ldeep!, inner!)).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(inner!, outer!)).toBe(true);
 	});
 
 	it("routes an edge from a root-level node into a subdirectory node", async () => {
@@ -286,5 +293,119 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		const loos = layout.nodes.find((n) => n.id === "oos");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
 		expect(within(loos!, box!)).toBe(false);
+	});
+
+	it("routes an edge between two files in the same second-level subdirectory", async () => {
+		const a = nodeInDir("a", `${scopeDir}/sub/nested/a.ts`);
+		const b = nodeInDir("b", `${scopeDir}/sub/nested/b.ts`);
+		const layout = await computeLayout(
+			[a, b],
+			[edge("a", "b")],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.edges).toHaveLength(1);
+		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
+		const inner = layout.subdirContainers?.find((c) => c.label === "nested");
+		const la = layout.nodes.find((n) => n.id === "a");
+		const lb = layout.nodes.find((n) => n.id === "b");
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
+		expect(within(la!, inner!)).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
+		expect(within(lb!, inner!)).toBe(true);
+	});
+
+	it("routes an edge between a second-level file and its first-level sibling without the nested box swallowing the sibling", async () => {
+		const direct = nodeInDir("direct", `${scopeDir}/sub/direct.ts`);
+		const child = nodeInDir("child", `${scopeDir}/sub/inner/child.ts`);
+		const layout = await computeLayout(
+			[direct, child],
+			[edge("direct", "child")],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
+		const outer = layout.subdirContainers?.find((c) => c.label === "sub");
+		const inner = layout.subdirContainers?.find((c) => c.label === "inner");
+		const ldirect = layout.nodes.find((n) => n.id === "direct");
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
+		expect(within(ldirect!, outer!)).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
+		expect(within(ldirect!, inner!)).toBe(false);
+	});
+
+	it("routes an edge across different first-level subdirectories when one endpoint is nested two levels deep", async () => {
+		const a = nodeInDir("a", `${scopeDir}/sub-one/inner/a.ts`);
+		const b = nodeInDir("b", `${scopeDir}/sub-two/b.ts`);
+		const layout = await computeLayout(
+			[a, b],
+			[edge("a", "b")],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
+	});
+
+	it("collapses a file three or more directories deep into its second-level subdirectory box", async () => {
+		const shallow = nodeInDir("shallow", `${scopeDir}/sub/inner/shallow.ts`);
+		const deep = nodeInDir("deep", `${scopeDir}/sub/inner/extra/deep.ts`);
+		const layout = await computeLayout(
+			[shallow, deep],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		const labels = layout.subdirContainers?.map((c) => c.label).sort();
+		expect(labels).toEqual(["inner", "sub"]);
+		const inner = layout.subdirContainers?.find((c) => c.label === "inner");
+		const ldeep = layout.nodes.find((n) => n.id === "deep");
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(ldeep!, inner!)).toBe(true);
+	});
+
+	it("keeps second-level boxes distinct when two first-level subdirectories share a child directory name", async () => {
+		const a = nodeInDir("a", `${scopeDir}/sub-one/utils/a.ts`);
+		const b = nodeInDir("b", `${scopeDir}/sub-two/utils/b.ts`);
+		const layout = await computeLayout([a, b], [], "src/app", scopeDir);
+		const utilsBoxes = layout.subdirContainers?.filter(
+			(c) => c.label === "utils",
+		);
+		expect(utilsBoxes).toHaveLength(2);
+		const la = layout.nodes.find((n) => n.id === "a");
+		const lb = layout.nodes.find((n) => n.id === "b");
+		const [box1, box2] = utilsBoxes ?? [];
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		const aInBox1 = within(la!, box1);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		const aInBox2 = within(la!, box2);
+		expect(aInBox1 !== aInBox2).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		const bInSameBoxAsA = aInBox1 ? within(lb!, box1) : within(lb!, box2);
+		expect(bInSameBoxAsA).toBe(false);
+	});
+
+	it("container box fully contains all subdir boxes when subdir grouping is active", async () => {
+		// Build a fixture with nested subdir structure to trigger both level-1 and level-2 boxes
+		const a = nodeInDir("a", `${scopeDir}/sub/a.ts`);
+		const b = nodeInDir("b", `${scopeDir}/sub/nested/b.ts`);
+		const layout = await computeLayout([a, b], [], "src/app", scopeDir);
+		expect(layout.container).toBeDefined();
+		expect(layout.subdirContainers).toBeDefined();
+		if (layout.container && layout.subdirContainers) {
+			for (const box of layout.subdirContainers) {
+				// biome-ignore lint/style/noNonNullAssertion: presence asserted by the if guard
+				expect(box.x).toBeGreaterThanOrEqual(layout.container!.x);
+				// biome-ignore lint/style/noNonNullAssertion: presence asserted by the if guard
+				expect(box.y).toBeGreaterThanOrEqual(layout.container!.y);
+				expect(box.x + box.width).toBeLessThanOrEqual(
+					// biome-ignore lint/style/noNonNullAssertion: presence asserted by the if guard
+					layout.container!.x + layout.container!.width,
+				);
+				expect(box.y + box.height).toBeLessThanOrEqual(
+					// biome-ignore lint/style/noNonNullAssertion: presence asserted by the if guard
+					layout.container!.y + layout.container!.height,
+				);
+			}
+		}
 	});
 });
