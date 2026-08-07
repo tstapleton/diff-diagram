@@ -12,7 +12,8 @@
 			"!!.claude",
 			"!!skills-lock.json",
 			"!!docs/sample-diff.svg",
-			"!!docs/sample-all.svg"
+			"!!docs/sample-all.svg",
+			"!!docs/sample-clustered.svg"
 		]
 	},
 	"formatter": {

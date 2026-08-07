@@ -9,7 +9,7 @@ import { addContext } from "./filter.js";
 import { toSvg } from "./renderer/draw.js";
 import { computeViewNodes } from "./renderer/graph-helpers.js";
 import type { Layout } from "./renderer/layout.js";
-import { computeLayout } from "./renderer/layout.js";
+import { computeClusteredLayout, computeLayout } from "./renderer/layout.js";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
 
 // ─── Args ─────────────────────────────────────────────────────────────────────
@@ -154,8 +154,8 @@ interface ModeData {
 interface DiagramData {
 	meta: Omit<Graph["meta"], "repoRoot">;
 	sourceRoot: string;
-	initialMode?: "all" | "diffFocused";
-	modes: { all: ModeData; diffFocused: ModeData };
+	initialMode?: "all" | "diffFocused" | "clustered";
+	modes: { all: ModeData; diffFocused: ModeData; clustered: ModeData };
 }
 
 function buildModeData(
@@ -289,12 +289,13 @@ async function main(): Promise<void> {
 		);
 	}
 
-	// Compute layouts for both view modes in parallel
+	// Compute layouts for all three view modes in parallel
 	console.log("Computing layouts...");
 	const allView = computeViewNodes(diffed, "all");
 	const diffView = computeViewNodes(diffed, "diff-focused");
+	const clusteredView = computeViewNodes(diffed, "clustered");
 
-	const [allLayout, diffLayout] = await Promise.all([
+	const [allLayout, diffLayout, clusteredLayout] = await Promise.all([
 		computeLayout(
 			allView.nodes,
 			allView.edges,
@@ -304,6 +305,12 @@ async function main(): Promise<void> {
 		computeLayout(
 			diffView.nodes,
 			diffView.edges,
+			args.sourceRoot,
+			diffed.meta.scopeDir,
+		),
+		computeClusteredLayout(
+			clusteredView.nodes,
+			clusteredView.edges,
 			args.sourceRoot,
 			diffed.meta.scopeDir,
 		),
@@ -323,6 +330,20 @@ async function main(): Promise<void> {
 	const allSvgPath = path.join(outDir, "diagram-all.svg");
 	await writeFile(allSvgPath, allSvg);
 	console.log(`Wrote ${allSvgPath}`);
+
+	// diagram-clustered.svg — directory-only zoomed-out view. Always written,
+	// same as diagram-all.svg: dominant-diff-state coloring per directory is
+	// still meaningful (all "unchanged") even without a base to diff against.
+	const clusteredSvg = toSvg(
+		clusteredLayout,
+		clusteredView.nodes,
+		clusteredView.edges,
+		path.basename(scopeDir),
+		args.sourceRoot,
+	);
+	const clusteredSvgPath = path.join(outDir, "diagram-clustered.svg");
+	await writeFile(clusteredSvgPath, clusteredSvg);
+	console.log(`Wrote ${clusteredSvgPath}`);
 
 	// diagram-diff.svg — diff-focused view. Only meaningful with a base to diff
 	// against; in single-branch mode every diff state is null, so this file is
@@ -352,6 +373,11 @@ async function main(): Promise<void> {
 		modes: {
 			all: buildModeData(allView.nodes, allView.edges, allLayout),
 			diffFocused: buildModeData(diffView.nodes, diffView.edges, diffLayout),
+			clustered: buildModeData(
+				clusteredView.nodes,
+				clusteredView.edges,
+				clusteredLayout,
+			),
 		},
 	};
 	const templatePath = new URL("../src/renderer.html", import.meta.url)

@@ -79,11 +79,13 @@ Rules:
 
 ### View modes
 
-Two view modes are available in `diagram.html`. `diagram-diff.svg` always uses the diff-focused mode; `diagram-all.svg` always uses the all-nodes mode.
+Three view modes are available in `diagram.html`. `diagram-diff.svg` always uses the diff-focused mode; `diagram-all.svg` always uses the all-nodes mode; `diagram-clustered.svg` always uses the clustered mode and is always written regardless of whether a base to diff against was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
 
 **All nodes** — every node is shown individually. Useful for seeing the full architecture of a feature without any collapsing.
 
 **Diff-focused** — the default and primary view. Changed areas are expanded; unchanged areas are collapsed to stub nodes (directory-level placeholders).
+
+**Clustered** — a third mode for orientation on large features: every subdirectory (up to 2 levels deep) collapses to one box regardless of diff state, colored by the most significant change inside it. Independent of diff-focused's stub-collapsing rules below — a directory renders as a box here even if diff-focused would show it fully expanded or collapse it to a stub.
 
 Collapse rules for diff-focused:
 - In-scope: group nodes by their first-level subdirectory under the feature directory. If all nodes in a group are `unchanged`, collapse the group to a single stub. If any node is `added`, `modified`, or `removed`, expand all nodes in that group individually.
@@ -125,7 +127,6 @@ The following features are designed but not yet implemented. Full design decisio
 
 - **GitHub Action** — runs on PR events, posts `diagram.svg` as an inline PR comment image, no external storage required
 - **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, all node types, sidecar markers), committed to the repo and referenced in the README
-- **Clustered view mode** — a third view that collapses every directory to a single box regardless of diff state, for high-level orientation in large features
 - **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
 - **Out-of-scope grouping** — collapse OOS nodes by parent directory into a single group node, reducing clutter when a feature imports many things from the same shared area
 - **Type-only import detection** — style edges differently when an import is type-only (no runtime dependency), pending adoption of `verbatimModuleSyntax` in the target codebase

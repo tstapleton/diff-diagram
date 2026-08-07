@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="406" viewBox="0 0 640 406">
+<defs>
+  <marker id="arrow-added" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#22c55e"/>
+  </marker>
+  <marker id="arrow-modified" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+  </marker>
+  <marker id="arrow-removed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#ef4444"/>
+  </marker>
+  <marker id="arrow-unchanged" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+    <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+  </marker></defs>
+<rect width="640" height="406" fill="#0f172a"/>
+  <rect x="25" y="20" width="415" height="366" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>
+  <text x="35" y="33" font-family="Fira Code, monospace" font-size="9" fill="#475569">dashboard</text>
+  <path d="M 190 95 L 210 95 L 210 291 L 240 291" fill="none" stroke="#475569" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/>
+  <path d="M 190 75 L 240 75" fill="none" stroke="#475569" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/>
+  <path d="M 190 81.66666666666666 L 230 81.66666666666666 L 230 153 L 254.5 153" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/>
+  <path d="M 190 101.66666666666666 L 200 101.66666666666666 L 200 351 L 262.5 351" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/>
+  <path d="M 425 291 L 435 291 L 435 166.33333333333331 L 465 166.33333333333331" fill="none" stroke="#475569" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/>
+  <path d="M 410.5 153 L 465 153" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/>
+  <path d="M 402.5 351 L 465 351" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/>
+  <path d="M 190 88.33333333333334 L 220 88.33333333333334 L 220 231 L 240 231" fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0.5" stroke-dasharray="5,3" marker-end="url(#arrow-removed)"/>
+  <rect x="240" y="271" width="185" height="40" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="248" y="295" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">DashboardStatsComponent</text>
+  <circle cx="419" cy="305" r="3" fill="#a855f7"/>
+  <circle cx="411" cy="305" r="3" fill="#22c55e"/>
+  <rect x="40" y="68.33333333333333" width="150" height="40" rx="4" fill="#2f2b33" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="48" y="92.33333333333333" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">DashboardComponent</text>
+  <rect x="240" y="211" width="171" height="40" rx="4" fill="#3d2531" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="248" y="235" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">DashboardNavComponent</text>
+  <rect x="240" y="55" width="140" height="40" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <text x="248" y="68" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">layout</text>
+  <rect x="254.5" y="115" width="156" height="76" rx="4" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="262.5" y="128" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">settings</text>
+  <rect x="262.5" y="143" width="140" height="40" rx="4" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="270.5" y="156" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">preferences</text>
+  <rect x="262.5" y="331" width="140" height="40" rx="4" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="270.5" y="344" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">widgets</text>
+  <rect x="465" y="139.66666666666666" width="140" height="40" rx="4" fill="#0a1829" stroke="#1e3a5f" stroke-width="1"/>
+  <text x="473" y="156.66666666666666" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">services</text>
+  <text x="473" y="168.66666666666666" font-family="Fira Code, monospace" font-size="8" fill="#64748b">shared</text>
+  <rect x="465" y="331" width="140" height="40" rx="4" fill="#0a1829" stroke="#1e3a5f" stroke-width="1"/>
+  <text x="473" y="348" font-family="Fira Code, monospace" font-size="11" fill="#e2e8f0">models</text>
+  <text x="473" y="360" font-family="Fira Code, monospace" font-size="8" fill="#64748b">shared</text>
+</svg>

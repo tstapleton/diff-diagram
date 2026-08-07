@@ -130,6 +130,13 @@ function renderNode(
 		].join("\n");
 	}
 
+	if (node.type === "directory") {
+		return [
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
+			`  <text x="${lx + 8}" y="${ly + 13}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+		].join("\n");
+	}
+
 	// in-scope or removed-ghost: label only, vertically centered
 	const cy = ly + lh / 2 + 4;
 	const dots = nodeMarkerDots(node, lx, ly, lw, lh);
