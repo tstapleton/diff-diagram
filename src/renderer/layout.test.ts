@@ -489,6 +489,39 @@ describe("computeClusteredLayout", () => {
 		expect(within(effectsNode!, outer!)).toBe(true);
 	});
 
+	it("routes an edge between two level2 sibling nodes nested under the same level1 parent, inside the parent's box", async () => {
+		const dataAccess = dirNode(
+			"data-access",
+			"data-access",
+			`${scopeDir}/data-access`,
+		);
+		const store = dirNode("store", "store", `${scopeDir}/data-access/store`);
+		const effects = dirNode(
+			"effects",
+			"effects",
+			`${scopeDir}/data-access/effects`,
+		);
+		const layout = await computeClusteredLayout(
+			[dataAccess, store, effects],
+			[{ from: "store", to: "effects", kind: "import" }],
+			"src/app",
+			scopeDir,
+		);
+		const outer = layout.nodes.find((n) => n.id === "data-access");
+		expect(outer).toBeDefined();
+		expect(layout.edges).toHaveLength(1);
+		for (const section of layout.edges[0].sections) {
+			expect(
+				// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+				within({ ...section.startPoint, width: 0, height: 0 }, outer!),
+			).toBe(true);
+			expect(
+				// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+				within({ ...section.endPoint, width: 0, height: 0 }, outer!),
+			).toBe(true);
+		}
+	});
+
 	it("draws the level1 parent before its level2 child, so the child renders on top", async () => {
 		const dataAccess = dirNode(
 			"data-access",

@@ -510,6 +510,57 @@ export async function computeClusteredLayout(
 	// leafElkNode), plus oos directory nodes. Level2 nodes are never
 	// top-level — they're always the sole child of their level1 node.
 	const topLevel = inScopeNodes.filter((n) => !level2NodeIds.has(n.id));
+
+	// level1 path segment -> id of the level1 ELK node it names, restricted to
+	// level1 nodes that actually have level2 children (i.e. will be compound).
+	// Used below to find, for a level2 node id, which level1 node it nests
+	// inside — the LCA an edge between two such siblings must be declared on.
+	const level1NodeIdBySegment = new Map<string, string>();
+	for (const n of topLevel) {
+		const parts = segmentsOf.get(n.id) ?? [];
+		if (parts.length === 1 && level2ChildrenByLevel1Segment.has(parts[0])) {
+			level1NodeIdBySegment.set(parts[0], n.id);
+		}
+	}
+	function containingLevel1Id(nodeId: string): string | undefined {
+		const parts = segmentsOf.get(nodeId) ?? [];
+		return parts.length === 2 ? level1NodeIdBySegment.get(parts[0]) : undefined;
+	}
+
+	// Deduplicate edges, then route each to the ELK node whose `edges` array it
+	// belongs on: the level1 compound node when both endpoints are level2
+	// siblings nested under it (ELK requires an edge declared on its lowest
+	// common ancestor — declaring it on root instead, relying on
+	// elk.hierarchyHandling: INCLUDE_CHILDREN to route it anyway, produces a
+	// degenerate section in the wrong coordinate frame, floating outside the
+	// parent's box), else the root graph (same as computeLayout already does
+	// for genuinely cross-hierarchy edges). An edge between a level1 node and
+	// its own level2 child is not a shape this function needs to handle
+	// specially: computeClusteredNodes (graph-helpers.ts) never emits one —
+	// verified empirically that ELK cannot route it as a meaningful, visible
+	// edge at this compound-node depth regardless of which node's `edges`
+	// array it's declared on (both the LCA-declared and root-declared
+	// placements produced a degenerate section fully contained within the
+	// parent's own box), so that edge shape is dropped upstream instead.
+	type ElkEdgeInput = { id: string; sources: string[]; targets: string[] };
+	const seen = new Set<string>();
+	const rootEdges: ElkEdgeInput[] = [];
+	const level1EdgesById = new Map<string, ElkEdgeInput[]>();
+	edges.forEach((e, i) => {
+		const key = `${e.from}→${e.to}`;
+		if (seen.has(key)) return;
+		seen.add(key);
+		const elkEdge = { id: `e${i}`, sources: [e.from], targets: [e.to] };
+		const fromParent = containingLevel1Id(e.from);
+		const toParent = containingLevel1Id(e.to);
+		if (fromParent !== undefined && fromParent === toParent) {
+			if (!level1EdgesById.has(fromParent)) level1EdgesById.set(fromParent, []);
+			level1EdgesById.get(fromParent)?.push(elkEdge);
+		} else {
+			rootEdges.push(elkEdge);
+		}
+	});
+
 	const level1Children: ElkNode[] = topLevel.map((n) => {
 		const parts = segmentsOf.get(n.id) ?? [];
 		const level2Children =
@@ -531,29 +582,8 @@ export async function computeClusteredLayout(
 				...(usePartitions ? { "elk.partitioning.partition": "0" } : {}),
 			},
 			children: level2Children.map(leafElkNode),
-			edges: [],
+			edges: level1EdgesById.get(n.id) ?? [],
 		};
-	});
-
-	// Deduplicate edges and route every one on the root graph, relying on
-	// elk.hierarchyHandling: INCLUDE_CHILDREN to route it regardless of
-	// nesting depth, same as computeLayout already does for cross-hierarchy
-	// edges. An edge between a level1 node and its own level2 child is not a
-	// shape this function needs to handle specially: computeClusteredNodes
-	// (graph-helpers.ts) never emits one — verified empirically that ELK
-	// cannot route it as a meaningful, visible edge at this compound-node
-	// depth regardless of which node's `edges` array it's declared on (both
-	// the LCA-declared and root-declared placements produced a degenerate
-	// section fully contained within the parent's own box), so that edge
-	// shape is dropped upstream instead.
-	type ElkEdgeInput = { id: string; sources: string[]; targets: string[] };
-	const seen = new Set<string>();
-	const rootEdges: ElkEdgeInput[] = [];
-	edges.forEach((e, i) => {
-		const key = `${e.from}→${e.to}`;
-		if (seen.has(key)) return;
-		seen.add(key);
-		rootEdges.push({ id: `e${i}`, sources: [e.from], targets: [e.to] });
 	});
 
 	const graph: ElkNode = {
