@@ -55,29 +55,29 @@ function layout(nodes: GraphNode[], edges: GraphEdge[] = []): Layout {
 describe("nodeColor", () => {
 	it("added node uses green fill", () => {
 		const { fill } = nodeColor(node("a", { diff: "added" }));
-		expect(fill).toBe("#14532d");
+		expect(fill).toBe("#1f6b3d");
 	});
 
 	it("modified node uses amber fill", () => {
 		const { fill } = nodeColor(node("a", { diff: "modified" }));
-		expect(fill).toBe("#78350f");
+		expect(fill).toBe("#9a5510");
 	});
 
 	it("removed node uses red fill", () => {
 		const { fill } = nodeColor(node("a", { diff: "removed" }));
-		expect(fill).toBe("#7f1d1d");
+		expect(fill).toBe("#a03333");
 	});
 
 	it("unchanged node uses slate fill", () => {
 		const { fill } = nodeColor(node("a", { diff: "unchanged" }));
-		expect(fill).toBe("#1e293b");
+		expect(fill).toBe("#2d3f5c");
 	});
 
 	it("out-of-scope node uses OOS fill regardless of diff", () => {
 		const { fill } = nodeColor(
 			node("a", { scope: "out-of-scope", diff: "added" }),
 		);
-		expect(fill).toBe("#0a1829");
+		expect(fill).toBe("#1f3355");
 	});
 
 	it("added node has green stroke", () => {
@@ -121,22 +121,22 @@ describe("nodeColor — magnitude", () => {
 	it("scales fill toward the diff color by magnitude, leaving stroke fixed", () => {
 		const low = nodeColor(node("a", { diff: "added", magnitude: 0.1 }));
 		const high = nodeColor(node("a", { diff: "added", magnitude: 1 }));
-		expect(high.fill).toBe("#14532d"); // full intensity at magnitude 1
-		expect(low.fill).toBe(lerpHex("#1e293b", "#14532d", 0.1));
+		expect(high.fill).toBe("#1f6b3d"); // full intensity at magnitude 1
+		expect(low.fill).toBe(lerpHex("#2d3f5c", "#1f6b3d", 0.1));
 		expect(low.stroke).toBe(high.stroke);
 		expect(low.stroke).toBe("#22c55e");
 	});
 
 	it("falls back to the flat diff fill when magnitude is absent", () => {
 		const { fill } = nodeColor(node("a", { diff: "modified" }));
-		expect(fill).toBe("#78350f");
+		expect(fill).toBe("#9a5510");
 	});
 
 	it("out-of-scope node ignores magnitude entirely", () => {
 		const { fill } = nodeColor(
 			node("a", { scope: "out-of-scope", diff: "added", magnitude: 0.1 }),
 		);
-		expect(fill).toBe("#0a1829");
+		expect(fill).toBe("#1f3355");
 	});
 });
 
@@ -147,9 +147,9 @@ describe("edgeStroke", () => {
 	it("removed edge is red", () =>
 		expect(edgeStroke("removed")).toBe("#ef4444"));
 	it("unchanged edge is slate", () =>
-		expect(edgeStroke("unchanged")).toBe("#475569"));
+		expect(edgeStroke("unchanged")).toBe("#8fa8d6"));
 	it("undefined diff falls back to unchanged color", () =>
-		expect(edgeStroke(undefined)).toBe("#475569"));
+		expect(edgeStroke(undefined)).toBe("#8fa8d6"));
 });
 
 // ─── truncateLabel ────────────────────────────────────────────────────────────

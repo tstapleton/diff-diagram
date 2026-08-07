@@ -6,7 +6,7 @@
 <title>Diff Diagram</title>
 <style>
   :root {
-    --bg: #0f172a; --surface: #1e293b; --surface2: #243044;
+    --bg: #0a0f1c; --surface: #1e293b; --surface2: #243044;
     --border: #334155; --text: #e2e8f0; --text-dim: #64748b;
     --sidebar-w: 320px;
   }
@@ -60,13 +60,13 @@
   <div class="card">
     <h2>Node Legend</h2>
     <div class="legend">
-      <div class="legend-row"><div class="swatch" style="background:#14532d;border:1.5px solid #22c55e"></div>Added</div>
-      <div class="legend-row"><div class="swatch" style="background:#78350f;border:1.5px solid #f59e0b"></div>Modified</div>
-      <div class="legend-row"><div class="swatch" style="background:#7f1d1d;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
-      <div class="legend-row"><div class="swatch" style="background:#1e293b;border:1.5px solid #475569"></div>Unchanged</div>
-      <div class="legend-row"><div class="swatch" style="background:linear-gradient(90deg,#1e293b,#78350f)"></div>Change magnitude (least → most lines changed)</div>
-      <div class="legend-row"><div class="swatch" style="background:#0a1829;border:1.5px solid #1e3a5f"></div>External (1-hop)</div>
-      <div class="legend-row"><div class="swatch" style="background:#0f172a;border:1px dashed #334155"></div>Collapsed dir</div>
+      <div class="legend-row"><div class="swatch" style="background:#1f6b3d;border:1.5px solid #22c55e"></div>Added</div>
+      <div class="legend-row"><div class="swatch" style="background:#9a5510;border:1.5px solid #f59e0b"></div>Modified</div>
+      <div class="legend-row"><div class="swatch" style="background:#a03333;border:1.5px dashed #ef4444"></div>Removed (ghost)</div>
+      <div class="legend-row"><div class="swatch" style="background:#2d3f5c;border:1.5px solid #8fa8d6"></div>Unchanged</div>
+      <div class="legend-row"><div class="swatch" style="background:linear-gradient(90deg,#2d3f5c,#9a5510)"></div>Change magnitude (least → most lines changed)</div>
+      <div class="legend-row"><div class="swatch" style="background:#1f3355;border:1.5px solid #5588cc"></div>External (1-hop)</div>
+      <div class="legend-row"><div class="swatch" style="background:#182238;border:1px dashed #7ba3d9"></div>Collapsed dir</div>
       <div class="legend-row"><svg aria-hidden="true" width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#22c55e"/></svg>Has unit test</div>
       <div class="legend-row"><svg aria-hidden="true" width="16" height="16" style="margin-right:8px;flex-shrink:0"><circle cx="8" cy="8" r="4" fill="#a855f7"/></svg>Has Storybook story</div>
     </div>
@@ -77,7 +77,7 @@
       <div class="legend-row"><div class="swatch-line" style="border-color:#22c55e"></div>New import</div>
       <div class="legend-row"><div class="swatch-line" style="border-color:#f59e0b"></div>Modified import</div>
       <div class="legend-row"><div class="swatch-line" style="border-color:#ef4444;border-top-style:dashed"></div>Removed import</div>
-      <div class="legend-row"><div class="swatch-line" style="border-color:#475569"></div>Unchanged import</div>
+      <div class="legend-row"><div class="swatch-line" style="border-color:#8fa8d6"></div>Unchanged import</div>
     </div>
   </div>
   <div class="card">
@@ -95,9 +95,9 @@
 const DIFF_DIAGRAM = __DIFF_DIAGRAM_DATA__;
 
 // ─── Color palette ────────────────────────────────────────────────────────────
-const NODE_FILL   = { added: '#14532d', modified: '#78350f', removed: '#7f1d1d', unchanged: '#1e293b' };
-const NODE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#475569' };
-const EDGE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#475569' };
+const NODE_FILL   = { added: '#1f6b3d', modified: '#9a5510', removed: '#a03333', unchanged: '#2d3f5c' };
+const NODE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#8fa8d6' };
+const EDGE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#8fa8d6' };
 
 function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -118,12 +118,12 @@ function lerpHex(from, to, t) {
 
 
 function nodeFill(n) {
-  if (n.scope==='out-of-scope') return '#0a1829';
-  if (n.type==='stub') return '#0f172a';
+  if (n.scope==='out-of-scope') return '#1f3355';
+  if (n.type==='stub') return '#182238';
   const base = NODE_FILL[n.diff] || NODE_FILL.unchanged;
   return n.magnitude !== undefined ? lerpHex(NODE_FILL.unchanged, base, n.magnitude) : base;
 }
-function nodeStroke(n) { if (n.scope==='out-of-scope') return '#1e3a5f'; if (n.type==='stub') return '#334155'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
+function nodeStroke(n) { if (n.scope==='out-of-scope') return '#5588cc'; if (n.type==='stub') return '#7ba3d9'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
 function edgeColor(d)  { return EDGE_STROKE[d] || EDGE_STROKE.unchanged; }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -166,12 +166,12 @@ function renderSvg(mode) {
   if (container) {
     const scopeDir = (DIFF_DIAGRAM.meta?.scopeDir) || '';
     const featureLabel = scopeDir.split('/').pop() || scopeDir;
-    containerSvg = `<rect x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>
-<text x="${container.x + 10}" y="${container.y + 13}" font-family="monospace" font-size="9" fill="#475569">${featureLabel}</text>`;
+    containerSvg = `<rect x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}" rx="6" fill="#182238" stroke="#5588cc" stroke-width="1.5"/>
+<text x="${container.x + 10}" y="${container.y + 13}" font-family="monospace" font-size="10" fill="#a9c1e8">${featureLabel}</text>`;
   }
 
   const subdirSvg = (subdirContainers || []).map(c =>
-    `<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#2d3f5c" stroke-width="1" stroke-dasharray="3,2"/><text x="${c.x + 8}" y="${c.y + 11}" font-family="monospace" font-size="8" fill="#5a7096">${c.label}</text></g>`
+    `<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="3,2"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="monospace" font-size="10" fill="#d3e2f7">${c.label}</text></g>`
   ).join('');
 
   const edgePaths = edges.map(e => {
@@ -196,27 +196,27 @@ function renderSvg(mode) {
     let inner;
     if (isStub) {
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>
-<text x="${n.x + n.width/2}" y="${n.y + n.height/2 + 4}" text-anchor="middle" font-family="monospace" font-size="10" fill="#94a3b8">${label}</text>`;
+<text x="${n.x + n.width/2}" y="${n.y + n.height/2 + 4}" text-anchor="middle" font-family="monospace" font-size="10" fill="#d3e2f7">${label}</text>`;
     } else if (n.typeOnly) {
-      const typeOnlyFill = '#0d1f3c';
+      const typeOnlyFill = '#22385e';
       if (isOos) {
         const dirPath = oosDisplayDir(n.file);
         inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" font-style="italic" fill="#e2e8f0">${label}</text>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#64748b">${dirPath}</text>`;
+<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" font-style="italic" fill="#ffffff">${label}</text>
+<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#a9c1e8">${dirPath}</text>`;
       } else {
         const cy = n.y + n.height / 2 + 4;
         inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="#e2e8f0">${label}</text>`;
+<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="#ffffff">${label}</text>`;
       }
     } else if (isOos) {
       const dirPath = oosDisplayDir(n.file);
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" fill="#e2e8f0">${label}</text>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#64748b">${dirPath}</text>`;
+<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>
+<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#a9c1e8">${dirPath}</text>`;
     } else if (n.type === 'directory') {
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash}/>
-<text x="${n.x + PAD}" y="${n.y + 13}" font-family="monospace" font-size="11" fill="#e2e8f0">${label}</text>`;
+<text x="${n.x + PAD}" y="${n.y + 13}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>`;
     } else {
       const cy = n.y + n.height / 2 + 4;
       let dots = '';
@@ -224,7 +224,7 @@ function renderSvg(mode) {
       if (n.hasStories) { dots += `<circle cx="${dotX}" cy="${n.y + n.height - 6}" r="3" fill="#a855f7"/>`; dotX -= 8; }
       if (n.hasTests)   { dots += `<circle cx="${dotX}" cy="${n.y + n.height - 6}" r="3" fill="#22c55e"/>`; }
       inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash}/>
-<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" fill="#e2e8f0">${label}</text>${dots}`;
+<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>${dots}`;
     }
 
     return `<g class="node-group" data-id="${n.id}">${inner}</g>`;
@@ -232,7 +232,7 @@ function renderSvg(mode) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 <defs>${markers}</defs>
-<rect width="${width}" height="${height}" fill="#0f172a"/>
+<rect width="${width}" height="${height}" fill="#0a0f1c"/>
 ${containerSvg}
 ${subdirSvg}
 ${edgePaths}
