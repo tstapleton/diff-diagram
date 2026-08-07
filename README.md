@@ -8,18 +8,21 @@ CLI tool for Angular PR review that generates a dependency diagram for a feature
 |---|---|
 | `dist/diagram-diff.svg` | Diff-focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
 | `dist/diagram-all.svg` | All-nodes graph, same diff coloring, no collapsing |
+| `dist/diagram-clustered.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
 | `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
 | `dist/graph.json` | Full diffed graph JSON for downstream tooling |
 
 ## Reading the diagram
 
-The tool renders two view modes from the same diff. **Diff-focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **All-nodes** shows every file individually with the same diff coloring — useful for seeing the full architecture at once.
+The tool renders three view modes from the same diff. **Diff-focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **All-nodes** shows every file individually with the same diff coloring — useful for seeing the full architecture at once. **Clustered** zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes.
 
 ![Sample diagram, diff-focused view](docs/sample-diff.svg)
 
 ![Sample diagram, all-nodes view](docs/sample-all.svg)
 
-Both samples above are generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
+![Sample diagram, clustered view](docs/sample-clustered.svg)
+
+All three samples above are generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
 
 | Element | Meaning |
 |---|---|

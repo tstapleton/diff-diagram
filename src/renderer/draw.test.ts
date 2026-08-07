@@ -240,6 +240,34 @@ describe("toSvg", () => {
 		expect(svg).toContain("data-access");
 	});
 
+	it("top-anchors a directory node's label instead of vertically centering it", () => {
+		// A compound level1 directory box is taller than a leaf (room for a
+		// nested level2 child in its lower portion) — a vertically-centered
+		// label would sit right where that child's opaque rect is drawn,
+		// covering it. The label must stay near the top of the box regardless
+		// of box height.
+		const dir = node("settings", {
+			type: "directory",
+			label: "settings",
+			diff: "added",
+		});
+		const tallLayout: Layout = {
+			nodes: [{ id: "settings", x: 0, y: 0, width: 156, height: 76 }],
+			edges: [],
+			width: 200,
+			height: 100,
+		};
+		const svg = toSvg(tallLayout, [dir], []);
+		const textMatch = svg.match(
+			/<text x="[\d.]+" y="([\d.]+)"[^>]*>settings<\/text>/,
+		);
+		expect(textMatch).not.toBeNull();
+		const labelY = Number(textMatch?.[1]);
+		// Top-anchored (y + 13 from this box's y=0) rather than vertically
+		// centered (would be y=42 for a height-76 box, well below the top).
+		expect(labelY).toBeLessThan(20);
+	});
+
 	it("includes arrow marker definitions in <defs>", () => {
 		const svg = toSvg(layout([node("a")]), [node("a")], []);
 		expect(svg).toContain("<defs>");

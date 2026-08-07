@@ -579,3 +579,67 @@ describe("cli subdirectory grouping", () => {
 		expect(html).toContain('"label":"widgets"');
 	}, 30_000);
 });
+
+// ─── clustered view mode ───────────────────────────────────────────────────────
+
+describe("cli clustered view mode", () => {
+	let tmp: string;
+	let repoRoot: string;
+
+	beforeAll(async () => {
+		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-clustered-"));
+		repoRoot = path.join(tmp, "repo");
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/widgets/alpha.component.ts"),
+			"export const alpha = 1;\n",
+		);
+		await writeFixtureFile(
+			path.join(repoRoot, "src/app/features/f/data-access/store/action.ts"),
+			"export const action = 1;\n",
+		);
+	}, 30_000);
+
+	afterAll(() => {
+		rmSync(tmp, { recursive: true, force: true });
+	});
+
+	it("writes diagram-clustered.svg with one box per directory, nested up to 2 levels", async () => {
+		const outDir = path.join(tmp, "out");
+		const result = await runCli([
+			"--repo-root",
+			repoRoot,
+			"--out-dir",
+			outDir,
+			"src/app/features/f",
+		]);
+		expect(result.code).toBe(0);
+
+		const svg = await readFile(
+			path.join(outDir, "diagram-clustered.svg"),
+			"utf8",
+		);
+		expect(svg).toContain(">widgets<");
+		expect(svg).toContain(">data-access<");
+		expect(svg).toContain(">store<");
+		// Individual file labels must not appear — this view is directory-only.
+		// labelFromFile PascalCases and strips separators, so the labels that
+		// would actually leak are "AlphaComponent" / "Action", not the raw
+		// file-name fragments "alpha" / "action".
+		expect(svg).not.toContain(">AlphaComponent<");
+		expect(svg).not.toContain(">Action<");
+
+		// Anchor: prove these labels really would appear if the code were
+		// broken, by confirming diagram-all.svg (individual-file view, same
+		// CLI run) does contain them — otherwise the negative assertions
+		// above can't catch the bug they're meant to catch.
+		const allSvg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
+		expect(allSvg).toContain(">AlphaComponent<");
+		expect(allSvg).toContain(">Action<");
+	}, 30_000);
+
+	it("diagram.html embeds a clustered mode with directory-typed nodes", async () => {
+		const html = await readFile(path.join(tmp, "out/diagram.html"), "utf8");
+		expect(html).toContain('"clustered"');
+		expect(html).toContain('"type":"directory"');
+	}, 30_000);
+});

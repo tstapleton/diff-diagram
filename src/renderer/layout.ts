@@ -434,3 +434,222 @@ export async function computeLayout(
 		subdirContainers: useSubdirGroups ? subdirContainers : undefined,
 	};
 }
+
+// ─── computeClusteredLayout ───────────────────────────────────────────────────
+// Lays out the synthetic directory-node graph produced by
+// computeViewNodes(graph, "clustered") (src/renderer/graph-helpers.ts).
+// Unlike computeLayout's scopeDir grouping, where a subdir box is an outline
+// *wrapper* around real leaf files, here each directory node IS the rendered
+// content: a level1 node's own ELK node becomes a compound node containing
+// its level2 child (if one exists), rather than a separate wrapper around
+// it. This still reuses the same structural-nesting technique (real ELK
+// compound/hierarchical layout, INCLUDE_CHILDREN) computeLayout uses, for
+// the same reason: non-overlap and correct edge routing are structural
+// guarantees, not inferred from post-layout positions. See
+// docs/superpowers/specs/2026-08-07-clustered-view-design.md.
+
+export async function computeClusteredLayout(
+	nodes: GraphNode[],
+	edges: GraphEdge[],
+	sourceRoot: string,
+	scopeDir: string,
+): Promise<Layout> {
+	const elk = new ELKClass();
+
+	const inScopeNodes = nodes.filter(
+		(n) => n.scope === "in-scope" || n.scope === "removed-ghost",
+	);
+	const oosNodes = nodes.filter((n) => n.scope === "out-of-scope");
+	const usePartitions = inScopeNodes.length > 0 && oosNodes.length > 0;
+	const showContainer = inScopeNodes.length > 0;
+
+	// Each in-scope node's own path depth under scopeDir. A directory node's
+	// `.file` is the directory's own path (set by computeClusteredNodes), so a
+	// node whose relative path is 1 segment IS a level1 directory (or a real
+	// root-level file — both are plain leaves unless something nests under
+	// them), and a node whose relative path is 2 segments is a level2 child
+	// that nests inside whichever level1 node shares its first segment.
+	const segmentsOf = new Map<string, string[]>();
+	for (const n of inScopeNodes) {
+		segmentsOf.set(n.id, path.relative(scopeDir, n.file).split(path.sep));
+	}
+
+	const level2ChildrenByLevel1Segment = new Map<string, GraphNode[]>();
+	for (const n of inScopeNodes) {
+		const parts = segmentsOf.get(n.id) ?? [];
+		if (parts.length === 2) {
+			if (!level2ChildrenByLevel1Segment.has(parts[0])) {
+				level2ChildrenByLevel1Segment.set(parts[0], []);
+			}
+			level2ChildrenByLevel1Segment.get(parts[0])?.push(n);
+		}
+	}
+	const level2NodeIds = new Set(
+		[...level2ChildrenByLevel1Segment.values()].flatMap((children) =>
+			children.map((n) => n.id),
+		),
+	);
+
+	function leafElkNode(n: GraphNode): ElkNode {
+		return {
+			id: n.id,
+			...nodeDims(n, sourceRoot),
+			...(usePartitions
+				? {
+						layoutOptions: {
+							"elk.partitioning.partition":
+								n.scope === "out-of-scope" ? "1" : "0",
+						},
+					}
+				: {}),
+		};
+	}
+
+	// Top-level ELK children: real root-level files and level1 directory
+	// nodes (compound if they have a level2 child, otherwise a plain leaf via
+	// leafElkNode), plus oos directory nodes. Level2 nodes are never
+	// top-level — they're always the sole child of their level1 node.
+	const topLevel = inScopeNodes.filter((n) => !level2NodeIds.has(n.id));
+	const level1Children: ElkNode[] = topLevel.map((n) => {
+		const parts = segmentsOf.get(n.id) ?? [];
+		const level2Children =
+			parts.length === 1
+				? (level2ChildrenByLevel1Segment.get(parts[0]) ?? [])
+				: [];
+		if (level2Children.length === 0) return leafElkNode(n);
+		return {
+			id: n.id,
+			layoutOptions: {
+				"elk.algorithm": "layered",
+				"elk.direction": "RIGHT",
+				"elk.spacing.nodeNode": "20",
+				"elk.layered.spacing.nodeNodeBetweenLayers": "40",
+				// Top reserves room for this node's own label, drawn the same
+				// way any other node's label is; the nested level2 child sits
+				// in the remaining space below it.
+				"elk.padding": "[top=28, left=8, bottom=8, right=8]",
+				...(usePartitions ? { "elk.partitioning.partition": "0" } : {}),
+			},
+			children: level2Children.map(leafElkNode),
+			edges: [],
+		};
+	});
+
+	// Deduplicate edges and route every one on the root graph, relying on
+	// elk.hierarchyHandling: INCLUDE_CHILDREN to route it regardless of
+	// nesting depth, same as computeLayout already does for cross-hierarchy
+	// edges. An edge between a level1 node and its own level2 child is not a
+	// shape this function needs to handle specially: computeClusteredNodes
+	// (graph-helpers.ts) never emits one — verified empirically that ELK
+	// cannot route it as a meaningful, visible edge at this compound-node
+	// depth regardless of which node's `edges` array it's declared on (both
+	// the LCA-declared and root-declared placements produced a degenerate
+	// section fully contained within the parent's own box), so that edge
+	// shape is dropped upstream instead.
+	type ElkEdgeInput = { id: string; sources: string[]; targets: string[] };
+	const seen = new Set<string>();
+	const rootEdges: ElkEdgeInput[] = [];
+	edges.forEach((e, i) => {
+		const key = `${e.from}→${e.to}`;
+		if (seen.has(key)) return;
+		seen.add(key);
+		rootEdges.push({ id: `e${i}`, sources: [e.from], targets: [e.to] });
+	});
+
+	const graph: ElkNode = {
+		id: "root",
+		layoutOptions: {
+			"elk.algorithm": "layered",
+			"elk.direction": "RIGHT",
+			...(usePartitions ? { "elk.partitioning.activate": "true" } : {}),
+			"elk.spacing.nodeNode": "20",
+			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
+			"elk.padding": showContainer
+				? "[top=55, left=40, bottom=35, right=35]"
+				: "[top=20, left=20, bottom=20, right=20]",
+			"elk.hierarchyHandling": "INCLUDE_CHILDREN",
+		},
+		children: [...level1Children, ...oosNodes.map(leafElkNode)],
+		edges: rootEdges,
+	};
+
+	const result = await elk.layout(graph);
+
+	// Every ELK child (compound or leaf) is a real, rendered LayoutNode here —
+	// unlike computeLayout, there's no separate "wrapper vs real content"
+	// distinction. Parents are pushed before their children, so array order
+	// alone gives the correct draw order (outer box first, nested box drawn
+	// on top of it).
+	const layoutNodes: LayoutNode[] = [];
+	const layoutEdges: LayoutEdge[] = [];
+
+	function walk(node: ElkNode, offsetX: number, offsetY: number): void {
+		for (const child of node.children ?? []) {
+			const absX = offsetX + (child.x ?? 0);
+			const absY = offsetY + (child.y ?? 0);
+			layoutNodes.push({
+				id: child.id,
+				x: absX,
+				y: absY,
+				width: child.width ?? MIN_NODE_WIDTH,
+				height: child.height ?? NODE_HEIGHT,
+			});
+			if (child.children && child.children.length > 0) {
+				walk(child, absX, absY);
+			}
+		}
+		for (const e of node.edges ?? []) {
+			const ext = e as ElkExtendedEdge & {
+				sources?: string[];
+				targets?: string[];
+			};
+			const from = ext.sources?.[0] ?? "";
+			const to = ext.targets?.[0] ?? "";
+			const sections: LayoutEdgeSection[] = (ext.sections ?? []).map((s) => ({
+				startPoint: {
+					x: s.startPoint.x + offsetX,
+					y: s.startPoint.y + offsetY,
+				},
+				endPoint: { x: s.endPoint.x + offsetX, y: s.endPoint.y + offsetY },
+				...(s.bendPoints
+					? {
+							bendPoints: s.bendPoints.map((bp) => ({
+								x: bp.x + offsetX,
+								y: bp.y + offsetY,
+							})),
+						}
+					: {}),
+			}));
+			layoutEdges.push({ from, to, sections });
+		}
+	}
+	walk(result, 0, 0);
+
+	let container: LayoutContainer | undefined;
+	if (showContainer) {
+		const inScopeIds = new Set(inScopeNodes.map((n) => n.id));
+		const inScopeLayout = layoutNodes.filter((n) => inScopeIds.has(n.id));
+		if (inScopeLayout.length > 0) {
+			const PAD = 15;
+			const LABEL_H = 20;
+			const minX = Math.min(...inScopeLayout.map((n) => n.x));
+			const minY = Math.min(...inScopeLayout.map((n) => n.y));
+			const maxX = Math.max(...inScopeLayout.map((n) => n.x + n.width));
+			const maxY = Math.max(...inScopeLayout.map((n) => n.y + n.height));
+			container = {
+				x: minX - PAD,
+				y: minY - PAD - LABEL_H,
+				width: maxX - minX + PAD * 2,
+				height: maxY - minY + PAD * 2 + LABEL_H,
+			};
+		}
+	}
+
+	return {
+		nodes: layoutNodes,
+		edges: layoutEdges,
+		width: result.width ?? 0,
+		height: result.height ?? 0,
+		container,
+	};
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "../types.js";
 import type { LayoutContainer, LayoutNode } from "./layout.js";
-import { computeLayout } from "./layout.js";
+import { computeClusteredLayout, computeLayout } from "./layout.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -407,5 +407,170 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 				);
 			}
 		}
+	});
+});
+
+// ─── computeClusteredLayout ───────────────────────────────────────────────────
+
+describe("computeClusteredLayout", () => {
+	const scopeDir = "src/app/features/f";
+
+	function dirNode(
+		id: string,
+		label: string,
+		dirPath: string,
+		diff: GraphNode["diff"] = "unchanged",
+		scope: GraphNode["scope"] = "in-scope",
+	): GraphNode {
+		return { id, label, file: dirPath, type: "directory", scope, diff };
+	}
+
+	it("lays out a flat level1 directory node as a plain box", async () => {
+		const widgets = dirNode("widgets", "widgets", `${scopeDir}/widgets`);
+		const layout = await computeClusteredLayout(
+			[widgets],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.nodes).toHaveLength(1);
+		expect(layout.nodes[0].id).toBe("widgets");
+	});
+
+	it("nests a level2 directory node inside its level1 parent's box", async () => {
+		const dataAccess = dirNode(
+			"data-access",
+			"data-access",
+			`${scopeDir}/data-access`,
+		);
+		const store = dirNode("store", "store", `${scopeDir}/data-access/store`);
+		const layout = await computeClusteredLayout(
+			[dataAccess, store],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.nodes).toHaveLength(2);
+		const outer = layout.nodes.find((n) => n.id === "data-access");
+		const inner = layout.nodes.find((n) => n.id === "store");
+		expect(outer).toBeDefined();
+		expect(inner).toBeDefined();
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(inner!, outer!)).toBe(true);
+	});
+
+	it("nests multiple level2 directory nodes inside the same level1 parent", async () => {
+		const dataAccess = dirNode(
+			"data-access",
+			"data-access",
+			`${scopeDir}/data-access`,
+		);
+		const store = dirNode("store", "store", `${scopeDir}/data-access/store`);
+		const effects = dirNode(
+			"effects",
+			"effects",
+			`${scopeDir}/data-access/effects`,
+		);
+		const layout = await computeClusteredLayout(
+			[dataAccess, store, effects],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		const outer = layout.nodes.find((n) => n.id === "data-access");
+		const storeNode = layout.nodes.find((n) => n.id === "store");
+		const effectsNode = layout.nodes.find((n) => n.id === "effects");
+		expect(outer).toBeDefined();
+		expect(storeNode).toBeDefined();
+		expect(effectsNode).toBeDefined();
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(storeNode!, outer!)).toBe(true);
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(effectsNode!, outer!)).toBe(true);
+	});
+
+	it("draws the level1 parent before its level2 child, so the child renders on top", async () => {
+		const dataAccess = dirNode(
+			"data-access",
+			"data-access",
+			`${scopeDir}/data-access`,
+		);
+		const store = dirNode("store", "store", `${scopeDir}/data-access/store`);
+		const layout = await computeClusteredLayout(
+			[dataAccess, store],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		const outerIndex = layout.nodes.findIndex((n) => n.id === "data-access");
+		const innerIndex = layout.nodes.findIndex((n) => n.id === "store");
+		expect(outerIndex).toBeLessThan(innerIndex);
+	});
+
+	it("routes an edge between two unrelated level1 directory nodes", async () => {
+		const widgets = dirNode("widgets", "widgets", `${scopeDir}/widgets`);
+		const settings = dirNode("settings", "settings", `${scopeDir}/settings`);
+		const layout = await computeClusteredLayout(
+			[widgets, settings],
+			[{ from: "widgets", to: "settings", kind: "import" }],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.edges).toHaveLength(1);
+		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
+	});
+
+	// An edge between a level1 directory node and its own level2 child (e.g.
+	// a real file directly in data-access/ importing a file in
+	// data-access/store/) is NOT handled specially by computeClusteredLayout
+	// — verified empirically that ELK can't route it as a meaningful,
+	// visible edge at this compound-node depth regardless of which node's
+	// `edges` array it's declared on (both the LCA-declared and
+	// root-declared placements produced a degenerate ~8px section fully
+	// contained within the parent's own box, invisible once the parent's
+	// opaque rect is drawn on top). computeClusteredNodes
+	// (src/renderer/graph-helpers.ts) drops this edge shape before it ever
+	// reaches this function — see graph-helpers.test.ts's "drops an edge
+	// between a level1 directory and its own level2 child directory".
+
+	it("keeps a real root-level file as a plain sized leaf alongside directory nodes", async () => {
+		const rootFile: GraphNode = {
+			id: "root",
+			label: "root",
+			file: `${scopeDir}/root.ts`,
+			type: "component",
+			scope: "in-scope",
+			diff: "unchanged",
+		};
+		const widgets = dirNode("widgets", "widgets", `${scopeDir}/widgets`);
+		const layout = await computeClusteredLayout(
+			[rootFile, widgets],
+			[],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.nodes).toHaveLength(2);
+		expect(layout.nodes.some((n) => n.id === "root")).toBe(true);
+	});
+
+	it("keeps an out-of-scope directory node outside the in-scope container box", async () => {
+		const widgets = dirNode("widgets", "widgets", `${scopeDir}/widgets`);
+		const oos = dirNode(
+			"oos",
+			"services",
+			"src/app/shared/services",
+			"unchanged",
+			"out-of-scope",
+		);
+		const layout = await computeClusteredLayout(
+			[widgets, oos],
+			[{ from: "widgets", to: "oos", kind: "import" }],
+			"src/app",
+			scopeDir,
+		);
+		expect(layout.container).toBeDefined();
+		const loos = layout.nodes.find((n) => n.id === "oos");
+		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
+		expect(within(loos!, layout.container!)).toBe(false);
 	});
 });

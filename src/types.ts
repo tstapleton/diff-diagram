@@ -17,7 +17,7 @@ export interface GraphNode {
 	id: string;
 	label: string;
 	file: string;
-	type: NodeType | "stub";
+	type: NodeType | "stub" | "directory";
 	scope: NodeScope;
 	diff: DiffState | null;
 	typeOnly?: boolean;

@@ -35,6 +35,15 @@ function edge(from: string, to: string, diff?: DiffState): GraphEdge {
 		: { from, to, kind: "import" };
 }
 
+function nodeAt(
+	id: string,
+	file: string,
+	diff: GraphNode["diff"] = "unchanged",
+	scope: GraphNode["scope"] = "in-scope",
+): GraphNode {
+	return { id, label: id, file, type: "component", scope, diff };
+}
+
 // ─── 'all' mode ─────────────────────────────────────────────────────────────
 
 describe("computeViewNodes 'all' mode", () => {
@@ -466,5 +475,134 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		// analytics is 'added', so its OOS group expands — no stub
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 		expect(edges[0].diff).toBe("added");
+	});
+});
+
+// ─── 'clustered' mode ───────────────────────────────────────────────────────
+
+describe("computeViewNodes 'clustered' mode", () => {
+	it("collapses a first-level subdirectory to one directory node", () => {
+		const a = nodeAt("a", `${SCOPE}/data-access/a.ts`);
+		const b = nodeAt("b", `${SCOPE}/data-access/b.ts`);
+		const g = makeGraph([a, b], [edge("a", "b")]);
+		const { nodes, edges } = computeViewNodes(g, "clustered");
+		const dirNodes = nodes.filter((n) => n.type === "directory");
+		expect(dirNodes).toHaveLength(1);
+		expect(dirNodes[0].label).toBe("data-access");
+		expect(edges).toHaveLength(0); // both endpoints collapse to the same node
+	});
+
+	it("nests a second-level subdirectory inside its first-level directory node, distinctly", () => {
+		const direct = nodeAt("direct", `${SCOPE}/data-access/direct.ts`);
+		const nested = nodeAt("nested", `${SCOPE}/data-access/store/nested.ts`);
+		const g = makeGraph([direct, nested]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		const dirNodes = nodes.filter((n) => n.type === "directory");
+		const labels = dirNodes.map((n) => n.label).sort();
+		expect(labels).toEqual(["data-access", "store"]);
+	});
+
+	it("drops an edge between a level1 directory and its own level2 child directory", () => {
+		// A real file directly in data-access/ importing a file in
+		// data-access/store/ collapses to exactly this edge shape — one
+		// endpoint IS the directory that visually contains the other. ELK
+		// can't route this as a meaningful, visible edge at this
+		// compound-node depth (verified empirically in layout.ts — see
+		// layout.test.ts's comment above where this test used to live), so
+		// it's dropped here rather than emitted as an unusable edge, the
+		// same way a same-directory self-loop is already dropped.
+		const direct = nodeAt("direct", `${SCOPE}/data-access/direct.ts`);
+		const nested = nodeAt("nested", `${SCOPE}/data-access/store/nested.ts`);
+		const g = makeGraph([direct, nested], [edge("direct", "nested")]);
+		const { edges } = computeViewNodes(g, "clustered");
+		expect(edges).toHaveLength(0);
+	});
+
+	it("collapses a file three or more directories deep into its second-level directory node", () => {
+		const shallow = nodeAt("shallow", `${SCOPE}/data-access/store/shallow.ts`);
+		const deep = nodeAt("deep", `${SCOPE}/data-access/store/extra/deep.ts`);
+		const g = makeGraph([shallow, deep]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		const dirNodes = nodes.filter((n) => n.type === "directory");
+		expect(dirNodes.map((n) => n.label).sort()).toEqual([
+			"data-access",
+			"store",
+		]);
+	});
+
+	it("leaves a root-level file as an individual node", () => {
+		const root = nodeAt("root", `${SCOPE}/root.ts`);
+		const g = makeGraph([root]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0]).toEqual(root);
+	});
+
+	it("colors a directory node by the dominant diff state among its members", () => {
+		const unchanged1 = nodeAt("u1", `${SCOPE}/widgets/u1.ts`, "unchanged");
+		const added = nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added");
+		const modified = nodeAt("m1", `${SCOPE}/widgets/m1.ts`, "modified");
+		const g = makeGraph([unchanged1, added, modified]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		const widgets = nodes.find((n) => n.label === "widgets");
+		expect(widgets?.diff).toBe("added"); // added (3) beats modified (1) beats unchanged (0)
+	});
+
+	it("a level1 directory's dominant color reflects its level2 child's members too, even with no direct files of its own", () => {
+		const nested = nodeAt(
+			"nested",
+			`${SCOPE}/data-access/store/nested.ts`,
+			"added",
+		);
+		const g = makeGraph([nested]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		const dataAccess = nodes.find((n) => n.label === "data-access");
+		expect(dataAccess?.diff).toBe("added");
+	});
+
+	it("collapses out-of-scope nodes by immediate parent directory, flat (no second level)", () => {
+		const inScope = nodeAt("in", `${SCOPE}/widgets/in.ts`);
+		const oos1 = nodeAt(
+			"oos1",
+			"src/app/shared/services/a.ts",
+			"unchanged",
+			"out-of-scope",
+		);
+		const oos2 = nodeAt(
+			"oos2",
+			"src/app/shared/services/b.ts",
+			"unchanged",
+			"out-of-scope",
+		);
+		const g = makeGraph([inScope, oos1, oos2], [edge("in", "oos1")]);
+		const { nodes, edges } = computeViewNodes(g, "clustered");
+		const oosDirNodes = nodes.filter((n) => n.scope === "out-of-scope");
+		expect(oosDirNodes).toHaveLength(1);
+		expect(oosDirNodes[0].label).toBe("services");
+		expect(edges).toHaveLength(1);
+		expect(edges[0].to).toBe(oosDirNodes[0].id);
+	});
+
+	it("aggregates and dedupes an edge between two directories, keeping the highest-priority diff state", () => {
+		const a1 = nodeAt("a1", `${SCOPE}/widgets/a1.ts`);
+		const a2 = nodeAt("a2", `${SCOPE}/widgets/a2.ts`);
+		const b1 = nodeAt("b1", `${SCOPE}/settings/b1.ts`);
+		const g = makeGraph(
+			[a1, a2, b1],
+			[edge("a1", "b1", "unchanged"), edge("a2", "b1", "added")],
+		);
+		const { edges } = computeViewNodes(g, "clustered");
+		expect(edges).toHaveLength(1);
+		expect(edges[0].diff).toBe("added");
+	});
+
+	it("keeps directory node ids distinct when two first-level directories share a second-level directory name", () => {
+		const a = nodeAt("a", `${SCOPE}/sub-one/utils/a.ts`);
+		const b = nodeAt("b", `${SCOPE}/sub-two/utils/b.ts`);
+		const g = makeGraph([a, b]);
+		const { nodes } = computeViewNodes(g, "clustered");
+		const utilsNodes = nodes.filter((n) => n.label === "utils");
+		expect(utilsNodes).toHaveLength(2);
+		expect(utilsNodes[0].id).not.toBe(utilsNodes[1].id);
 	});
 });
