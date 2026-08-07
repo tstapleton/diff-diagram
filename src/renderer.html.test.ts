@@ -153,9 +153,9 @@ describe("renderer.html change magnitude", () => {
 		const rects = [...window.document.querySelectorAll(".node-group rect")];
 		const lowFill = rects[0].getAttribute("fill");
 		const highFill = rects[1].getAttribute("fill");
-		expect(highFill).toBe("#14532d");
-		expect(lowFill).not.toBe("#14532d");
-		expect(lowFill).not.toBe("#1e293b");
+		expect(highFill).toBe("#1f6b3d");
+		expect(lowFill).not.toBe("#1f6b3d");
+		expect(lowFill).not.toBe("#2d3f5c");
 	});
 
 	it("includes a change-magnitude legend row", async () => {

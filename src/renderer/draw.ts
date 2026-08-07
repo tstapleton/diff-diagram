@@ -5,31 +5,31 @@ import type { Layout, LayoutEdge } from "./layout.js";
 // ─── Color palette ────────────────────────────────────────────────────────────
 
 const NODE_FILL: Record<DiffState, string> = {
-	added: "#14532d",
-	modified: "#78350f",
-	removed: "#7f1d1d",
-	unchanged: "#1e293b",
+	added: "#1f6b3d",
+	modified: "#9a5510",
+	removed: "#a03333",
+	unchanged: "#2d3f5c",
 };
 
 const NODE_STROKE: Record<DiffState, string> = {
 	added: "#22c55e",
 	modified: "#f59e0b",
 	removed: "#ef4444",
-	unchanged: "#475569",
+	unchanged: "#8fa8d6",
 };
 
 const EDGE_STROKE: Record<DiffState, string> = {
 	added: "#22c55e",
 	modified: "#f59e0b",
 	removed: "#ef4444",
-	unchanged: "#475569",
+	unchanged: "#8fa8d6",
 };
 
-const OOS_FILL = "#0a1829";
-const OOS_STROKE = "#1e3a5f";
-const TEXT_COLOR = "#e2e8f0";
-const META_COLOR = "#64748b";
-const STUB_TEXT = "#94a3b8";
+const OOS_FILL = "#1f3355";
+const OOS_STROKE = "#5588cc";
+const TEXT_COLOR = "#ffffff";
+const META_COLOR = "#a9c1e8";
+const STUB_TEXT = "#d3e2f7";
 const TEST_DOT = "#22c55e"; // green — has unit test
 const STORY_DOT = "#a855f7"; // purple — has storybook story
 
@@ -72,7 +72,7 @@ export function nodeColor(node: GraphNode): { fill: string; stroke: string } {
 	if (node.scope === "out-of-scope" || node.type === "stub") {
 		return node.scope === "out-of-scope"
 			? { fill: OOS_FILL, stroke: OOS_STROKE }
-			: { fill: "#0f172a", stroke: "#334155" };
+			: { fill: "#182238", stroke: "#7ba3d9" };
 	}
 	const diff = node.diff ?? "unchanged";
 	const fill =
@@ -105,7 +105,7 @@ function renderNode(
 	const isOos = node.scope === "out-of-scope";
 
 	if (node.typeOnly) {
-		const typeOnlyFill = "#0d1f3c";
+		const typeOnlyFill = "#22385e";
 		if (isOos) {
 			const dirPath = oosDisplayPath(node.file, sourceRoot);
 			return [
@@ -242,8 +242,8 @@ export function toSvg(
 	if (featureLabel !== undefined && layout.container) {
 		const { x: cx, y: cy, width: cw, height: ch } = layout.container;
 		containerRect = [
-			`  <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="6" fill="#080e1a" stroke="#1e3a5f" stroke-width="1.5"/>`,
-			`  <text x="${cx + 10}" y="${cy + 13}" font-family="${FONT_FAMILY}" font-size="9" fill="#475569">${featureLabel}</text>`,
+			`  <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="6" fill="#182238" stroke="#5588cc" stroke-width="1.5"/>`,
+			`  <text x="${cx + 10}" y="${cy + 13}" font-family="${FONT_FAMILY}" font-size="10" fill="#a9c1e8">${featureLabel}</text>`,
 		].join("\n");
 	}
 
@@ -251,8 +251,8 @@ export function toSvg(
 	// entry, subordinate to the outer feature container above it.
 	const subdirRects = (layout.subdirContainers ?? []).map((c) => {
 		return [
-			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#2d3f5c" stroke-width="1" stroke-dasharray="3,2"/>`,
-			`  <text x="${c.x + 8}" y="${c.y + 11}" font-family="${FONT_FAMILY}" font-size="8" fill="#5a7096">${c.label}</text>`,
+			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="3,2"/>`,
+			`  <text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="#d3e2f7">${c.label}</text>`,
 		].join("\n");
 	});
 
@@ -261,7 +261,7 @@ export function toSvg(
 	return [
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
 		`<defs>${arrowMarkers()}</defs>`,
-		`<rect width="${width}" height="${height}" fill="#0f172a"/>`,
+		`<rect width="${width}" height="${height}" fill="#0a0f1c"/>`,
 		...(containerRect ? [containerRect] : []),
 		...subdirRects,
 		...renderedEdges,
