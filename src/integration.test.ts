@@ -5,10 +5,12 @@ import { diffGraphs } from "./diff-parser.js";
 import { addContext } from "./filter.js";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
 
-const REPO_ROOT = path.resolve("fake-angular-app");
-const BASE_ROOT = path.resolve("fake-angular-app-base");
-const SCOPE = path.resolve("fake-angular-app/src/app/features/users");
-const BASE_SCOPE = path.resolve("fake-angular-app-base/src/app/features/users");
+const REPO_ROOT = path.resolve("fixtures/integration-app");
+const BASE_ROOT = path.resolve("fixtures/integration-app-base");
+const SCOPE = path.resolve("fixtures/integration-app/src/app/features/users");
+const BASE_SCOPE = path.resolve(
+	"fixtures/integration-app-base/src/app/features/users",
+);
 
 let diffed: Graph;
 

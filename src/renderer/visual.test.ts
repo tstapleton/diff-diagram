@@ -22,19 +22,23 @@ interface Fixture {
 	sourceRoot: string;
 }
 
-const FAKE_ANGULAR_APP: Fixture = {
-	repoRoot: path.resolve("fake-angular-app"),
-	baseRoot: path.resolve("fake-angular-app-base"),
-	scope: path.resolve("fake-angular-app/src/app/features/users"),
-	baseScope: path.resolve("fake-angular-app-base/src/app/features/users"),
+const INTEGRATION_APP: Fixture = {
+	repoRoot: path.resolve("fixtures/integration-app"),
+	baseRoot: path.resolve("fixtures/integration-app-base"),
+	scope: path.resolve("fixtures/integration-app/src/app/features/users"),
+	baseScope: path.resolve(
+		"fixtures/integration-app-base/src/app/features/users",
+	),
 	sourceRoot: "src/app",
 };
 
 const SAMPLE_APP: Fixture = {
-	repoRoot: path.resolve("sample-app"),
-	baseRoot: path.resolve("sample-app-base"),
-	scope: path.resolve("sample-app/src/app/features/dashboard"),
-	baseScope: path.resolve("sample-app-base/src/app/features/dashboard"),
+	repoRoot: path.resolve("fixtures/sample-app"),
+	baseRoot: path.resolve("fixtures/sample-app-base"),
+	scope: path.resolve("fixtures/sample-app/src/app/features/dashboard"),
+	baseScope: path.resolve(
+		"fixtures/sample-app-base/src/app/features/dashboard",
+	),
 	sourceRoot: "src/app",
 };
 
@@ -105,15 +109,15 @@ async function buildSvg(
 	);
 }
 
-describe("visual regression — fake-angular-app fixture", () => {
+describe("visual regression — integration-app fixture", () => {
 	it("diff-focused mode renders correctly", async () => {
-		const svg = await buildSvg(FAKE_ANGULAR_APP, "diff-focused");
+		const svg = await buildSvg(INTEGRATION_APP, "diff-focused");
 		const diff = compareWithSnapshot(svg, "diff-focused");
 		expect(diff).toBe(0);
 	});
 
 	it("all-nodes mode renders correctly", async () => {
-		const svg = await buildSvg(FAKE_ANGULAR_APP, "all");
+		const svg = await buildSvg(INTEGRATION_APP, "all");
 		const diff = compareWithSnapshot(svg, "all-nodes");
 		expect(diff).toBe(0);
 	});

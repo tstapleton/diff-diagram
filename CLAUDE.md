@@ -31,10 +31,10 @@ npm run build   # compiles TypeScript → dist/
 ## Running the CLI
 
 ```bash
-# Against fake app fixtures
+# Against integration app fixtures
 node dist/cli.js \
-  --repo-root fake-angular-app \
-  --base-repo-root fake-angular-app-base \
+  --repo-root fixtures/integration-app \
+  --base-repo-root fixtures/integration-app-base \
   src/app/features/users
 
 # Against a real repo
@@ -46,16 +46,16 @@ node dist/cli.js \
 
 Optional flags: `--out-dir <dir>` (default `dist`), `--source-root <dir>` (default `src/app`).
 
-## Fake app fixtures
+## Integration app fixtures
 
-Two fixture directories represent a before/after PR state:
+Two fixture directories under `fixtures/` represent a before/after PR state:
 
-- `fake-angular-app-base/` — base branch state (before the PR)
-- `fake-angular-app/` — current branch state (after the PR)
+- `fixtures/integration-app-base/` — base branch state (before the PR)
+- `fixtures/integration-app/` — current branch state (after the PR)
 
 Both are domain-organized (not type-organized): `user-list/`, `user-detail/`, `user-edit/`, etc. No barrel files inside the feature directory (the current branch adds one out-of-scope barrel at `shared/services/index.ts`). Fixture diff: three files added in `user-settings/` (two components at ~33–40 lines, plus a 5-line model — sized apart to demonstrate the change-magnitude gradient on added nodes), one removed in `user-list/`, four files modified (three small edits plus one substantially larger rewrite in `user-list/users-list.component.ts`, wiring up previously-unused sort/selection utilities — demonstrating the gradient on modified nodes), one of the small modifications has changed content only (imports unchanged, proves node diff is content-based), plus a Storybook story added in `user-list/`.
 
-Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-app-base` and verify node and edge diff output.
+Integration tests run the full CLI pipeline with `--base-repo-root fixtures/integration-app-base` and verify node and edge diff output.
 
 ## Development workflow
 
@@ -85,6 +85,6 @@ Integration tests run the full CLI pipeline with `--base-repo-root fake-angular-
 **If a gate fails, change approach — do not skip.**
 
 - Gate 1: `npm run verify` — build, lint, unit tests, visual tests, and the sample drift check all pass
-- Gate 2: `node dist/cli.js --repo-root fake-angular-app --base-repo-root fake-angular-app-base src/app/features/users` — runs without error, produces `dist/diagram-diff.svg`, `dist/diagram-all.svg`, and `dist/diagram.html`
+- Gate 2: `node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users` — runs without error, produces `dist/diagram-diff.svg`, `dist/diagram-all.svg`, and `dist/diagram.html`
 - Gate 3 (visual, user): open `dist/diagram.html` — both view modes render, hover highlights edges, diff colors correct
 - Gate 4 (visual, user): open `dist/diagram-diff.svg` — real graph layout with edges, not a list of boxes

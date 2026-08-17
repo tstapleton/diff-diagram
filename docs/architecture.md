@@ -205,8 +205,8 @@ If a file moves (rename), `diffGraphs` treats it as removed + added. Rename trac
 
 ## Test fixtures
 
-`fake-angular-app/` — 80 .ts files, represents the "after PR" state.
-`fake-angular-app-base/` — 76 .ts files, represents the "before PR" state.
+`fixtures/integration-app/` — 80 .ts files, represents the "after PR" state.
+`fixtures/integration-app-base/` — 76 .ts files, represents the "before PR" state.
 
 Fixture diff:
 - Added: `user-settings/user-security.component.ts`, `user-settings/user-notification-prefs.component.ts`, `user-settings/security-session.model.ts` (a deliberately tiny 5-line model, next to the two ~35-line components above — gives the change-magnitude gradient visible range on the `added` side); also current-only: `user-list/user-card.stories.ts` (Storybook sidecar, excluded from the graph) and `shared/services/index.ts` (out-of-scope barrel)
