@@ -171,7 +171,7 @@ function renderSvg(mode) {
   }
 
   const subdirSvg = (subdirContainers || []).map(c =>
-    `<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="3,2"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="monospace" font-size="10" fill="#d3e2f7">${c.label}</text></g>`
+    `<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="monospace" font-size="10" fill="#d3e2f7">${c.label}</text></g>`
   ).join('');
 
   const edgePaths = edges.map(e => {
@@ -190,7 +190,7 @@ function renderSvg(mode) {
     const isStub = n.type === 'stub';
     const isOos  = n.scope === 'out-of-scope';
     const label  = isStub ? truncate(n.label, n.width) : n.label;
-    const dash   = (isStub || n.diff === 'removed') ? ' stroke-dasharray="4,2"' : '';
+    const dash   = n.diff === 'removed' ? ' stroke-dasharray="4,2"' : '';
     const sw     = isOos ? '1' : '1.5';
 
     let inner;

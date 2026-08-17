@@ -307,6 +307,7 @@ async function main(): Promise<void> {
 			diffView.edges,
 			args.sourceRoot,
 			diffed.meta.scopeDir,
+			diffView.groupTotals,
 		),
 		computeClusteredLayout(
 			clusteredView.nodes,

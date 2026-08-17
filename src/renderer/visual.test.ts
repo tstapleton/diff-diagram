@@ -93,7 +93,7 @@ async function buildSvg(
 		analyze(fixture.scope, { repoRoot: fixture.repoRoot }).then(addContext),
 	]);
 	const diffed = diffGraphs(base, current);
-	const { nodes, edges } = computeViewNodes(diffed, mode);
+	const { nodes, edges, groupTotals } = computeViewNodes(diffed, mode);
 	const layout = await (mode === "clustered"
 		? computeClusteredLayout(
 				nodes,
@@ -101,7 +101,13 @@ async function buildSvg(
 				fixture.sourceRoot,
 				diffed.meta.scopeDir,
 			)
-		: computeLayout(nodes, edges, fixture.sourceRoot, diffed.meta.scopeDir));
+		: computeLayout(
+				nodes,
+				edges,
+				fixture.sourceRoot,
+				diffed.meta.scopeDir,
+				groupTotals,
+			));
 	return toSvg(
 		layout,
 		nodes,

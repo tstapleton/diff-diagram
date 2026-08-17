@@ -97,7 +97,7 @@ function renderNode(
 	if (isStub) {
 		const cy = ly + lh / 2;
 		return [
-			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-dasharray="4,2"/>`,
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
 			`  <text x="${lx + lw / 2}" y="${cy + 4}" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
 		].join("\n");
 	}
@@ -251,7 +251,7 @@ export function toSvg(
 	// entry, subordinate to the outer feature container above it.
 	const subdirRects = (layout.subdirContainers ?? []).map((c) => {
 		return [
-			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="3,2"/>`,
+			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/>`,
 			`  <text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="#d3e2f7">${c.label}</text>`,
 		].join("\n");
 	});

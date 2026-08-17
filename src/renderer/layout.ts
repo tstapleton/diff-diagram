@@ -7,6 +7,7 @@ import type {
 } from "elkjs/lib/elk-api.js";
 import { oosDisplayPath } from "../analyzer.js";
 import type { GraphEdge, GraphNode } from "../types.js";
+import { type DirState, formatDirLabel } from "./dir-label.js";
 
 const _require = createRequire(import.meta.url);
 const ELKClass = _require("elkjs/lib/elk.bundled.js") as {
@@ -122,6 +123,7 @@ export async function computeLayout(
 	edges: GraphEdge[],
 	sourceRoot = "src/app",
 	scopeDir?: string,
+	groupTotals?: Map<string, number>,
 ): Promise<Layout> {
 	const elk = new ELKClass();
 
@@ -289,11 +291,37 @@ export async function computeLayout(
 		edges: level1Edges.get(key1) ?? [],
 	}));
 
+	// A container box's total member count can exceed what's actually placed
+	// inside it (a "partial" group, per graph-helpers.ts's computeViewNodes) —
+	// groupTotals carries the true count for those; absent an entry, the
+	// visible count IS the total (nothing hidden, i.e. "open"). There's no
+	// "closed" case here: a fully-collapsed group never reaches this
+	// function at all — it's a single atomic stub node, not a container box.
 	const labelByContainerId = new Map<string, string>();
 	for (const key1 of level1Keys) {
-		labelByContainerId.set(subdirContainerId(key1), key1);
-		for (const key2 of level2KeysByLevel1.get(key1) ?? []) {
-			labelByContainerId.set(subdirContainerId(key1, key2), key2);
+		const level2Keys = level2KeysByLevel1.get(key1) ?? [];
+		const level1DirectVisible = directByLevel1.get(key1)?.length ?? 0;
+		const level1NestedVisible = level2Keys.reduce(
+			(sum, key2) => sum + (byLevel1Level2.get(`${key1}/${key2}`)?.length ?? 0),
+			0,
+		);
+		const level1Visible = level1DirectVisible + level1NestedVisible;
+		const level1Total = groupTotals?.get(key1) ?? level1Visible;
+		const level1State: DirState =
+			level1Total > level1Visible ? "partial" : "open";
+		labelByContainerId.set(
+			subdirContainerId(key1),
+			formatDirLabel(level1State, key1, level1Total),
+		);
+		for (const key2 of level2Keys) {
+			const level2Visible = byLevel1Level2.get(`${key1}/${key2}`)?.length ?? 0;
+			const level2Total = groupTotals?.get(`${key1}/${key2}`) ?? level2Visible;
+			const level2State: DirState =
+				level2Total > level2Visible ? "partial" : "open";
+			labelByContainerId.set(
+				subdirContainerId(key1, key2),
+				formatDirLabel(level2State, key2, level2Total),
+			);
 		}
 	}
 

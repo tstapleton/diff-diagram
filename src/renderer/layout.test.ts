@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "../types.js";
+import { formatDirLabel } from "./dir-label.js";
 import type { LayoutContainer, LayoutNode } from "./layout.js";
 import { computeClusteredLayout, computeLayout } from "./layout.js";
 
@@ -194,7 +195,12 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		const b = nodeInDir("b", `${scopeDir}/sub-two/b.ts`);
 		const layout = await computeLayout([a, b], [], "src/app", scopeDir);
 		const labels = layout.subdirContainers?.map((c) => c.label).sort();
-		expect(labels).toEqual(["sub-one", "sub-two"]);
+		expect(labels).toEqual(
+			[
+				formatDirLabel("open", "sub-one", 1),
+				formatDirLabel("open", "sub-two", 1),
+			].sort(),
+		);
 	});
 
 	it("a subdirectory's container box fully contains all of that subdirectory's nodes", async () => {
@@ -206,7 +212,9 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			"src/app",
 			scopeDir,
 		);
-		const box = layout.subdirContainers?.find((c) => c.label === "sub");
+		const box = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "sub", 2),
+		);
 		expect(box).toBeDefined();
 		const la = layout.nodes.find((n) => n.id === "a");
 		const lb = layout.nodes.find((n) => n.id === "b");
@@ -230,7 +238,9 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			"src/app",
 			scopeDir,
 		);
-		const box = layout.subdirContainers?.find((c) => c.label === "sub");
+		const box = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "sub", 2),
+		);
 		const lorphan = layout.nodes.find((n) => n.id === "orphan");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the prior test
 		expect(within(lorphan!, box!)).toBe(true);
@@ -246,8 +256,12 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			scopeDir,
 		);
 		expect(layout.subdirContainers).toHaveLength(2);
-		const outer = layout.subdirContainers?.find((c) => c.label === "sub");
-		const inner = layout.subdirContainers?.find((c) => c.label === "nested");
+		const outer = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "sub", 2),
+		);
+		const inner = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "nested", 1),
+		);
 		expect(outer).toBeDefined();
 		expect(inner).toBeDefined();
 		const lshallow = layout.nodes.find((n) => n.id === "shallow");
@@ -306,7 +320,9 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		);
 		expect(layout.edges).toHaveLength(1);
 		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
-		const inner = layout.subdirContainers?.find((c) => c.label === "nested");
+		const inner = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "nested", 2),
+		);
 		const la = layout.nodes.find((n) => n.id === "a");
 		const lb = layout.nodes.find((n) => n.id === "b");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
@@ -325,8 +341,12 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			scopeDir,
 		);
 		expect(layout.edges[0].sections.length).toBeGreaterThan(0);
-		const outer = layout.subdirContainers?.find((c) => c.label === "sub");
-		const inner = layout.subdirContainers?.find((c) => c.label === "inner");
+		const outer = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "sub", 2),
+		);
+		const inner = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "inner", 1),
+		);
 		const ldirect = layout.nodes.find((n) => n.id === "direct");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted by the rewritten test above
 		expect(within(ldirect!, outer!)).toBe(true);
@@ -356,8 +376,15 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 			scopeDir,
 		);
 		const labels = layout.subdirContainers?.map((c) => c.label).sort();
-		expect(labels).toEqual(["inner", "sub"]);
-		const inner = layout.subdirContainers?.find((c) => c.label === "inner");
+		expect(labels).toEqual(
+			[
+				formatDirLabel("open", "inner", 2),
+				formatDirLabel("open", "sub", 2),
+			].sort(),
+		);
+		const inner = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("open", "inner", 2),
+		);
 		const ldeep = layout.nodes.find((n) => n.id === "deep");
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
 		expect(within(ldeep!, inner!)).toBe(true);
@@ -368,7 +395,7 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		const b = nodeInDir("b", `${scopeDir}/sub-two/utils/b.ts`);
 		const layout = await computeLayout([a, b], [], "src/app", scopeDir);
 		const utilsBoxes = layout.subdirContainers?.filter(
-			(c) => c.label === "utils",
+			(c) => c.label === formatDirLabel("open", "utils", 1),
 		);
 		expect(utilsBoxes).toHaveLength(2);
 		const la = layout.nodes.find((n) => n.id === "a");
@@ -382,6 +409,58 @@ describe("computeLayout — subdirectory grouping (issue #28)", () => {
 		// biome-ignore lint/style/noNonNullAssertion: presence asserted above
 		const bInSameBoxAsA = aInBox1 ? within(lb!, box1) : within(lb!, box2);
 		expect(bInSameBoxAsA).toBe(false);
+	});
+
+	it("labels a container 'partial' when groupTotals reports more members than are actually placed inside it", async () => {
+		// Mirrors what computeViewNodes produces for a partial group: only the
+		// edge-touched member (d) is in `nodes` at all — the hidden sibling
+		// never appears here, its true count arrives via groupTotals instead.
+		const d = nodeInDir("d", `${scopeDir}/bar/d.ts`);
+		const groupTotals = new Map([["bar", 2]]);
+		const layout = await computeLayout(
+			[d],
+			[],
+			"src/app",
+			scopeDir,
+			groupTotals,
+		);
+		const box = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("partial", "bar", 2),
+		);
+		expect(box).toBeDefined();
+	});
+
+	it("computes level1 and level2 totals independently when only the level2 box has a hidden member", async () => {
+		// sub/ has one direct visible file (shallow) and a nested sub/nested/
+		// box with one visible file (onlyVisible) — but sub/nested has a
+		// second, hidden member the layout never sees directly. The level1
+		// box's total must include that hidden member transitively (3 total:
+		// shallow + onlyVisible + the hidden one), while the level2 box's
+		// total is scoped to just its own members (2: onlyVisible + hidden).
+		const shallow = nodeInDir("shallow", `${scopeDir}/sub/shallow.ts`);
+		const onlyVisible = nodeInDir(
+			"onlyVisible",
+			`${scopeDir}/sub/nested/onlyVisible.ts`,
+		);
+		const groupTotals = new Map([
+			["sub", 3],
+			["sub/nested", 2],
+		]);
+		const layout = await computeLayout(
+			[shallow, onlyVisible],
+			[],
+			"src/app",
+			scopeDir,
+			groupTotals,
+		);
+		const outer = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("partial", "sub", 3),
+		);
+		const inner = layout.subdirContainers?.find(
+			(c) => c.label === formatDirLabel("partial", "nested", 2),
+		);
+		expect(outer).toBeDefined();
+		expect(inner).toBeDefined();
 	});
 
 	it("container box fully contains all subdir boxes when subdir grouping is active", async () => {

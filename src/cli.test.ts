@@ -570,13 +570,13 @@ describe("cli subdirectory grouping", () => {
 		expect(result.code).toBe(0);
 
 		const svg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
-		expect(svg).toContain(">widgets<");
+		expect(svg).toContain(">○ widgets (2)<");
 	}, 30_000);
 
 	it("diagram.html embeds subdirContainers data", async () => {
 		const html = await readFile(path.join(tmp, "out/diagram.html"), "utf8");
 		expect(html).toContain('"subdirContainers"');
-		expect(html).toContain('"label":"widgets"');
+		expect(html).toContain('"label":"○ widgets (2)"');
 	}, 30_000);
 });
 
@@ -618,9 +618,9 @@ describe("cli clustered view mode", () => {
 			path.join(outDir, "diagram-clustered.svg"),
 			"utf8",
 		);
-		expect(svg).toContain(">widgets<");
-		expect(svg).toContain(">data-access<");
-		expect(svg).toContain(">store<");
+		expect(svg).toContain(">● widgets (1)<");
+		expect(svg).toContain(">● data-access (1)<");
+		expect(svg).toContain(">● store (1)<");
 		// Individual file labels must not appear — this view is directory-only.
 		// labelFromFile PascalCases and strips separators, so the labels that
 		// would actually leak are "AlphaComponent" / "Action", not the raw
