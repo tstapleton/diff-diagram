@@ -9,7 +9,7 @@ import { diffGraphs } from "../diff-parser.js";
 import { addContext } from "../filter.js";
 import { toSvg } from "./draw.js";
 import { computeViewNodes } from "./graph-helpers.js";
-import { computeLayout } from "./layout.js";
+import { computeClusteredLayout, computeLayout } from "./layout.js";
 
 const SNAPSHOTS_REFERENCE = path.resolve("test/snapshots/reference");
 const SNAPSHOTS_CURRENT = path.resolve("test/snapshots/current");
@@ -86,7 +86,7 @@ function compareWithSnapshot(svg: string, name: string): number {
 
 async function buildSvg(
 	fixture: Fixture,
-	mode: "all" | "diff-focused",
+	mode: "all" | "diff-focused" | "clustered",
 ): Promise<string> {
 	const [base, current] = await Promise.all([
 		analyze(fixture.baseScope, { repoRoot: fixture.baseRoot }).then(addContext),
@@ -94,12 +94,14 @@ async function buildSvg(
 	]);
 	const diffed = diffGraphs(base, current);
 	const { nodes, edges } = computeViewNodes(diffed, mode);
-	const layout = await computeLayout(
-		nodes,
-		edges,
-		fixture.sourceRoot,
-		diffed.meta.scopeDir,
-	);
+	const layout = await (mode === "clustered"
+		? computeClusteredLayout(
+				nodes,
+				edges,
+				fixture.sourceRoot,
+				diffed.meta.scopeDir,
+			)
+		: computeLayout(nodes, edges, fixture.sourceRoot, diffed.meta.scopeDir));
 	return toSvg(
 		layout,
 		nodes,
@@ -121,6 +123,12 @@ describe("visual regression — integration-app fixture", () => {
 		const diff = compareWithSnapshot(svg, "all-nodes");
 		expect(diff).toBe(0);
 	});
+
+	it("clustered mode renders correctly", async () => {
+		const svg = await buildSvg(INTEGRATION_APP, "clustered");
+		const diff = compareWithSnapshot(svg, "clustered");
+		expect(diff).toBe(0);
+	});
 });
 
 describe("visual regression — sample-app fixture", () => {
@@ -133,6 +141,12 @@ describe("visual regression — sample-app fixture", () => {
 	it("all-nodes mode renders correctly", async () => {
 		const svg = await buildSvg(SAMPLE_APP, "all");
 		const diff = compareWithSnapshot(svg, "sample-all-nodes");
+		expect(diff).toBe(0);
+	});
+
+	it("clustered mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "clustered");
+		const diff = compareWithSnapshot(svg, "sample-clustered");
 		expect(diff).toBe(0);
 	});
 });
