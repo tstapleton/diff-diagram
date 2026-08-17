@@ -22,7 +22,7 @@ The tool renders three view modes from the same diff. **Diff-focused** is the pr
 
 ![Sample diagram, clustered view](docs/sample-clustered.svg)
 
-All three samples above are generated from the `sample-app/` + `sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
+All three samples above are generated from the `fixtures/sample-app/` + `fixtures/sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
 
 | Element | Meaning |
 |---|---|
@@ -65,12 +65,12 @@ node dist/cli.js \
 
 Run `node dist/cli.js --help` for the full usage message.
 
-### Against the fake app fixtures
+### Against the integration app fixtures
 
 ```bash
 node dist/cli.js \
-  --repo-root fake-angular-app \
-  --base-repo-root fake-angular-app-base \
+  --repo-root fixtures/integration-app \
+  --base-repo-root fixtures/integration-app-base \
   src/app/features/users
 ```
 
@@ -101,13 +101,15 @@ Tests are colocated with source files in `src/`.
 
 ## Fixture apps
 
-`fake-angular-app/` — "after PR" state  
-`fake-angular-app-base/` — "before PR" state
+Fixture apps live under `fixtures/`.
+
+`fixtures/integration-app/` — "after PR" state  
+`fixtures/integration-app-base/` — "before PR" state
 
 Fixture diff: three files added in `user-settings/` (two components plus a small model, deliberately sized apart to show the change-magnitude gradient's range), one removed in `user-list/`, four files modified (three small, one substantially larger — also demonstrating the gradient), plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch. Used by the integration and visual regression tests.
 
-`sample-app/` — "after PR" state for the "Reading the diagram" sample above  
-`sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
+`fixtures/sample-app/` — "after PR" state for the "Reading the diagram" sample above  
+`fixtures/sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
 Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), and a `layout/` subdirectory whose one file is unchanged between branches — the only subdirectory diff-focused mode collapses to a stub, so it's the one place the two sample images above actually differ. Not used by any automated test.
 
