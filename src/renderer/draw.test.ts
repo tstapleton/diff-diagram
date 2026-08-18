@@ -233,10 +233,10 @@ describe("toSvg", () => {
 		expect(svg).toContain("stroke-dasharray");
 	});
 
-	it("renders stub nodes with a solid border", () => {
+	it("renders stub nodes with a dashed border — an aggregate, not one real file", () => {
 		const s = node("stub-dir", { type: "stub", label: "● data-access (2)" });
 		const svg = toSvg(layout([s]), [s], []);
-		expect(svg).not.toContain("stroke-dasharray");
+		expect(svg).toContain("stroke-dasharray");
 		expect(svg).toContain("data-access");
 	});
 
