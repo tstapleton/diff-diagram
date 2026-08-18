@@ -38,7 +38,8 @@ All three samples above are generated from the `fixtures/sample-app/` + `fixture
 | Green dot | File has a unit test (`.spec.ts` sidecar) |
 | Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
 | Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
-| Dashed subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
+| Subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
+| `○` / `◐` / `●` before a subdirectory box's name, `(N)` after it | How much of that subdirectory is shown, out of its `N` files: `○` open (all shown), `◐` partial (only the files touched by an added/removed/modified import are shown; the rest are collapsed away), `●` closed (all collapsed into one stub box). Diff-focused mode only — `all` mode is always `○`, `clustered` mode is always `●` |
 
 ## Setup
 
@@ -111,7 +112,7 @@ Fixture diff: three files added in `user-settings/` (two components plus a small
 `fixtures/sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `fixtures/sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), and a `layout/` subdirectory whose one file is unchanged between branches — the only subdirectory diff-focused mode collapses to a stub, so it's the one place the two sample images above actually differ. Not used by any automated test.
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), a `layout/` subdirectory whose one file is unchanged between branches (collapses to a stub in diff-focused mode), and a `data-access/` subdirectory with two unchanged services where only one (`DashboardMetricsService`) gains a new import from the modified `DashboardComponent` — the partial-collapse case, where diff-focused mode shows just that one file and hides its untouched sibling. Not used by any automated test.
 
 ## Architecture
 

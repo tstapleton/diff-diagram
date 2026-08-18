@@ -49,6 +49,20 @@ describe("computeLayout — ELK input construction", () => {
 		expect(rn.height).toBeGreaterThan(sn.height);
 	});
 
+	it("widens a stub box to fit a long label instead of leaving it fixed-width", async () => {
+		// Stub labels now end with a "(N)" member count that must stay fully
+		// visible (draw.ts no longer truncates) — the box must grow to fit.
+		const shortStub = node("short", "stub");
+		const longStub = {
+			...node("long", "stub"),
+			label: "● a-very-long-directory-name (12)",
+		};
+		const layout = await computeLayout([shortStub, longStub], []);
+		const shortNode = layout.nodes.find((n) => n.id === "short");
+		const longNode = layout.nodes.find((n) => n.id === "long");
+		expect(longNode?.width).toBeGreaterThan(shortNode?.width ?? 0);
+	});
+
 	it("returns width and height for the overall graph", async () => {
 		const layout = await computeLayout(
 			[node("a"), node("b")],

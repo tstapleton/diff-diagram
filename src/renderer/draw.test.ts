@@ -240,6 +240,24 @@ describe("toSvg", () => {
 		expect(svg).toContain("data-access");
 	});
 
+	it("does not truncate a stub label even when the layout box is narrow", () => {
+		// The label's trailing "(N)" count must always survive — draw.ts no
+		// longer truncates stub labels at all; layout.ts is responsible for
+		// sizing the box to fit (see layout.test.ts).
+		const s = node("stub-dir", {
+			type: "stub",
+			label: "● a-very-long-directory-name (12)",
+		});
+		const narrowLayout: Layout = {
+			nodes: [{ id: "stub-dir", x: 0, y: 0, width: 60, height: 32 }],
+			edges: [],
+			width: 100,
+			height: 100,
+		};
+		const svg = toSvg(narrowLayout, [s], []);
+		expect(svg).toContain("a-very-long-directory-name (12)");
+	});
+
 	it("top-anchors a directory node's label instead of vertically centering it", () => {
 		// A compound level1 directory box is taller than a leaf (room for a
 		// nested level2 child in its lower portion) — a vertically-centered
@@ -266,6 +284,21 @@ describe("toSvg", () => {
 		// Top-anchored (y + 13 from this box's y=0) rather than vertically
 		// centered (would be y=42 for a height-76 box, well below the top).
 		expect(labelY).toBeLessThan(20);
+	});
+
+	it("vertically centers a leaf directory node's label (no nested child)", () => {
+		// A leaf directory box (clustered mode, no level2 child) is exactly
+		// NODE_HEIGHT tall — nothing sits below the label, so it should center
+		// like a regular node instead of top-anchoring.
+		const dir = node("widgets", { type: "directory", label: "● widgets (2)" });
+		const svg = toSvg(layout([dir]), [dir], []); // default layout() height is 40
+		const textMatch = svg.match(
+			/<text x="[\d.]+" y="([\d.]+)"[^>]*>[^<]*widgets[^<]*<\/text>/,
+		);
+		expect(textMatch).not.toBeNull();
+		const labelY = Number(textMatch?.[1]);
+		// height=40 box at y=0 -> vertically centered is y = 40/2 + 4 = 24.
+		expect(labelY).toBe(24);
 	});
 
 	it("includes arrow marker definitions in <defs>", () => {

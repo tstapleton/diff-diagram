@@ -65,8 +65,8 @@ export interface Layout {
 // ─── Node dimensions ──────────────────────────────────────────────────────────
 
 const MIN_NODE_WIDTH = 140;
-const NODE_HEIGHT = 40;
-const STUB_WIDTH = 120;
+export const NODE_HEIGHT = 40;
+const STUB_MIN_WIDTH = 120;
 const STUB_HEIGHT = 32;
 const APPROX_CHAR_WIDTH = 7;
 const APPROX_CHAR_WIDTH_SMALL = 5; // px per char at font-size 8
@@ -76,7 +76,12 @@ function nodeDims(
 	node: GraphNode,
 	sourceRoot = "src/app",
 ): { width: number; height: number } {
-	if (node.type === "stub") return { width: STUB_WIDTH, height: STUB_HEIGHT };
+	if (node.type === "stub") {
+		// Stub labels now end with a "(N)" member count, which must stay fully
+		// visible — the box grows with the label instead of truncating it.
+		const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
+		return { width: Math.max(STUB_MIN_WIDTH, labelWidth), height: STUB_HEIGHT };
+	}
 	const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
 	let pathWidth = 0;
 	if (node.scope === "out-of-scope") {
