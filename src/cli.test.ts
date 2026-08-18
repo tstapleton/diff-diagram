@@ -187,7 +187,7 @@ describe("cli feature directory existence checks", () => {
 	}, 30_000);
 });
 
-// ─── GAP-05: single-branch mode renders the all-nodes view ────────────────────
+// ─── GAP-05: single-branch mode renders the expanded view ────────────────────
 
 describe("cli single-branch mode output views", () => {
 	let tmp: string;
@@ -196,7 +196,7 @@ describe("cli single-branch mode output views", () => {
 	beforeAll(async () => {
 		tmp = mkdtempSync(path.join(tmpdir(), "dd-cli-single-branch-"));
 		repoRoot = path.join(tmp, "repo");
-		// Files live in a subdirectory of the feature dir so that diff-focused
+		// Files live in a subdirectory of the feature dir so that focused
 		// mode would collapse them into a stub (all diff states are null).
 		await writeFixtureFile(
 			path.join(repoRoot, "src/app/features/f/sub/alpha.component.ts"),
@@ -212,7 +212,7 @@ describe("cli single-branch mode output views", () => {
 		rmSync(tmp, { recursive: true, force: true });
 	});
 
-	it("diagram-all.svg shows individual nodes, not collapsed stubs", async () => {
+	it("diagram-expanded.svg shows individual nodes, not collapsed stubs", async () => {
 		const outDir = path.join(tmp, "out-single");
 		const result = await runCli([
 			"--repo-root",
@@ -223,23 +223,26 @@ describe("cli single-branch mode output views", () => {
 		]);
 		expect(result.code).toBe(0);
 
-		const svg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
+		const svg = await readFile(
+			path.join(outDir, "diagram-expanded.svg"),
+			"utf8",
+		);
 		expect(svg).toContain(">AlphaComponent<");
 		expect(svg).toContain(">BetaComponent<");
 	}, 30_000);
 
-	it("does not write diagram-diff.svg in single-branch mode", () => {
-		expect(existsSync(path.join(tmp, "out-single/diagram-diff.svg"))).toBe(
+	it("does not write diagram-focused.svg in single-branch mode", () => {
+		expect(existsSync(path.join(tmp, "out-single/diagram-focused.svg"))).toBe(
 			false,
 		);
 	});
 
-	it("diagram.html embeds initialMode 'all' in single-branch mode", async () => {
+	it("diagram.html embeds initialMode 'expanded' in single-branch mode", async () => {
 		const html = await readFile(
 			path.join(tmp, "out-single/diagram.html"),
 			"utf8",
 		);
-		expect(html).toContain('"initialMode":"all"');
+		expect(html).toContain('"initialMode":"expanded"');
 	}, 30_000);
 
 	it("diagram.html embeds no initialMode when a base repo is given", async () => {
@@ -259,10 +262,10 @@ describe("cli single-branch mode output views", () => {
 		expect(html).not.toContain('"initialMode"');
 	}, 30_000);
 
-	it("writes both diagram-diff.svg and diagram-all.svg when a base repo is given", () => {
+	it("writes both diagram-focused.svg and diagram-expanded.svg when a base repo is given", () => {
 		const outDir = path.join(tmp, "out-diff");
-		expect(existsSync(path.join(outDir, "diagram-diff.svg"))).toBe(true);
-		expect(existsSync(path.join(outDir, "diagram-all.svg"))).toBe(true);
+		expect(existsSync(path.join(outDir, "diagram-focused.svg"))).toBe(true);
+		expect(existsSync(path.join(outDir, "diagram-expanded.svg"))).toBe(true);
 	});
 });
 
@@ -402,7 +405,7 @@ describe("buildHtml embedded JSON", () => {
 			},
 			sourceRoot: "src/app",
 			modes: {
-				all: {
+				expanded: {
 					nodes: [
 						{
 							id: "n1",
@@ -424,7 +427,7 @@ describe("buildHtml embedded JSON", () => {
 					width: 100,
 					height: 100,
 				},
-				diffFocused: { nodes: [], edges: [], width: 100, height: 100 },
+				focused: { nodes: [], edges: [], width: 100, height: 100 },
 			},
 		};
 
@@ -558,7 +561,7 @@ describe("cli subdirectory grouping", () => {
 		rmSync(tmp, { recursive: true, force: true });
 	});
 
-	it("diagram-all.svg draws a subdirectory group box labeled with the subdirectory name", async () => {
+	it("diagram-expanded.svg draws a subdirectory group box labeled with the subdirectory name", async () => {
 		const outDir = path.join(tmp, "out");
 		const result = await runCli([
 			"--repo-root",
@@ -569,7 +572,10 @@ describe("cli subdirectory grouping", () => {
 		]);
 		expect(result.code).toBe(0);
 
-		const svg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
+		const svg = await readFile(
+			path.join(outDir, "diagram-expanded.svg"),
+			"utf8",
+		);
 		expect(svg).toContain(">○ widgets (2)<");
 	}, 30_000);
 
@@ -580,9 +586,9 @@ describe("cli subdirectory grouping", () => {
 	}, 30_000);
 });
 
-// ─── clustered view mode ───────────────────────────────────────────────────────
+// ─── collapsed view mode ───────────────────────────────────────────────────────
 
-describe("cli clustered view mode", () => {
+describe("cli collapsed view mode", () => {
 	let tmp: string;
 	let repoRoot: string;
 
@@ -603,7 +609,7 @@ describe("cli clustered view mode", () => {
 		rmSync(tmp, { recursive: true, force: true });
 	});
 
-	it("writes diagram-clustered.svg with one box per directory, nested up to 2 levels", async () => {
+	it("writes diagram-collapsed.svg with one box per directory, nested up to 2 levels", async () => {
 		const outDir = path.join(tmp, "out");
 		const result = await runCli([
 			"--repo-root",
@@ -615,7 +621,7 @@ describe("cli clustered view mode", () => {
 		expect(result.code).toBe(0);
 
 		const svg = await readFile(
-			path.join(outDir, "diagram-clustered.svg"),
+			path.join(outDir, "diagram-collapsed.svg"),
 			"utf8",
 		);
 		expect(svg).toContain(">● widgets (1)<");
@@ -629,17 +635,20 @@ describe("cli clustered view mode", () => {
 		expect(svg).not.toContain(">Action<");
 
 		// Anchor: prove these labels really would appear if the code were
-		// broken, by confirming diagram-all.svg (individual-file view, same
+		// broken, by confirming diagram-expanded.svg (individual-file view, same
 		// CLI run) does contain them — otherwise the negative assertions
 		// above can't catch the bug they're meant to catch.
-		const allSvg = await readFile(path.join(outDir, "diagram-all.svg"), "utf8");
+		const allSvg = await readFile(
+			path.join(outDir, "diagram-expanded.svg"),
+			"utf8",
+		);
 		expect(allSvg).toContain(">AlphaComponent<");
 		expect(allSvg).toContain(">Action<");
 	}, 30_000);
 
-	it("diagram.html embeds a clustered mode with directory-typed nodes", async () => {
+	it("diagram.html embeds a collapsed mode with directory-typed nodes", async () => {
 		const html = await readFile(path.join(tmp, "out/diagram.html"), "utf8");
-		expect(html).toContain('"clustered"');
+		expect(html).toContain('"collapsed"');
 		expect(html).toContain('"type":"directory"');
 	}, 30_000);
 });

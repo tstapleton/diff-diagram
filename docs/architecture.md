@@ -17,14 +17,14 @@ CLI args
   │
   ├─ diffGraphs(base, current) → Graph (diffed)
   │
-  ├─ computeViewNodes(diffed, 'all') → { nodes, edges }
-  │    computeLayout(nodes, edges) → Layout (all-mode positions)
+  ├─ computeViewNodes(diffed, 'expanded') → { nodes, edges }
+  │    computeLayout(nodes, edges) → Layout (expanded-mode positions)
   │
-  ├─ computeViewNodes(diffed, 'diff-focused') → { nodes, edges }
+  ├─ computeViewNodes(diffed, 'focused') → { nodes, edges }
   │    computeLayout(nodes, edges) → Layout (diff-mode positions)
   │
-  ├─ toSvg(allLayout, ...) → SVG string → diagram-all.svg
-  ├─ toSvg(diffLayout, ...) → SVG string → diagram-diff.svg (only when --base-repo-root given)
+  ├─ toSvg(allLayout, ...) → SVG string → diagram-expanded.svg
+  ├─ toSvg(diffLayout, ...) → SVG string → diagram-focused.svg (only when --base-repo-root given)
   ├─ buildHtml(data, template) → HTML string → diagram.html
   └─ graph.json
 ```
@@ -90,8 +90,8 @@ Algorithm:
 **`computeViewNodes(graph, mode)`** — produces the node and edge sets for a given view mode.
 
 Modes:
-- `'all'` — returns `{ nodes: graph.nodes, edges: graph.edges }` unchanged
-- `'diff-focused'` — applies collapse rules:
+- `'expanded'` — returns `{ nodes: graph.nodes, edges: graph.edges }` unchanged
+- `'focused'` — applies collapse rules:
   1. Group in-scope nodes by immediate subdirectory (1 level below the feature directory; `graph.meta.scopeDir` is the JSON field name)
   2. If ALL nodes in a group are `unchanged` → collapse to a stub node
   3. If ANY node is `added/modified/removed` → expand the entire group individually
@@ -122,7 +122,7 @@ LayoutEdge sections contain `startPoint`, `endPoint`, and optional `bendPoints` 
 
 See `docs/superpowers/specs/2026-08-06-second-level-subdir-grouping-design.md` for the second-level extension's design.
 
-**Clustered view mode (`computeViewNodes(graph, "clustered")` + `computeClusteredLayout`):** a third view mode, entirely separate from the diff-focused stub-collapsing above — it collapses every in-scope subdirectory (up to 2 levels deep, same cap) and every out-of-scope parent directory to one synthetic `GraphNode` (`type: "directory"`), regardless of diff state, for high-level orientation on features with many files. A directory node's `diff` is the dominant state among every real file it represents (added > removed > modified > unchanged priority, `graph-helpers.ts`'s exported `diffPriority`). `computeClusteredLayout` reuses the same ELK compound/hierarchical-layout technique as the subdirectory-grouping boxes above, but a level1 directory node's own ELK node *is* the rendered box — it becomes a compound node containing its level2 child (if one exists) rather than a separate wrapper, so `draw.ts`/`renderer.html` need no rendering-code changes at all: a directory node is drawn exactly like any other node, just with `type: "directory"` instead of a real file's type. See `docs/superpowers/specs/2026-08-07-clustered-view-design.md`.
+**Collapsed view mode (`computeViewNodes(graph, "collapsed")` + `computeClusteredLayout`):** a third view mode, entirely separate from the focused stub-collapsing above — it collapses every in-scope subdirectory (up to 2 levels deep, same cap) and every out-of-scope parent directory to one synthetic `GraphNode` (`type: "directory"`), regardless of diff state, for high-level orientation on features with many files. A directory node's `diff` is the dominant state among every real file it represents (added > removed > modified > unchanged priority, `graph-helpers.ts`'s exported `diffPriority`). `computeClusteredLayout` reuses the same ELK compound/hierarchical-layout technique as the subdirectory-grouping boxes above, but a level1 directory node's own ELK node *is* the rendered box — it becomes a compound node containing its level2 child (if one exists) rather than a separate wrapper, so `draw.ts`/`renderer.html` need no rendering-code changes at all: a directory node is drawn exactly like any other node, just with `type: "directory"` instead of a real file's type. See `docs/superpowers/specs/2026-08-07-clustered-view-design.md`.
 
 After `elk.layout()`, the result tree is flattened recursively back to absolute canvas coordinates — ELK returns each child's `x`/`y` relative to its own parent's origin, and edge sections declared on a compound node are in that same local frame, so both need the accumulated parent offset added during the walk.
 
@@ -155,8 +155,8 @@ Data structure embedded by CLI:
 {
   meta: { scopeDir, generatedAt, nodeCount, edgeCount },
   modes: {
-    all:          { nodes: ModeNode[], edges: ModeEdge[], width, height },
-    diffFocused:  { nodes: ModeNode[], edges: ModeEdge[], width, height },
+    expanded: { nodes: ModeNode[], edges: ModeEdge[], width, height },
+    focused:  { nodes: ModeNode[], edges: ModeEdge[], width, height },
   }
 }
 ```
@@ -176,8 +176,8 @@ Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--source-root`, posi
 When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs current-branch-only analysis.
 
 Writes three or four files:
-- `diagram-all.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — all-nodes, real layout. Always written.
-- `diagram-diff.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — diff-focused, real layout. Only written when `--base-repo-root` is given.
+- `diagram-expanded.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — expanded, real layout. Always written.
+- `diagram-focused.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — focused, real layout. Only written when `--base-repo-root` is given.
 - `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_DATA__` replaced by JSON
 - `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
 

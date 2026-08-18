@@ -13,8 +13,8 @@
 		"format": "biome format --write",
 		"diagram:sample": "node dist/cli.js --repo-root fixtures/sample-app --base-repo-root fixtures/sample-app-base src/app/features/dashboard",
 		"diagram:fixtures": "node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users",
-		"docs:sample:generate": "npm run diagram:sample && cp dist/diagram-diff.svg docs/sample-diff.svg && cp dist/diagram-all.svg docs/sample-all.svg && cp dist/diagram-clustered.svg docs/sample-clustered.svg",
-		"docs:sample:check-drift": "node dist/cli.js --repo-root fixtures/sample-app --base-repo-root fixtures/sample-app-base --out-dir dist/sample-check src/app/features/dashboard && (diff docs/sample-diff.svg dist/sample-check/diagram-diff.svg && diff docs/sample-all.svg dist/sample-check/diagram-all.svg && diff docs/sample-clustered.svg dist/sample-check/diagram-clustered.svg || (echo 'docs/sample-*.svg is stale — run npm run docs:sample:generate and commit the result' >&2 && exit 1))",
+		"docs:sample:generate": "npm run diagram:sample && cp dist/diagram-focused.svg docs/sample-focused.svg && cp dist/diagram-expanded.svg docs/sample-expanded.svg && cp dist/diagram-collapsed.svg docs/sample-collapsed.svg",
+		"docs:sample:check-drift": "node dist/cli.js --repo-root fixtures/sample-app --base-repo-root fixtures/sample-app-base --out-dir dist/sample-check src/app/features/dashboard && (diff docs/sample-focused.svg dist/sample-check/diagram-focused.svg && diff docs/sample-expanded.svg dist/sample-check/diagram-expanded.svg && diff docs/sample-collapsed.svg dist/sample-check/diagram-collapsed.svg || (echo 'docs/sample-*.svg is stale — run npm run docs:sample:generate and commit the result' >&2 && exit 1))",
 		"verify": "npm run build && biome check && npm run test && npm run test:visual && npm run docs:sample:check-drift",
 		"prepare": "husky"
 	},

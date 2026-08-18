@@ -86,7 +86,7 @@ function compareWithSnapshot(svg: string, name: string): number {
 
 async function buildSvg(
 	fixture: Fixture,
-	mode: "all" | "diff-focused" | "clustered",
+	mode: "expanded" | "focused" | "collapsed",
 ): Promise<string> {
 	const [base, current] = await Promise.all([
 		analyze(fixture.baseScope, { repoRoot: fixture.baseRoot }).then(addContext),
@@ -94,7 +94,7 @@ async function buildSvg(
 	]);
 	const diffed = diffGraphs(base, current);
 	const { nodes, edges, groupTotals } = computeViewNodes(diffed, mode);
-	const layout = await (mode === "clustered"
+	const layout = await (mode === "collapsed"
 		? computeClusteredLayout(
 				nodes,
 				edges,
@@ -118,41 +118,41 @@ async function buildSvg(
 }
 
 describe("visual regression — integration-app fixture", () => {
-	it("diff-focused mode renders correctly", async () => {
-		const svg = await buildSvg(INTEGRATION_APP, "diff-focused");
-		const diff = compareWithSnapshot(svg, "diff-focused");
+	it("focused mode renders correctly", async () => {
+		const svg = await buildSvg(INTEGRATION_APP, "focused");
+		const diff = compareWithSnapshot(svg, "integration-focused");
 		expect(diff).toBe(0);
 	});
 
-	it("all-nodes mode renders correctly", async () => {
-		const svg = await buildSvg(INTEGRATION_APP, "all");
-		const diff = compareWithSnapshot(svg, "all-nodes");
+	it("expanded mode renders correctly", async () => {
+		const svg = await buildSvg(INTEGRATION_APP, "expanded");
+		const diff = compareWithSnapshot(svg, "integration-expanded");
 		expect(diff).toBe(0);
 	});
 
-	it("clustered mode renders correctly", async () => {
-		const svg = await buildSvg(INTEGRATION_APP, "clustered");
-		const diff = compareWithSnapshot(svg, "clustered");
+	it("collapsed mode renders correctly", async () => {
+		const svg = await buildSvg(INTEGRATION_APP, "collapsed");
+		const diff = compareWithSnapshot(svg, "integration-collapsed");
 		expect(diff).toBe(0);
 	});
 });
 
 describe("visual regression — sample-app fixture", () => {
-	it("diff-focused mode renders correctly", async () => {
-		const svg = await buildSvg(SAMPLE_APP, "diff-focused");
-		const diff = compareWithSnapshot(svg, "sample-diff-focused");
+	it("focused mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "focused");
+		const diff = compareWithSnapshot(svg, "sample-focused");
 		expect(diff).toBe(0);
 	});
 
-	it("all-nodes mode renders correctly", async () => {
-		const svg = await buildSvg(SAMPLE_APP, "all");
-		const diff = compareWithSnapshot(svg, "sample-all-nodes");
+	it("expanded mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "expanded");
+		const diff = compareWithSnapshot(svg, "sample-expanded");
 		expect(diff).toBe(0);
 	});
 
-	it("clustered mode renders correctly", async () => {
-		const svg = await buildSvg(SAMPLE_APP, "clustered");
-		const diff = compareWithSnapshot(svg, "sample-clustered");
+	it("collapsed mode renders correctly", async () => {
+		const svg = await buildSvg(SAMPLE_APP, "collapsed");
+		const diff = compareWithSnapshot(svg, "sample-collapsed");
 		expect(diff).toBe(0);
 	});
 });

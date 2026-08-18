@@ -6,8 +6,8 @@ import { formatDirLabel } from "./dir-label.js";
 // ─── computeViewNodes ─────────────────────────────────────────────────────────
 // Returns nodes and edges for a given view mode.
 //
-// 'all'          → all nodes and edges, no collapsing
-// 'diff-focused' → collapse rules:
+// 'expanded' → all nodes and edges, no collapsing
+// 'focused'  → collapse rules:
 //   • In-scope subdirs where every node is unchanged → one stub per subdir
 //   • Out-of-scope parent dirs where every node is unchanged → one stub per dir
 //   • Partially-changed dirs (any node added/modified/removed) → fully expanded
@@ -21,16 +21,16 @@ import { formatDirLabel } from "./dir-label.js";
 
 export function computeViewNodes(
 	graph: Graph,
-	mode: "all" | "diff-focused" | "clustered",
+	mode: "expanded" | "focused" | "collapsed",
 ): {
 	nodes: GraphNode[];
 	edges: GraphEdge[];
 	groupTotals?: Map<string, number>;
 } {
-	if (mode === "all") {
+	if (mode === "expanded") {
 		return { nodes: graph.nodes, edges: graph.edges };
 	}
-	if (mode === "clustered") {
+	if (mode === "collapsed") {
 		return computeClusteredNodes(graph);
 	}
 
@@ -175,7 +175,7 @@ export function computeViewNodes(
 	return { nodes: outputNodes, edges: [...edgeMap.values()], groupTotals };
 }
 
-// ─── 'clustered' mode ───────────────────────────────────────────────────────
+// ─── 'collapsed' mode ───────────────────────────────────────────────────────
 // Collapses every in-scope subdirectory (up to 2 levels deep, same cap as
 // src/renderer/layout.ts's box-grouping) and every out-of-scope parent
 // directory to a single synthetic node, regardless of diff state — for

@@ -6,21 +6,21 @@ CLI tool for Angular PR review that generates a dependency diagram for a feature
 
 | File | Purpose |
 |---|---|
-| `dist/diagram-diff.svg` | Diff-focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
-| `dist/diagram-all.svg` | All-nodes graph, same diff coloring, no collapsing |
-| `dist/diagram-clustered.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
+| `dist/diagram-focused.svg` | Focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
+| `dist/diagram-expanded.svg` | Expanded graph, same diff coloring, no collapsing |
+| `dist/diagram-collapsed.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
 | `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
 | `dist/graph.json` | Full diffed graph JSON for downstream tooling |
 
 ## Reading the diagram
 
-The tool renders three view modes from the same diff. **Diff-focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **All-nodes** shows every file individually with the same diff coloring — useful for seeing the full architecture at once. **Clustered** zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes.
+The tool renders three view modes from the same diff. **Focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **Expanded** shows every file individually with the same diff coloring — useful for seeing the full architecture at once. **Collapsed** zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes.
 
-![Sample diagram, diff-focused view](docs/sample-diff.svg)
+![Sample diagram, focused view](docs/sample-focused.svg)
 
-![Sample diagram, all-nodes view](docs/sample-all.svg)
+![Sample diagram, expanded view](docs/sample-expanded.svg)
 
-![Sample diagram, clustered view](docs/sample-clustered.svg)
+![Sample diagram, collapsed view](docs/sample-collapsed.svg)
 
 All three samples above are generated from the `fixtures/sample-app/` + `fixtures/sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
 
@@ -39,7 +39,7 @@ All three samples above are generated from the `fixtures/sample-app/` + `fixture
 | Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
 | Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
 | Subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
-| `○` / `◐` / `●` before a subdirectory box's name, `(N)` after it | How much of that subdirectory is shown, out of its `N` files: `○` open (all shown), `◐` partial (only the files touched by an added/removed/modified import are shown; the rest are collapsed away), `●` closed (all collapsed into one stub box). Diff-focused mode only — `all` mode is always `○`, `clustered` mode is always `●` |
+| `○` / `◐` / `●` before a subdirectory box's name, `(N)` after it | How much of that subdirectory is shown, out of its `N` files: `○` open (all shown), `◐` partial (only the files touched by an added/removed/modified import are shown; the rest are collapsed away), `●` closed (all collapsed into one stub box). Focused mode only — `expanded` mode is always `○`, `collapsed` mode is always `●` |
 
 ## Setup
 
@@ -112,7 +112,7 @@ Fixture diff: three files added in `user-settings/` (two components plus a small
 `fixtures/sample-app/` — "after PR" state for the "Reading the diagram" sample above  
 `fixtures/sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), a `layout/` subdirectory whose one file is unchanged between branches (collapses to a stub in diff-focused mode), and a `data-access/` subdirectory with two unchanged services where only one (`DashboardMetricsService`) gains a new import from the modified `DashboardComponent` — the partial-collapse case, where diff-focused mode shows just that one file and hides its untouched sibling. Not used by any automated test.
+Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope and type-only dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), a `layout/` subdirectory whose one file is unchanged between branches (collapses to a stub in focused mode), and a `data-access/` subdirectory with two unchanged services where only one (`DashboardMetricsService`) gains a new import from the modified `DashboardComponent` — the partial-collapse case, where focused mode shows just that one file and hides its untouched sibling. Not used by any automated test.
 
 ## Architecture
 

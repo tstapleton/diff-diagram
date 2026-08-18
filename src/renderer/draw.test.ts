@@ -287,7 +287,7 @@ describe("toSvg", () => {
 	});
 
 	it("vertically centers a leaf directory node's label (no nested child)", () => {
-		// A leaf directory box (clustered mode, no level2 child) is exactly
+		// A leaf directory box (collapsed mode, no level2 child) is exactly
 		// NODE_HEIGHT tall — nothing sits below the label, so it should center
 		// like a regular node instead of top-anchoring.
 		const dir = node("widgets", { type: "directory", label: "● widgets (2)" });
