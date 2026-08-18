@@ -1,6 +1,7 @@
 import path from "node:path";
 import { dedupeId } from "../analyzer.js";
 import type { DiffState, Graph, GraphEdge, GraphNode } from "../types.js";
+import { formatDirLabel } from "./dir-label.js";
 
 // ─── computeViewNodes ─────────────────────────────────────────────────────────
 // Returns nodes and edges for a given view mode.
@@ -10,12 +11,22 @@ import type { DiffState, Graph, GraphEdge, GraphNode } from "../types.js";
 //   • In-scope subdirs where every node is unchanged → one stub per subdir
 //   • Out-of-scope parent dirs where every node is unchanged → one stub per dir
 //   • Partially-changed dirs (any node added/modified/removed) → fully expanded
+//   • In-scope subdirs where every node is content-unchanged but a proper
+//     subset is touched (as either endpoint) by an added/removed/modified
+//     edge → only the touched members are shown individually ("partial");
+//     the rest are dropped entirely (no stand-in node), which is lossless
+//     because a hidden member has, by construction, zero diff-relevant
+//     edges touching it in either direction
 //   • Stubs inherit edges (edges to collapsed nodes redirect to stub)
 
 export function computeViewNodes(
 	graph: Graph,
 	mode: "all" | "diff-focused" | "clustered",
-): { nodes: GraphNode[]; edges: GraphEdge[] } {
+): {
+	nodes: GraphNode[];
+	edges: GraphEdge[];
+	groupTotals?: Map<string, number>;
+} {
 	if (mode === "all") {
 		return { nodes: graph.nodes, edges: graph.edges };
 	}
@@ -39,8 +50,23 @@ export function computeViewNodes(
 		appendToGroup(inScopeGroups, key, node);
 	}
 
+	// A member is "touched" if it's either endpoint of an added/removed/
+	// modified edge — not incoming-only: a content-unchanged file's outgoing
+	// edges aren't guaranteed unchanged (e.g. its import target was deleted,
+	// or it imports through a barrel whose re-exports changed), so both
+	// directions must be checked for the "hidden members carry no
+	// diff-relevant edges" invariant below to actually hold.
+	const touchedIds = new Set<string>();
+	for (const e of graph.edges) {
+		if (diffPriority(e.diff) > 0) {
+			touchedIds.add(e.from);
+			touchedIds.add(e.to);
+		}
+	}
+
 	const outputNodes: GraphNode[] = [];
 	const collapsedMap = new Map<string, string>(); // original id → stub id
+	const groupTotals = new Map<string, number>(); // subdir key → true member count, for partial groups only
 	// Reverse index (generated stub id → source dir key) used to disambiguate
 	// stub ids when two different dirs sanitize to the same string, e.g.
 	// "shared/api" and "shared-api" both → "shared_api" (BUG-11).
@@ -49,16 +75,54 @@ export function computeViewNodes(
 	for (const [subdir, nodes] of inScopeGroups) {
 		if (subdir === "__root__" || !allUnchanged(nodes)) {
 			for (const n of nodes) outputNodes.push(n);
-		} else {
+			continue;
+		}
+		const visible = nodes.filter((n) => touchedIds.has(n.id));
+		if (visible.length === 0) {
 			const sourceKey = `in:${subdir}`;
 			const stub = makeStub(
 				dedupeId(`stub_${sanitize(subdir)}`, sourceKey, stubIdSources),
 				subdir,
 				path.join(scopeDir, subdir),
 				"in-scope",
+				nodes.length,
 			);
 			outputNodes.push(stub);
 			for (const n of nodes) collapsedMap.set(n.id, stub.id);
+			continue;
+		}
+		if (visible.length === nodes.length) {
+			// Every member happens to be touched — indistinguishable from a
+			// normal fully-open dir, so no stub, no groupTotals entry (layout
+			// infers "open" itself once visible count equals total).
+			for (const n of nodes) outputNodes.push(n);
+			continue;
+		}
+		// Partial: only touched members get a real node. Hidden members get
+		// neither an output node nor a collapsedMap entry — the edge-remap
+		// loop below drops any edge that would dangle on one of their ids.
+		for (const n of visible) outputNodes.push(n);
+		groupTotals.set(subdir, nodes.length);
+
+		// Level2 sub-bucket totals, mirroring layout.ts's own level1/level2
+		// split, so a nested subdir box (e.g. "data-access/store" inside
+		// "data-access") reports its own correct total when it's the one
+		// with hidden members.
+		const level2Totals = new Map<string, number>();
+		const level2Visible = new Map<string, number>();
+		for (const n of nodes) {
+			const parts = path.relative(scopeDir, n.file).split(path.sep);
+			const level2 = parts.length > 2 ? parts[1] : "";
+			if (level2 === "") continue;
+			level2Totals.set(level2, (level2Totals.get(level2) ?? 0) + 1);
+			if (touchedIds.has(n.id)) {
+				level2Visible.set(level2, (level2Visible.get(level2) ?? 0) + 1);
+			}
+		}
+		for (const [level2, total] of level2Totals) {
+			if ((level2Visible.get(level2) ?? 0) < total) {
+				groupTotals.set(`${subdir}/${level2}`, total);
+			}
 		}
 	}
 
@@ -79,6 +143,7 @@ export function computeViewNodes(
 				path.basename(dir),
 				dir,
 				"out-of-scope",
+				nodes.length,
 			);
 			outputNodes.push(stub);
 			for (const n of nodes) collapsedMap.set(n.id, stub.id);
@@ -88,12 +153,17 @@ export function computeViewNodes(
 	// ── Remap edges to stubs, dedup ──────────────────────────────────────────
 	// Duplicates keep the highest-priority diff state so added/removed imports
 	// into a collapsed dir are not masked by surviving unchanged imports.
+	const outputNodeIds = new Set(outputNodes.map((n) => n.id));
 	const edgeMap = new Map<string, GraphEdge>();
 
 	for (const edge of graph.edges) {
 		const from = collapsedMap.get(edge.from) ?? edge.from;
 		const to = collapsedMap.get(edge.to) ?? edge.to;
 		if (from === to) continue;
+		// Drop edges touching a hidden partial-group member — it has no
+		// collapsedMap entry (unlike a fully-collapsed stub's members), so
+		// without this check the edge would dangle on a nonexistent node id.
+		if (!outputNodeIds.has(from) || !outputNodeIds.has(to)) continue;
 		const key = `${from}→${to}:${edge.kind}`;
 		const existing = edgeMap.get(key);
 		if (existing && diffPriority(existing.diff) >= diffPriority(edge.diff)) {
@@ -102,7 +172,7 @@ export function computeViewNodes(
 		edgeMap.set(key, { ...edge, from, to });
 	}
 
-	return { nodes: outputNodes, edges: [...edgeMap.values()] };
+	return { nodes: outputNodes, edges: [...edgeMap.values()], groupTotals };
 }
 
 // ─── 'clustered' mode ───────────────────────────────────────────────────────
@@ -264,7 +334,14 @@ function makeDirNode(
 			? (n.diff ?? "unchanged")
 			: best;
 	}, "unchanged");
-	return { id, label, file, type: "directory", scope, diff: dominant };
+	return {
+		id,
+		label: formatDirLabel("closed", label, members.length),
+		file,
+		type: "directory",
+		scope,
+		diff: dominant,
+	};
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -289,8 +366,16 @@ function makeStub(
 	label: string,
 	file: string,
 	scope: "in-scope" | "out-of-scope",
+	total: number,
 ): GraphNode {
-	return { id, label, file, type: "stub", scope, diff: "unchanged" };
+	return {
+		id,
+		label: formatDirLabel("closed", label, total),
+		file,
+		type: "stub",
+		scope,
+		diff: "unchanged",
+	};
 }
 
 function sanitize(s: string): string {

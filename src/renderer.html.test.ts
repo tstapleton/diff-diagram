@@ -33,7 +33,7 @@ const FIXTURE = {
 			width: 440,
 			height: 120,
 			subdirContainers: [
-				{ x: 5, y: 5, width: 400, height: 60, label: "widgets" },
+				{ x: 5, y: 5, width: 400, height: 60, label: "○ widgets (3)" },
 			],
 		},
 		diffFocused: {
@@ -111,7 +111,7 @@ describe("renderer.html subdirectory group boxes", () => {
 		modeButton(window, "All nodes").click();
 		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(1);
 		expect(window.document.querySelector(".subdir-group")?.textContent).toBe(
-			"widgets",
+			"○ widgets (3)",
 		);
 	});
 

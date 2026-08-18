@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DiffState, Graph, GraphEdge, GraphNode } from "../types.js";
+import { formatDirLabel } from "./dir-label.js";
 import { computeViewNodes } from "./graph-helpers.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 		const { nodes } = computeViewNodes(g, "diff-focused");
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).toBe("stub");
-		expect(nodes[0].label).toBe("data-access");
+		expect(nodes[0].label).toBe(formatDirLabel("closed", "data-access", 2));
 		expect(nodes[0].scope).toBe("in-scope");
 		expect(nodes[0].diff).toBe("unchanged");
 	});
@@ -187,7 +188,12 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 		expect(nodes).toHaveLength(2);
 		expect(nodes.every((n) => n.type === "stub")).toBe(true);
 		const labels = nodes.map((n) => n.label).sort();
-		expect(labels).toEqual(["data-access", "models"]);
+		expect(labels).toEqual(
+			[
+				formatDirLabel("closed", "data-access", 1),
+				formatDirLabel("closed", "models", 1),
+			].sort(),
+		);
 	});
 
 	it("shows root-level nodes individually even if unchanged", () => {
@@ -202,6 +208,89 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).not.toBe("stub");
 		expect(nodes[0].id).toBe("root");
+	});
+});
+
+// ─── collapse rules — partial (new import into an otherwise-unchanged dir) ──
+
+describe("computeViewNodes 'diff-focused' — partial collapse", () => {
+	it("pulls only the edge-touched file out of an otherwise-unchanged dir, and drops its unchanged internal edge to the still-hidden sibling", () => {
+		// foo/a.ts is modified and adds a new import to bar/d.ts. bar/c.ts and
+		// bar/d.ts are both content-unchanged; d also has a pre-existing
+		// (unchanged) internal import of c.
+		const a = node("a", `${SCOPE}/foo/a.ts`, "in-scope", "modified");
+		const c = node("c", `${SCOPE}/bar/c.ts`, "in-scope", "unchanged");
+		const d = node("d", `${SCOPE}/bar/d.ts`, "in-scope", "unchanged");
+		const addedEdge = edge("a", "d", "added");
+		const internalEdge = edge("d", "c", "unchanged");
+		const g = makeGraph([a, c, d], [addedEdge, internalEdge]);
+		const { nodes, edges, groupTotals } = computeViewNodes(g, "diff-focused");
+
+		// foo/ fully expands as today (a is modified); bar/ goes partial: only
+		// d (edge-touched) is individually visible, c stays hidden.
+		expect(nodes.find((n) => n.id === "a")).toBeDefined();
+		expect(nodes.find((n) => n.id === "d")).toBeDefined();
+		expect(nodes.find((n) => n.id === "c")).toBeUndefined();
+		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		expect(groupTotals?.get("bar")).toBe(2);
+
+		// The new edge is visible; the internal d->c edge is dropped rather
+		// than dangling on c's now-absent id.
+		expect(edges).toHaveLength(1);
+		expect(edges[0]).toMatchObject({ from: "a", to: "d", diff: "added" });
+	});
+
+	it("collapses to fully open (no stub, no groupTotals entry) when every member ends up edge-touched", () => {
+		const c = node("c", `${SCOPE}/bar/c.ts`, "in-scope", "unchanged");
+		const d = node("d", `${SCOPE}/bar/d.ts`, "in-scope", "unchanged");
+		const x = node("x", `${SCOPE}/other/x.ts`, "in-scope", "modified");
+		const g = makeGraph(
+			[c, d, x],
+			[edge("x", "c", "added"), edge("x", "d", "added")],
+		);
+		const { nodes, groupTotals } = computeViewNodes(g, "diff-focused");
+
+		expect(nodes.find((n) => n.id === "c")).toBeDefined();
+		expect(nodes.find((n) => n.id === "d")).toBeDefined();
+		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		expect(groupTotals?.has("bar")).toBe(false);
+	});
+
+	it("treats an unchanged node as edge-touched via an OUTGOING removed edge (deleted import target), not just incoming edges", () => {
+		// Regression test for the invariant found during planning: a
+		// content-unchanged file's outgoing edges aren't guaranteed unchanged
+		// — if the file it imports was deleted this PR, diff-parser emits an
+		// outgoing "removed" edge from the (otherwise untouched) importer.
+		// Only checking incoming edges would leave this file wrongly hidden,
+		// silently dropping the removed edge instead of surfacing it.
+		const c = node("c", `${SCOPE}/bar/c.ts`, "in-scope", "unchanged");
+		const d = node("d", `${SCOPE}/bar/d.ts`, "in-scope", "unchanged");
+		const ghost = node(
+			"ghost",
+			`${SCOPE}/deleted/target.ts`,
+			"removed-ghost",
+			"removed",
+		);
+		const removedEdge = edge("c", "ghost", "removed");
+		const g = makeGraph([c, d, ghost], [removedEdge]);
+		const { nodes, edges, groupTotals } = computeViewNodes(g, "diff-focused");
+
+		expect(nodes.find((n) => n.id === "c")).toBeDefined();
+		expect(nodes.find((n) => n.id === "d")).toBeUndefined();
+		expect(groupTotals?.get("bar")).toBe(2);
+		expect(edges).toHaveLength(1);
+		expect(edges[0]).toMatchObject({ from: "c", to: "ghost", diff: "removed" });
+	});
+
+	it("still fully collapses to a stub in single-branch mode (no diff info at all)", () => {
+		const c = node("c", `${SCOPE}/bar/c.ts`, "in-scope", null);
+		const d = node("d", `${SCOPE}/bar/d.ts`, "in-scope", null);
+		const g = makeGraph([c, d], [{ from: "c", to: "d", kind: "import" }]);
+		const { nodes } = computeViewNodes(g, "diff-focused");
+
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].type).toBe("stub");
+		expect(nodes[0].label).toBe(formatDirLabel("closed", "bar", 2));
 	});
 });
 
@@ -226,7 +315,7 @@ describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).toBe("stub");
 		expect(nodes[0].scope).toBe("out-of-scope");
-		expect(nodes[0].label).toBe("services");
+		expect(nodes[0].label).toBe(formatDirLabel("closed", "services", 2));
 	});
 
 	it("expands OOS group when any node is added", () => {
@@ -488,7 +577,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const { nodes, edges } = computeViewNodes(g, "clustered");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
 		expect(dirNodes).toHaveLength(1);
-		expect(dirNodes[0].label).toBe("data-access");
+		expect(dirNodes[0].label).toBe(formatDirLabel("closed", "data-access", 2));
 		expect(edges).toHaveLength(0); // both endpoints collapse to the same node
 	});
 
@@ -499,7 +588,12 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const { nodes } = computeViewNodes(g, "clustered");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
 		const labels = dirNodes.map((n) => n.label).sort();
-		expect(labels).toEqual(["data-access", "store"]);
+		expect(labels).toEqual(
+			[
+				formatDirLabel("closed", "data-access", 2),
+				formatDirLabel("closed", "store", 1),
+			].sort(),
+		);
 	});
 
 	it("drops an edge between a level1 directory and its own level2 child directory", () => {
@@ -524,10 +618,12 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const g = makeGraph([shallow, deep]);
 		const { nodes } = computeViewNodes(g, "clustered");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
-		expect(dirNodes.map((n) => n.label).sort()).toEqual([
-			"data-access",
-			"store",
-		]);
+		expect(dirNodes.map((n) => n.label).sort()).toEqual(
+			[
+				formatDirLabel("closed", "data-access", 2),
+				formatDirLabel("closed", "store", 2),
+			].sort(),
+		);
 	});
 
 	it("leaves a root-level file as an individual node", () => {
@@ -544,7 +640,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const modified = nodeAt("m1", `${SCOPE}/widgets/m1.ts`, "modified");
 		const g = makeGraph([unchanged1, added, modified]);
 		const { nodes } = computeViewNodes(g, "clustered");
-		const widgets = nodes.find((n) => n.label === "widgets");
+		const widgets = nodes.find((n) => n.label.includes("widgets"));
 		expect(widgets?.diff).toBe("added"); // added (3) beats modified (1) beats unchanged (0)
 	});
 
@@ -556,7 +652,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		);
 		const g = makeGraph([nested]);
 		const { nodes } = computeViewNodes(g, "clustered");
-		const dataAccess = nodes.find((n) => n.label === "data-access");
+		const dataAccess = nodes.find((n) => n.label.includes("data-access"));
 		expect(dataAccess?.diff).toBe("added");
 	});
 
@@ -578,7 +674,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const { nodes, edges } = computeViewNodes(g, "clustered");
 		const oosDirNodes = nodes.filter((n) => n.scope === "out-of-scope");
 		expect(oosDirNodes).toHaveLength(1);
-		expect(oosDirNodes[0].label).toBe("services");
+		expect(oosDirNodes[0].label).toBe(formatDirLabel("closed", "services", 2));
 		expect(edges).toHaveLength(1);
 		expect(edges[0].to).toBe(oosDirNodes[0].id);
 	});
@@ -601,7 +697,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const b = nodeAt("b", `${SCOPE}/sub-two/utils/b.ts`);
 		const g = makeGraph([a, b]);
 		const { nodes } = computeViewNodes(g, "clustered");
-		const utilsNodes = nodes.filter((n) => n.label === "utils");
+		const utilsNodes = nodes.filter((n) => n.label.includes("utils"));
 		expect(utilsNodes).toHaveLength(2);
 		expect(utilsNodes[0].id).not.toBe(utilsNodes[1].id);
 	});

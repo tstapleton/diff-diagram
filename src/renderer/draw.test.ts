@@ -233,11 +233,29 @@ describe("toSvg", () => {
 		expect(svg).toContain("stroke-dasharray");
 	});
 
-	it("renders stub nodes with dashed border", () => {
-		const s = node("stub-dir", { type: "stub", label: "data-access" });
+	it("renders stub nodes with a solid border", () => {
+		const s = node("stub-dir", { type: "stub", label: "● data-access (2)" });
 		const svg = toSvg(layout([s]), [s], []);
-		expect(svg).toContain("stroke-dasharray");
+		expect(svg).not.toContain("stroke-dasharray");
 		expect(svg).toContain("data-access");
+	});
+
+	it("does not truncate a stub label even when the layout box is narrow", () => {
+		// The label's trailing "(N)" count must always survive — draw.ts no
+		// longer truncates stub labels at all; layout.ts is responsible for
+		// sizing the box to fit (see layout.test.ts).
+		const s = node("stub-dir", {
+			type: "stub",
+			label: "● a-very-long-directory-name (12)",
+		});
+		const narrowLayout: Layout = {
+			nodes: [{ id: "stub-dir", x: 0, y: 0, width: 60, height: 32 }],
+			edges: [],
+			width: 100,
+			height: 100,
+		};
+		const svg = toSvg(narrowLayout, [s], []);
+		expect(svg).toContain("a-very-long-directory-name (12)");
 	});
 
 	it("top-anchors a directory node's label instead of vertically centering it", () => {
@@ -268,6 +286,21 @@ describe("toSvg", () => {
 		expect(labelY).toBeLessThan(20);
 	});
 
+	it("vertically centers a leaf directory node's label (no nested child)", () => {
+		// A leaf directory box (clustered mode, no level2 child) is exactly
+		// NODE_HEIGHT tall — nothing sits below the label, so it should center
+		// like a regular node instead of top-anchoring.
+		const dir = node("widgets", { type: "directory", label: "● widgets (2)" });
+		const svg = toSvg(layout([dir]), [dir], []); // default layout() height is 40
+		const textMatch = svg.match(
+			/<text x="[\d.]+" y="([\d.]+)"[^>]*>[^<]*widgets[^<]*<\/text>/,
+		);
+		expect(textMatch).not.toBeNull();
+		const labelY = Number(textMatch?.[1]);
+		// height=40 box at y=0 -> vertically centered is y = 40/2 + 4 = 24.
+		expect(labelY).toBe(24);
+	});
+
 	it("includes arrow marker definitions in <defs>", () => {
 		const svg = toSvg(layout([node("a")]), [node("a")], []);
 		expect(svg).toContain("<defs>");
@@ -294,7 +327,7 @@ describe("toSvg", () => {
 		expect(svg).toContain('font-style="italic"');
 	});
 
-	it("non-type-only node does not have stroke-dasharray (unless stub or removed)", () => {
+	it("non-type-only node does not have stroke-dasharray (unless removed)", () => {
 		const n = node("normalNode", { label: "NormalNode" });
 		const svg = toSvg(layout([n]), [n], []);
 		expect(svg).not.toContain("stroke-dasharray");
@@ -336,15 +369,15 @@ describe("toSvg", () => {
 // ─── subdirectory group boxes (issue #28) ─────────────────────────────────────
 
 describe("toSvg — subdirectory group boxes", () => {
-	it("renders a dashed rect and label for each subdirContainers entry", () => {
+	it("renders a solid rect and label for each subdirContainers entry", () => {
 		const nodes = [node("a"), node("b")];
 		const l = layout(nodes);
 		l.subdirContainers = [
-			{ x: 10, y: 20, width: 300, height: 100, label: "widgets" },
+			{ x: 10, y: 20, width: 300, height: 100, label: "○ widgets (2)" },
 		];
 		const svg = toSvg(l, nodes, [], "feature");
-		expect(svg).toContain('stroke-dasharray="3,2"');
-		expect(svg).toContain(">widgets<");
+		expect(svg).not.toContain('stroke-dasharray="3,2"');
+		expect(svg).toContain(">○ widgets (2)<");
 	});
 
 	it("renders one box per entry when there are multiple subdirectories", () => {

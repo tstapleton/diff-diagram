@@ -1,6 +1,7 @@
 import { oosDisplayPath } from "../analyzer.js";
 import type { DiffState, GraphEdge, GraphNode } from "../types.js";
 import type { Layout, LayoutEdge } from "./layout.js";
+import { NODE_HEIGHT } from "./layout.js";
 
 // ─── Color palette ────────────────────────────────────────────────────────────
 
@@ -92,12 +93,12 @@ function renderNode(
 ): string {
 	const { fill, stroke } = nodeColor(node);
 	const isStub = node.type === "stub";
-	const label = isStub ? truncateLabel(node.label, lw) : node.label;
+	const label = node.label;
 
 	if (isStub) {
 		const cy = ly + lh / 2;
 		return [
-			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-dasharray="4,2"/>`,
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
 			`  <text x="${lx + lw / 2}" y="${cy + 4}" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
 		].join("\n");
 	}
@@ -131,9 +132,14 @@ function renderNode(
 	}
 
 	if (node.type === "directory") {
+		// A compound directory box (taller than a leaf) reserves its lower
+		// portion for a nested level2 child — top-anchor so the label doesn't
+		// sit on top of that child. A leaf directory box has nothing below
+		// the label, so center it like every other node.
+		const textY = lh > NODE_HEIGHT ? ly + 13 : ly + lh / 2 + 4;
 		return [
 			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
-			`  <text x="${lx + 8}" y="${ly + 13}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
+			`  <text x="${lx + 8}" y="${textY}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
 		].join("\n");
 	}
 
@@ -251,7 +257,7 @@ export function toSvg(
 	// entry, subordinate to the outer feature container above it.
 	const subdirRects = (layout.subdirContainers ?? []).map((c) => {
 		return [
-			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="3,2"/>`,
+			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/>`,
 			`  <text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="#d3e2f7">${c.label}</text>`,
 		].join("\n");
 	});
