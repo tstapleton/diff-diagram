@@ -294,6 +294,107 @@ describe("computeViewNodes 'focused' — partial collapse", () => {
 	});
 });
 
+// ─── collapse rules — level-2 granularity within a changed level-1 group ────
+
+describe("computeViewNodes 'diff-focused' — level-2 granularity within a changed level-1 group", () => {
+	it("collapses an unrelated, untouched level-2 subdir to its own stub instead of exploding the whole level-1 group", () => {
+		// data-access/store/ has a real change; data-access/cache/ is a
+		// completely unrelated, content-unchanged subdir with no edges
+		// touching it. The layout only boxes 2 levels deep, so cache/ should
+		// still collapse to its own stub rather than being swept into the
+		// level-1 group's forced expansion caused by store/'s change.
+		const a = node(
+			"a",
+			`${SCOPE}/data-access/store/a.ts`,
+			"in-scope",
+			"modified",
+		);
+		const b = node(
+			"b",
+			`${SCOPE}/data-access/store/b.ts`,
+			"in-scope",
+			"unchanged",
+		);
+		const c = node(
+			"c",
+			`${SCOPE}/data-access/cache/c.ts`,
+			"in-scope",
+			"unchanged",
+		);
+		const d = node(
+			"d",
+			`${SCOPE}/data-access/cache/d.ts`,
+			"in-scope",
+			"unchanged",
+		);
+		const g = makeGraph([a, b, c, d]);
+		const { nodes, groupTotals } = computeViewNodes(g, "focused");
+
+		// store/ has a genuine change, so both its members show individually.
+		expect(nodes.find((n) => n.id === "a")).toBeDefined();
+		expect(nodes.find((n) => n.id === "b")).toBeDefined();
+
+		// cache/ is unrelated and fully unchanged: one stub, not two loose
+		// nodes — this is the behavior that was broken before the fix.
+		expect(nodes.find((n) => n.id === "c")).toBeUndefined();
+		expect(nodes.find((n) => n.id === "d")).toBeUndefined();
+		const stubs = nodes.filter((n) => n.type === "stub");
+		expect(stubs).toHaveLength(1);
+		expect(stubs[0].label).toBe(formatDirLabel("closed", "cache", 2));
+
+		// The level-1 group as a whole isn't flattened to 4 individual nodes
+		// the way it would be today: 2 real nodes (store) + 1 stub (cache).
+		expect(nodes).toHaveLength(3);
+
+		// The level-1 container's own header needs the true total so it shows
+		// the partial (◐) icon rather than "open".
+		expect(groupTotals?.get("data-access")).toBe(4);
+	});
+
+	it("applies the level-2-partial rule (edge-touched-but-content-unchanged) scoped to just that level-2 bucket", () => {
+		// store/x.ts is modified and adds a new import into cache/e.ts.
+		// cache/f.ts is content-unchanged and untouched by any diff-relevant
+		// edge, so it should stay hidden while e is pulled out individually —
+		// mirroring the existing level-1-wide partial rule, but scoped to the
+		// cache/ level-2 bucket instead of the whole data-access/ group.
+		const x = node(
+			"x",
+			`${SCOPE}/data-access/store/x.ts`,
+			"in-scope",
+			"modified",
+		);
+		const e = node(
+			"e",
+			`${SCOPE}/data-access/cache/e.ts`,
+			"in-scope",
+			"unchanged",
+		);
+		const f = node(
+			"f",
+			`${SCOPE}/data-access/cache/f.ts`,
+			"in-scope",
+			"unchanged",
+		);
+		const addedEdge = edge("x", "e", "added");
+		const internalEdge = edge("e", "f", "unchanged");
+		const g = makeGraph([x, e, f], [addedEdge, internalEdge]);
+		const { nodes, edges, groupTotals } = computeViewNodes(g, "focused");
+
+		expect(nodes.find((n) => n.id === "x")).toBeDefined();
+		expect(nodes.find((n) => n.id === "e")).toBeDefined();
+		expect(nodes.find((n) => n.id === "f")).toBeUndefined();
+		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+
+		expect(groupTotals?.get("data-access/cache")).toBe(2);
+		expect(groupTotals?.get("data-access")).toBe(3);
+
+		// The internal e->f edge is dropped rather than dangling on f's
+		// now-absent id; only the added edge survives.
+		expect(edges).toHaveLength(1);
+		expect(edges[0]).toMatchObject({ from: "x", to: "e", diff: "added" });
+	});
+});
+
 // ─── collapse rules — out-of-scope ──────────────────────────────────────────
 
 describe("computeViewNodes 'focused' — out-of-scope collapse", () => {

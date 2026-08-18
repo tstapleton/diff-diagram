@@ -73,8 +73,70 @@ export function computeViewNodes(
 	const stubIdSources = new Map<string, string>();
 
 	for (const [subdir, nodes] of inScopeGroups) {
-		if (subdir === "__root__" || !allUnchanged(nodes)) {
+		if (subdir === "__root__") {
 			for (const n of nodes) outputNodes.push(n);
+			continue;
+		}
+		if (!allUnchanged(nodes)) {
+			// The level-1 group has a genuine change somewhere in it, but the
+			// layout only ever boxes 2 levels deep (layout.ts's subdirOf), so a
+			// change 3+ directories deep shouldn't force every unrelated
+			// level-2 subdirectory under this level-1 dir to expand too. Re-run
+			// the same collapse/partial/expand decision one level down, per
+			// level-2 bucket, instead of dumping the whole group flat.
+			const level2Groups = new Map<string, GraphNode[]>();
+			for (const n of nodes) {
+				const parts = path.relative(scopeDir, n.file).split(path.sep);
+				const level2 = parts.length > 2 ? parts[1] : "";
+				appendToGroup(level2Groups, level2, n);
+			}
+			let anyLevel2Hidden = false;
+			for (const [level2, level2Nodes] of level2Groups) {
+				if (level2 === "" || !allUnchanged(level2Nodes)) {
+					// Files directly in the level-1 dir (no level2 box exists to
+					// collapse into) or a level-2 bucket with its own genuine
+					// change: show individually, same as today's fallback.
+					for (const n of level2Nodes) outputNodes.push(n);
+					continue;
+				}
+				const level2Visible = level2Nodes.filter((n) => touchedIds.has(n.id));
+				if (level2Visible.length === 0) {
+					const sourceKey = `in:${subdir}/${level2}`;
+					const stub = makeStub(
+						dedupeId(
+							`stub_${sanitize(subdir)}_${sanitize(level2)}`,
+							sourceKey,
+							stubIdSources,
+						),
+						level2,
+						path.join(scopeDir, subdir, level2),
+						"in-scope",
+						level2Nodes.length,
+					);
+					outputNodes.push(stub);
+					for (const n of level2Nodes) collapsedMap.set(n.id, stub.id);
+					anyLevel2Hidden = true;
+					continue;
+				}
+				if (level2Visible.length === level2Nodes.length) {
+					// Every member of this level-2 bucket happens to be touched —
+					// indistinguishable from a normal fully-open bucket.
+					for (const n of level2Nodes) outputNodes.push(n);
+					continue;
+				}
+				// Partial: only touched members get a real node here too; the
+				// edge-remap loop below drops any edge dangling on a hidden id.
+				for (const n of level2Visible) outputNodes.push(n);
+				groupTotals.set(`${subdir}/${level2}`, level2Nodes.length);
+				anyLevel2Hidden = true;
+			}
+			// If any level-2 bucket under this level-1 dir ended up hidden
+			// (fully stubbed or partial), the level-1 container itself is no
+			// longer "fully open" — its own header needs the total member
+			// count so layout.ts renders the partial (◐) icon.
+			if (anyLevel2Hidden) {
+				groupTotals.set(subdir, nodes.length);
+			}
 			continue;
 		}
 		const visible = nodes.filter((n) => touchedIds.has(n.id));

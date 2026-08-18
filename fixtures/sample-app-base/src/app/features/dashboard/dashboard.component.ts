@@ -5,6 +5,7 @@ import { DashboardStatsComponent } from "./dashboard-stats.component";
 import { ExportHistoryService } from "./export/export-history.service";
 import { DashboardShellComponent } from "./layout/dashboard-shell.component";
 import { LegacySummaryComponent } from "./legacy-summary/legacy-summary.component";
+import { DashboardPushChannelComponent } from "./notifications/push/dashboard-push-channel.component";
 
 @Component({
 	selector: "app-dashboard",
@@ -15,6 +16,7 @@ import { LegacySummaryComponent } from "./legacy-summary/legacy-summary.componen
 		DashboardNavComponent,
 		DashboardStatsComponent,
 		LegacySummaryComponent,
+		DashboardPushChannelComponent,
 	],
 	providers: [ExportHistoryService],
 	template: `
@@ -23,6 +25,7 @@ import { LegacySummaryComponent } from "./legacy-summary/legacy-summary.componen
       <app-dashboard-stats />
       <app-legacy-summary />
       <p class="dashboard__last-exported">Last exported: {{ lastExportedAt }}</p>
+      <app-dashboard-push-channel />
     </app-dashboard-shell>
   `,
 })

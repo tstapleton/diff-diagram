@@ -72,6 +72,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fixtures/inte
 - Run `npm run verify` before asking the user to review output.
 - Build (`npm run build`) before running the CLI.
 - When a change intentionally alters rendering: visually review the output, run `npm run test:visual:approve`, re-run `npm run verify`, and call out the regenerated snapshots prominently in the PR body — the new reference images get reviewed as part of the PR.
+- When a change affects diagram-rendering behavior — layout, collapse/expand logic, coloring, or anything else that changes what's shown or how — update `fixtures/sample-app`/`fixtures/sample-app-base` so the change is actually exercised, and regenerate `docs/sample-*.svg` and the visual snapshots accordingly. A rendering change that isn't reflected in the checked-in samples is invisible to reviewers and easy to silently regress later.
 
 **Never:**
 - Commit or push directly to `main` — all changes land through pull requests (enforced by a branch ruleset).

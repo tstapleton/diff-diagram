@@ -5,6 +5,8 @@ import { DashboardMetricsService } from "./data-access/dashboard-metrics.service
 import { ExportButtonComponent } from "./export/export-button.component";
 import { ExportHistoryService } from "./export/export-history.service";
 import { DashboardShellComponent } from "./layout/dashboard-shell.component";
+import { DashboardEmailDigestComponent } from "./notifications/email/dashboard-email-digest.component";
+import { DashboardPushChannelComponent } from "./notifications/push/dashboard-push-channel.component";
 import { DashboardSettingsComponent } from "./settings/dashboard-settings.component";
 import { DashboardChartComponent } from "./widgets/dashboard-chart.component";
 
@@ -18,6 +20,8 @@ import { DashboardChartComponent } from "./widgets/dashboard-chart.component";
 		DashboardChartComponent,
 		DashboardSettingsComponent,
 		ExportButtonComponent,
+		DashboardPushChannelComponent,
+		DashboardEmailDigestComponent,
 	],
 	providers: [DashboardMetricsService, ExportHistoryService],
 	template: `
@@ -27,6 +31,8 @@ import { DashboardChartComponent } from "./widgets/dashboard-chart.component";
       <app-dashboard-settings />
       <app-export-button />
       <p class="dashboard__last-exported">Last exported: {{ lastExportedAt }}</p>
+      <app-dashboard-push-channel />
+      <app-dashboard-email-digest />
     </app-dashboard-shell>
   `,
 })
