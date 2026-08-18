@@ -1,10 +1,22 @@
-import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { Window } from "happy-dom";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { buildHtml } from "./cli.js";
 
-// DOM-level tests for the client script in renderer.html. Loads the template
-// with embedded data (same substitution the CLI's buildHtml performs) into a
-// happy-dom window so the inline <script> executes.
+// DOM-level tests for the client script in renderer.html. Runs the template
+// through the real buildHtml() — the same function the CLI uses to produce
+// diagram.html, including the compiled-render.js splice — into a happy-dom
+// window so the inline <script> executes.
+
+beforeAll(() => {
+	const renderJsPath = new URL("../dist/renderer/render.js", import.meta.url)
+		.pathname;
+	if (!existsSync(renderJsPath)) {
+		throw new Error(
+			"dist/renderer/render.js not found — run `npm run build` before running this test",
+		);
+	}
+});
 
 const node = (id: string, diff: string, x: number) => ({
 	id,
@@ -46,11 +58,9 @@ const FIXTURE = {
 };
 
 async function loadDiagram(data: unknown = FIXTURE) {
-	const template = await readFile(
-		new URL("./renderer.html", import.meta.url),
-		"utf8",
-	);
-	const html = template.replace("__DIFF_DIAGRAM_DATA__", JSON.stringify(data));
+	const templatePath = new URL("./renderer.html", import.meta.url).pathname;
+	// biome-ignore lint/suspicious/noExplicitAny: FIXTURE is a hand-shaped test double, not a full DiagramData
+	const html = await buildHtml(data as any, templatePath);
 	// The template's inline script is our own trusted code, so JavaScript
 	// evaluation is safe to enable here.
 	const window = new Window({
