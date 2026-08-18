@@ -202,11 +202,31 @@ function buildModeData(
 
 // ─── HTML builder ────────────────────────────────────────────────────────────
 
+// The single source of truth for node/edge rendering — draw.ts imports
+// src/renderer/render.ts directly, and renderer.html's <script> gets the
+// *compiled* dist/renderer/render.js spliced in here, so the interactive
+// diagram.html renders with the exact same code, not a hand-copied parallel
+// implementation. Reading the compiled output (rather than the .ts source)
+// means diagram.html generation requires a prior `npm run build`, same as
+// the dist/cli.js subprocess cli.test.ts already requires.
+const RENDER_JS_PATH = new URL("../dist/renderer/render.js", import.meta.url)
+	.pathname;
+
 export async function buildHtml(
 	data: DiagramData,
 	templatePath: string,
 ): Promise<string> {
 	const template = await readFile(templatePath, "utf8");
+	if (!existsSync(RENDER_JS_PATH)) {
+		throw new Error(
+			`${RENDER_JS_PATH} not found — run \`npm run build\` first (buildHtml splices the compiled shared renderer into renderer.html)`,
+		);
+	}
+	const renderJsSource = await readFile(RENDER_JS_PATH, "utf8");
+	// renderer.html's <script> is a plain, non-module script, so the shared
+	// module's `export` keywords (the only thing distinguishing it from plain
+	// script-scope declarations) need to come off before splicing it in.
+	const renderJs = renderJsSource.replace(/^export (?=const|function)/gm, "");
 	// Escape "</" so a label/path containing "</script>" can't terminate the
 	// inline script block early; "\/" is a valid JSON escape for "/", so this
 	// still round-trips through JSON.parse.
@@ -216,7 +236,9 @@ export async function buildHtml(
 	// replacement *pattern* — "$&", "$'", "$`", "$$" are special substitution
 	// sequences, so any of those appearing inside the JSON (e.g. in a node
 	// label or file path) would corrupt the embedded data.
-	return template.replace("__DIFF_DIAGRAM_DATA__", () => json);
+	return template
+		.replace("__DIFF_DIAGRAM_RENDER_JS__", () => renderJs)
+		.replace("__DIFF_DIAGRAM_DATA__", () => json);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

@@ -130,9 +130,13 @@ An ELK-partitioning-based alternative (one partition per subdirectory, reusing t
 
 When both in-scope and out-of-scope nodes exist, ELK partitioning is enabled for the outer container: in-scope nodes (and any subdirectory container) get partition 0, out-of-scope partition 1. This forces ELK to place in-scope content in earlier (leftward) layers than oos nodes, guaranteeing no oos node falls inside the in-scope bounding box. This part is unchanged by subdirectory grouping.
 
+### `src/renderer/render.ts`
+
+Canonical node/edge/marker markup builder — palette constants, `lerpHex`, `nodeColor`, `edgeStroke`, and the actual `<rect>`/`<text>`/`<path>` string templates (`renderNodeMarkup`, `renderEdgeMarkup`, `renderDiagramSvg`). Ordinary strict TypeScript, no Node APIs — `draw.ts` imports it directly, and `buildHtml` (in `cli.ts`) reads the *compiled* `dist/renderer/render.js` (type-stripped, no leftover `import`s since its only import is `import type`) and splices it verbatim into `renderer.html`'s `<script>`. This is the single source of truth for how a diagram looks; `draw.ts` and `renderer.html` no longer have independent rendering logic to keep in sync (issue #50). Because it reads compiled output rather than the `.ts` source, generating `diagram.html` requires a prior `npm run build` — same precondition `dist/cli.js`-subprocess tests already have (`src/cli.test.ts`).
+
 ### `src/renderer/draw.ts`
 
-**`toSvg(layout, nodes, edges)`** — pure function, no DOM, no side effects. Produces an SVG string from pre-computed layout positions.
+**`toSvg(layout, nodes, edges)`** — pure function, no DOM, no side effects. Merges layout positions with node/edge diff data and calls `render.ts`'s `renderDiagramSvg`. Produces an SVG string from pre-computed layout positions.
 
 Color scheme:
 - Node fill by diff: `added=#14532d`, `modified=#78350f`, `removed=#7f1d1d`, `unchanged=#1e293b`
@@ -163,7 +167,7 @@ Data structure embedded by CLI:
 
 Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope }` and `ModeEdge` augments `LayoutEdge` with `{ diff? }`.
 
-Client-side renderer: builds SVG string from layout positions using the same color palette and magnitude-fill logic (`lerpHex`, mirrored from `draw.ts`) as `draw.ts`. Adds `data-id` to node groups and `data-from`/`data-to` to edge paths for hover event delegation.
+Client-side renderer: calls `renderDiagramSvg` from the compiled `render.js` (spliced in verbatim by `buildHtml`, replacing the `__DIFF_DIAGRAM_RENDER_JS__` placeholder ahead of `__DIFF_DIAGRAM_DATA__`) — not a hand-mirrored copy. `data-id` on node groups and `data-from`/`data-to` on edge paths (added by `render.ts`) drive hover event delegation below.
 
 Hover: `mouseover` on `[data-id]` → connected edges keep full opacity (1), all other edges dim to opacity 0.2. `mouseleave` restores.
 
@@ -178,7 +182,7 @@ When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs curren
 Writes three or four files:
 - `diagram-expanded.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — expanded, real layout. Always written.
 - `diagram-focused.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — focused, real layout. Only written when `--base-repo-root` is given.
-- `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_DATA__` replaced by JSON
+- `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_RENDER_JS__` replaced by the compiled `render.js`'s source and `__DIFF_DIAGRAM_DATA__` replaced by JSON
 - `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
 
 ## Adding a new view mode
@@ -194,8 +198,7 @@ Writes three or four files:
 
 1. Add to `NodeType` union in `src/types.ts` (note: `'stub'` is a rendering-layer sentinel on `GraphNode.type` and is intentionally not in `NodeType`)
 2. Handle classification in `src/analyzer.ts` `classifyFile()` and/or `classifyByFilename()`
-3. Add color logic in `src/renderer/draw.ts` `nodeColor()` (currently all types share diff-state colors; add a special case if needed)
-4. Update `src/renderer.html` client-side colors if they diverge from `draw.ts`
+3. Add color logic in `src/renderer/render.ts` `nodeColor()` (currently all types share diff-state colors; add a special case if needed) — both `draw.ts` and `renderer.html` pick this up automatically, no separate step needed
 
 ## Graph node ID stability
 

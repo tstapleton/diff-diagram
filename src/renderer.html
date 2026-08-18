@@ -91,152 +91,20 @@
 </div>
 
 <script>
+// ─── Shared rendering logic (spliced in by buildHtml from render.js) ──────────
+__DIFF_DIAGRAM_RENDER_JS__
+
 // ─── Embedded data (replaced by CLI) ──────────────────────────────────────────
 const DIFF_DIAGRAM = __DIFF_DIAGRAM_DATA__;
 
-// ─── Color palette ────────────────────────────────────────────────────────────
-const NODE_FILL   = { added: '#1f6b3d', modified: '#9a5510', removed: '#a03333', unchanged: '#2d3f5c' };
-const NODE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#8fa8d6' };
-const EDGE_STROKE = { added: '#22c55e', modified: '#f59e0b', removed: '#ef4444', unchanged: '#8fa8d6' };
-
-function hexToRgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-function rgbToHex(r, g, b) {
-  return `#${[r, g, b].map(c => c.toString(16).padStart(2, '0')).join('')}`;
-}
-function lerpHex(from, to, t) {
-  const clamped = Math.min(1, Math.max(0, t));
-  const a = hexToRgb(from), b = hexToRgb(to);
-  return rgbToHex(
-    Math.round(a.r + (b.r - a.r) * clamped),
-    Math.round(a.g + (b.g - a.g) * clamped),
-    Math.round(a.b + (b.b - a.b) * clamped),
-  );
-}
-
-
-function nodeFill(n) {
-  if (n.scope==='out-of-scope') return '#1f3355';
-  if (n.type==='stub') return '#182238';
-  const base = NODE_FILL[n.diff] || NODE_FILL.unchanged;
-  return n.magnitude !== undefined ? lerpHex(NODE_FILL.unchanged, base, n.magnitude) : base;
-}
-function nodeStroke(n) { if (n.scope==='out-of-scope') return '#5588cc'; if (n.type==='stub') return '#7ba3d9'; return NODE_STROKE[n.diff] || NODE_STROKE.unchanged; }
-function edgeColor(d)  { return EDGE_STROKE[d] || EDGE_STROKE.unchanged; }
-
 // ─── Render ───────────────────────────────────────────────────────────────────
-const PAD = 8;
-
-function buildPath(section) {
-  const pts = [section.startPoint, ...(section.bendPoints || []), section.endPoint];
-  if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
-  let d = `M ${pts[0].x} ${pts[0].y}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mid = { x: (pts[i].x + pts[i+1].x) / 2, y: (pts[i].y + pts[i+1].y) / 2 };
-    d += ` Q ${pts[i].x} ${pts[i].y} ${mid.x} ${mid.y}`;
-  }
-  d += ` L ${pts[pts.length-1].x} ${pts[pts.length-1].y}`;
-  return d;
-}
-
 const SOURCE_ROOT = DIFF_DIAGRAM.sourceRoot || 'src/app';
 
-function oosDisplayDir(file) {
-  const dir = file?.includes('/') ? file.substring(0, file.lastIndexOf('/')) : '.';
-  const prefix = SOURCE_ROOT.endsWith('/') ? SOURCE_ROOT : `${SOURCE_ROOT}/`;
-  return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
-}
-
 function renderSvg(mode) {
-  const { nodes, edges, width, height, container, subdirContainers } = DIFF_DIAGRAM.modes[mode];
-
-  const markers = Object.entries(EDGE_STROKE).map(([state, color]) =>
-    `<marker id="a-${state}" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="${color}"/></marker>`
-  ).join('');
-
-  // Container box: positioned by ELK compound layout, not derived from node bounds
-  let containerSvg = '';
-  if (container) {
-    const scopeDir = (DIFF_DIAGRAM.meta?.scopeDir) || '';
-    const featureLabel = scopeDir.split('/').pop() || scopeDir;
-    containerSvg = `<rect x="${container.x}" y="${container.y}" width="${container.width}" height="${container.height}" rx="6" fill="#182238" stroke="#5588cc" stroke-width="1.5"/>
-<text x="${container.x + 10}" y="${container.y + 13}" font-family="monospace" font-size="10" fill="#a9c1e8">${featureLabel}</text>`;
-  }
-
-  const subdirSvg = (subdirContainers || []).map(c =>
-    `<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="monospace" font-size="10" fill="#d3e2f7">${c.label}</text></g>`
-  ).join('');
-
-  const edgePaths = edges.map(e => {
-    const color = edgeColor(e.diff);
-    const dash  = e.diff === 'removed' ? ' stroke-dasharray="5,3"' : '';
-    const op    = e.diff === 'removed' ? ' opacity="0.5"' : '';
-    const key   = e.diff || 'unchanged';
-    return (e.sections || []).map(s =>
-      `<path data-from="${e.from}" data-to="${e.to}" d="${buildPath(s)}" fill="none" stroke="${color}" stroke-width="1.5"${dash}${op} marker-end="url(#a-${key})"/>`
-    ).join('');
-  }).join('');
-
-  const nodeElems = nodes.map(n => {
-    const fill   = nodeFill(n);
-    const stroke = nodeStroke(n);
-    const isStub = n.type === 'stub';
-    const isOos  = n.scope === 'out-of-scope';
-    const label  = n.label;
-    const dash   = n.diff === 'removed' ? ' stroke-dasharray="4,2"' : '';
-    const sw     = isOos ? '1' : '1.5';
-
-    let inner;
-    if (isStub) {
-      inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>
-<text x="${n.x + n.width/2}" y="${n.y + n.height/2 + 4}" text-anchor="middle" font-family="monospace" font-size="10" fill="#d3e2f7">${label}</text>`;
-    } else if (n.typeOnly) {
-      const typeOnlyFill = '#22385e';
-      if (isOos) {
-        const dirPath = oosDisplayDir(n.file);
-        inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" font-style="italic" fill="#ffffff">${label}</text>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#a9c1e8">${dirPath}</text>`;
-      } else {
-        const cy = n.y + n.height / 2 + 4;
-        inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" font-style="italic" fill="#ffffff">${label}</text>`;
-      }
-    } else if (isOos) {
-      const dirPath = oosDisplayDir(n.file);
-      inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"${dash}/>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 - 3}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>
-<text x="${n.x + PAD}" y="${n.y + n.height/2 + 9}" font-family="monospace" font-size="8" fill="#a9c1e8">${dirPath}</text>`;
-    } else if (n.type === 'directory') {
-      // A compound directory box (taller than a leaf) reserves its lower
-      // portion for a nested level2 child — top-anchor there; a leaf
-      // directory box has nothing below the label, so center it.
-      const dirTextY = n.height > 40 ? n.y + 13 : n.y + n.height / 2 + 4;
-      inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash}/>
-<text x="${n.x + PAD}" y="${dirTextY}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>`;
-    } else {
-      const cy = n.y + n.height / 2 + 4;
-      let dots = '';
-      let dotX = n.x + n.width - 6;
-      if (n.hasStories) { dots += `<circle cx="${dotX}" cy="${n.y + n.height - 6}" r="3" fill="#a855f7"/>`; dotX -= 8; }
-      if (n.hasTests)   { dots += `<circle cx="${dotX}" cy="${n.y + n.height - 6}" r="3" fill="#22c55e"/>`; }
-      inner = `<rect x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash}/>
-<text x="${n.x + PAD}" y="${cy}" font-family="monospace" font-size="11" fill="#ffffff">${label}</text>${dots}`;
-    }
-
-    return `<g class="node-group" data-id="${n.id}">${inner}</g>`;
-  }).join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-<defs>${markers}</defs>
-<rect width="${width}" height="${height}" fill="#0a0f1c"/>
-${containerSvg}
-${subdirSvg}
-${edgePaths}
-${nodeElems}
-</svg>`;
+  const modeData = DIFF_DIAGRAM.modes[mode];
+  const scopeDir = (DIFF_DIAGRAM.meta?.scopeDir) || '';
+  const featureLabel = scopeDir.split('/').pop() || scopeDir;
+  return renderDiagramSvg(modeData, { sourceRoot: SOURCE_ROOT, featureLabel });
 }
 
 // ─── Hover: highlight connected edges ─────────────────────────────────────────
