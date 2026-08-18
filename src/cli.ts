@@ -154,8 +154,8 @@ interface ModeData {
 interface DiagramData {
 	meta: Omit<Graph["meta"], "repoRoot">;
 	sourceRoot: string;
-	initialMode?: "all" | "diffFocused" | "clustered";
-	modes: { all: ModeData; diffFocused: ModeData; clustered: ModeData };
+	initialMode?: "expanded" | "focused" | "collapsed";
+	modes: { expanded: ModeData; focused: ModeData; collapsed: ModeData };
 }
 
 function buildModeData(
@@ -291,9 +291,9 @@ async function main(): Promise<void> {
 
 	// Compute layouts for all three view modes in parallel
 	console.log("Computing layouts...");
-	const allView = computeViewNodes(diffed, "all");
-	const diffView = computeViewNodes(diffed, "diff-focused");
-	const clusteredView = computeViewNodes(diffed, "clustered");
+	const allView = computeViewNodes(diffed, "expanded");
+	const diffView = computeViewNodes(diffed, "focused");
+	const clusteredView = computeViewNodes(diffed, "collapsed");
 
 	const [allLayout, diffLayout, clusteredLayout] = await Promise.all([
 		computeLayout(
@@ -319,8 +319,8 @@ async function main(): Promise<void> {
 
 	await mkdir(outDir, { recursive: true });
 
-	// diagram-all.svg — all-nodes view, real layout. Always written, since it's
-	// the same content regardless of whether a diff is available.
+	// diagram-expanded.svg — expanded view, real layout. Always written, since
+	// it's the same content regardless of whether a diff is available.
 	const allSvg = toSvg(
 		allLayout,
 		allView.nodes,
@@ -328,13 +328,13 @@ async function main(): Promise<void> {
 		path.basename(scopeDir),
 		args.sourceRoot,
 	);
-	const allSvgPath = path.join(outDir, "diagram-all.svg");
+	const allSvgPath = path.join(outDir, "diagram-expanded.svg");
 	await writeFile(allSvgPath, allSvg);
 	console.log(`Wrote ${allSvgPath}`);
 
-	// diagram-clustered.svg — directory-only zoomed-out view. Always written,
-	// same as diagram-all.svg: dominant-diff-state coloring per directory is
-	// still meaningful (all "unchanged") even without a base to diff against.
+	// diagram-collapsed.svg — directory-only zoomed-out view. Always written,
+	// same as diagram-expanded.svg: dominant-diff-state coloring per directory
+	// is still meaningful (all "unchanged") even without a base to diff against.
 	const clusteredSvg = toSvg(
 		clusteredLayout,
 		clusteredView.nodes,
@@ -342,13 +342,14 @@ async function main(): Promise<void> {
 		path.basename(scopeDir),
 		args.sourceRoot,
 	);
-	const clusteredSvgPath = path.join(outDir, "diagram-clustered.svg");
+	const clusteredSvgPath = path.join(outDir, "diagram-collapsed.svg");
 	await writeFile(clusteredSvgPath, clusteredSvg);
 	console.log(`Wrote ${clusteredSvgPath}`);
 
-	// diagram-diff.svg — diff-focused view. Only meaningful with a base to diff
+	// diagram-focused.svg — focused view. Only meaningful with a base to diff
 	// against; in single-branch mode every diff state is null, so this file is
-	// skipped rather than writing a misleadingly-named duplicate of diagram-all.svg.
+	// skipped rather than writing a misleadingly-named duplicate of
+	// diagram-expanded.svg.
 	if (args.baseRepoRoot) {
 		const diffSvg = toSvg(
 			diffLayout,
@@ -357,7 +358,7 @@ async function main(): Promise<void> {
 			path.basename(scopeDir),
 			args.sourceRoot,
 		);
-		const diffSvgPath = path.join(outDir, "diagram-diff.svg");
+		const diffSvgPath = path.join(outDir, "diagram-focused.svg");
 		await writeFile(diffSvgPath, diffSvg);
 		console.log(`Wrote ${diffSvgPath}`);
 	}
@@ -367,14 +368,14 @@ async function main(): Promise<void> {
 	const diagramData: DiagramData = {
 		meta: metaWithoutRoot,
 		sourceRoot: args.sourceRoot,
-		// Single-branch mode: open the interactive diagram in the all-nodes view
+		// Single-branch mode: open the interactive diagram in the expanded view
 		// (there is no diff to focus on). Omitted in diff mode so the template's
 		// own default applies.
-		...(args.baseRepoRoot ? {} : { initialMode: "all" as const }),
+		...(args.baseRepoRoot ? {} : { initialMode: "expanded" as const }),
 		modes: {
-			all: buildModeData(allView.nodes, allView.edges, allLayout),
-			diffFocused: buildModeData(diffView.nodes, diffView.edges, diffLayout),
-			clustered: buildModeData(
+			expanded: buildModeData(allView.nodes, allView.edges, allLayout),
+			focused: buildModeData(diffView.nodes, diffView.edges, diffLayout),
+			collapsed: buildModeData(
 				clusteredView.nodes,
 				clusteredView.edges,
 				clusteredLayout,

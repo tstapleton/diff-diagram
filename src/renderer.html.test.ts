@@ -23,7 +23,7 @@ const FIXTURE = {
 	meta: { scopeDir: "src/app/features/users" },
 	sourceRoot: "src/app",
 	modes: {
-		all: {
+		expanded: {
 			nodes: [
 				node("alpha", "unchanged", 10),
 				node("beta", "added", 150),
@@ -36,7 +36,7 @@ const FIXTURE = {
 				{ x: 5, y: 5, width: 400, height: 60, label: "○ widgets (3)" },
 			],
 		},
-		diffFocused: {
+		focused: {
 			nodes: [node("alpha", "unchanged", 10), node("beta", "added", 150)],
 			edges: [],
 			width: 300,
@@ -73,15 +73,15 @@ function modeButton(window: Window, label: string) {
 }
 
 describe("renderer.html view-mode switching", () => {
-	it("opens in diff-focused mode by default", async () => {
+	it("opens in focused mode by default", async () => {
 		const window = await loadDiagram();
 
 		expect(window.document.querySelectorAll(".node-group")).toHaveLength(2);
 		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("2");
-		expect(
-			modeButton(window, "Diff-focused").classList.contains("active"),
-		).toBe(true);
-		expect(modeButton(window, "All nodes").classList.contains("active")).toBe(
+		expect(modeButton(window, "Focused").classList.contains("active")).toBe(
+			true,
+		);
+		expect(modeButton(window, "Expanded").classList.contains("active")).toBe(
 			false,
 		);
 	});
@@ -89,17 +89,17 @@ describe("renderer.html view-mode switching", () => {
 	it("clicking the mode buttons switches the rendered view", async () => {
 		const window = await loadDiagram();
 
-		modeButton(window, "All nodes").click();
+		modeButton(window, "Expanded").click();
 		expect(window.document.querySelectorAll(".node-group")).toHaveLength(3);
 		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("3");
 
-		modeButton(window, "Diff-focused").click();
+		modeButton(window, "Focused").click();
 		expect(window.document.querySelectorAll(".node-group")).toHaveLength(2);
 		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("2");
-		expect(
-			modeButton(window, "Diff-focused").classList.contains("active"),
-		).toBe(true);
-		expect(modeButton(window, "All nodes").classList.contains("active")).toBe(
+		expect(modeButton(window, "Focused").classList.contains("active")).toBe(
+			true,
+		);
+		expect(modeButton(window, "Expanded").classList.contains("active")).toBe(
 			false,
 		);
 	});
@@ -108,7 +108,7 @@ describe("renderer.html view-mode switching", () => {
 describe("renderer.html subdirectory group boxes", () => {
 	it("renders one .subdir-group element per subdirContainers entry", async () => {
 		const window = await loadDiagram();
-		modeButton(window, "All nodes").click();
+		modeButton(window, "Expanded").click();
 		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(1);
 		expect(window.document.querySelector(".subdir-group")?.textContent).toBe(
 			"○ widgets (3)",
@@ -117,7 +117,7 @@ describe("renderer.html subdirectory group boxes", () => {
 
 	it("renders no .subdir-group elements when subdirContainers is absent", async () => {
 		const window = await loadDiagram();
-		// starts in diff-focused mode by default, which has no subdirContainers
+		// starts in focused mode by default, which has no subdirContainers
 		expect(window.document.querySelectorAll(".subdir-group")).toHaveLength(0);
 	});
 });
@@ -127,7 +127,7 @@ describe("renderer.html change magnitude", () => {
 		meta: { scopeDir: "src/app/features/users" },
 		sourceRoot: "src/app",
 		modes: {
-			all: {
+			expanded: {
 				nodes: [
 					{ ...node("low", "added", 10), magnitude: 0.1 },
 					{ ...node("high", "added", 150), magnitude: 1 },
@@ -136,7 +136,7 @@ describe("renderer.html change magnitude", () => {
 				width: 300,
 				height: 120,
 			},
-			diffFocused: {
+			focused: {
 				nodes: [
 					{ ...node("low", "added", 10), magnitude: 0.1 },
 					{ ...node("high", "added", 150), magnitude: 1 },

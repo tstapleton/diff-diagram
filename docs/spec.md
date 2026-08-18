@@ -12,12 +12,12 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 
 | File | Purpose |
 |---|---|
-| `<out-dir>/diagram-diff.svg` | Static diff-focused diagram — paste as an image into a PR comment. Only written when `--base-repo-root` is given. |
-| `<out-dir>/diagram-all.svg` | Static all-nodes diagram — same diff coloring, no collapsing |
+| `<out-dir>/diagram-focused.svg` | Static focused diagram — paste as an image into a PR comment. Only written when `--base-repo-root` is given. |
+| `<out-dir>/diagram-expanded.svg` | Static expanded diagram — same diff coloring, no collapsing |
 | `<out-dir>/diagram.html` | Interactive diagram — mode switching, hover highlighting |
 | `<out-dir>/graph.json` | Full diffed graph in JSON — for debugging or downstream tooling |
 
-`diagram-diff.svg` uses the diff-focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-all.svg` uses the all-nodes view with the same diff coloring.
+`diagram-focused.svg` uses the focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-expanded.svg` uses the expanded view with the same diff coloring.
 
 `diagram.html` embeds pre-computed layouts for all view modes. No server required — open the file directly in a browser.
 
@@ -33,7 +33,7 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 
 The tool does not manage git state. The caller is responsible for materializing the base branch (e.g., via `git worktree add`) and passing the path via `--base-repo-root`.
 
-When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring. In this mode `diagram-diff.svg` is not written; `diagram-all.svg` and `diagram.html` default to the all-nodes view, since without a diff the diff-focused view would collapse everything into stubs.
+When `--base-repo-root` is omitted, diff mode is skipped and the diagram shows only the current branch state with no diff coloring. In this mode `diagram-focused.svg` is not written; `diagram-expanded.svg` and `diagram.html` default to the expanded view, since without a diff the focused view would collapse everything into stubs.
 
 ## Core Behaviors
 
@@ -79,15 +79,15 @@ Rules:
 
 ### View modes
 
-Three view modes are available in `diagram.html`. `diagram-diff.svg` always uses the diff-focused mode; `diagram-all.svg` always uses the all-nodes mode; `diagram-clustered.svg` always uses the clustered mode and is always written regardless of whether a base to diff against was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
+Three view modes are available in `diagram.html`. `diagram-focused.svg` always uses the focused mode; `diagram-expanded.svg` always uses the expanded mode; `diagram-collapsed.svg` always uses the collapsed mode and is always written regardless of whether a base to diff against was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
 
-**All nodes** — every node is shown individually. Useful for seeing the full architecture of a feature without any collapsing.
+**Expanded** — every node is shown individually. Useful for seeing the full architecture of a feature without any collapsing.
 
-**Diff-focused** — the default and primary view. Changed areas are expanded; unchanged areas are collapsed to stub nodes (directory-level placeholders).
+**Focused** — the default and primary view. Changed areas are expanded; unchanged areas are collapsed to stub nodes (directory-level placeholders).
 
-**Clustered** — a third mode for orientation on large features: every subdirectory (up to 2 levels deep) collapses to one box regardless of diff state, colored by the most significant change inside it. Independent of diff-focused's stub-collapsing rules below — a directory renders as a box here even if diff-focused would show it fully expanded or collapse it to a stub.
+**Collapsed** — a third mode for orientation on large features: every subdirectory (up to 2 levels deep) collapses to one box regardless of diff state, colored by the most significant change inside it. Independent of focused's stub-collapsing rules below — a directory renders as a box here even if focused would show it fully expanded or collapse it to a stub.
 
-Collapse rules for diff-focused:
+Collapse rules for focused:
 - In-scope: group nodes by their first-level subdirectory under the feature directory. If all nodes in a group are `unchanged`, collapse the group to a single stub. If any node is `added`, `modified`, or `removed`, expand all nodes in that group individually.
 - Out-of-scope: group nodes by their immediate parent directory. Same collapse rule.
 - Nodes at the feature directory root (not inside any subdirectory) are always shown individually.

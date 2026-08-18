@@ -470,7 +470,7 @@ export async function computeLayout(
 
 // ─── computeClusteredLayout ───────────────────────────────────────────────────
 // Lays out the synthetic directory-node graph produced by
-// computeViewNodes(graph, "clustered") (src/renderer/graph-helpers.ts).
+// computeViewNodes(graph, "collapsed") (src/renderer/graph-helpers.ts).
 // Unlike computeLayout's scopeDir grouping, where a subdir box is an outline
 // *wrapper* around real leaf files, here each directory node IS the rendered
 // content: a level1 node's own ELK node becomes a compound node containing

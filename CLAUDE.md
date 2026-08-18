@@ -24,7 +24,7 @@ npm run build   # compiles TypeScript → dist/
 | `npm run test:visual` | Visual regression tests (pixel-level SVG comparison) |
 | `npm run test:visual:approve` | Update visual snapshots after intentional rendering changes |
 | `npm run verify` | Full check: build + lint + unit tests + visual tests + sample drift check (runs on pre-commit) |
-| `npm run docs:sample:check-drift` | Regenerate `docs/sample-diff.svg` and `docs/sample-all.svg` to a scratch dir and fail if either differs from the committed files |
+| `npm run docs:sample:check-drift` | Regenerate `docs/sample-focused.svg` and `docs/sample-expanded.svg` to a scratch dir and fail if either differs from the committed files |
 | `npm run lint` | Lint with Biome |
 | `npm run format` | Format with Biome |
 
@@ -85,6 +85,6 @@ Integration tests run the full CLI pipeline with `--base-repo-root fixtures/inte
 **If a gate fails, change approach — do not skip.**
 
 - Gate 1: `npm run verify` — build, lint, unit tests, visual tests, and the sample drift check all pass
-- Gate 2: `node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users` — runs without error, produces `dist/diagram-diff.svg`, `dist/diagram-all.svg`, and `dist/diagram.html`
+- Gate 2: `node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users` — runs without error, produces `dist/diagram-focused.svg`, `dist/diagram-expanded.svg`, and `dist/diagram.html`
 - Gate 3 (visual, user): open `dist/diagram.html` — both view modes render, hover highlights edges, diff colors correct
-- Gate 4 (visual, user): open `dist/diagram-diff.svg` — real graph layout with edges, not a list of boxes
+- Gate 4 (visual, user): open `dist/diagram-focused.svg` — real graph layout with edges, not a list of boxes

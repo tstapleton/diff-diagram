@@ -52,9 +52,9 @@
   <div class="card">
     <h2>View Mode</h2>
     <div class="mode-group">
-      <button type="button" class="mode-btn" data-mode="all">All nodes</button>
-      <button type="button" class="mode-btn" data-mode="diffFocused">Diff-focused</button>
-      <button type="button" class="mode-btn" data-mode="clustered">Clustered</button>
+      <button type="button" class="mode-btn" data-mode="expanded">Expanded</button>
+      <button type="button" class="mode-btn" data-mode="focused">Focused</button>
+      <button type="button" class="mode-btn" data-mode="collapsed">Collapsed</button>
     </div>
   </div>
   <div class="card">
@@ -258,7 +258,7 @@ function attachHover(svgEl) {
 }
 
 // ─── Mode state ───────────────────────────────────────────────────────────────
-let currentMode = DIFF_DIAGRAM.initialMode || 'diffFocused';
+let currentMode = DIFF_DIAGRAM.initialMode || 'focused';
 
 function setMode(mode) {
   currentMode = mode;
@@ -284,7 +284,7 @@ const meta = DIFF_DIAGRAM.meta || {};
 document.getElementById('meta-scope').textContent = meta.scopeDir || '—';
 
 // Changed files sidebar
-const allNodes = DIFF_DIAGRAM.modes.all.nodes;
+const allNodes = DIFF_DIAGRAM.modes.expanded.nodes;
 const changed = allNodes.filter(n => n.diff && n.diff !== 'unchanged');
 const list = document.getElementById('changed-files-list');
 if (changed.length === 0) {

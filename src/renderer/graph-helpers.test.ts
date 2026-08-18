@@ -45,9 +45,9 @@ function nodeAt(
 	return { id, label: id, file, type: "component", scope, diff };
 }
 
-// ─── 'all' mode ─────────────────────────────────────────────────────────────
+// ─── 'expanded' mode ─────────────────────────────────────────────────────────────
 
-describe("computeViewNodes 'all' mode", () => {
+describe("computeViewNodes 'expanded' mode", () => {
 	it("returns all nodes and edges unchanged", () => {
 		const n1 = node(
 			"a",
@@ -63,7 +63,7 @@ describe("computeViewNodes 'all' mode", () => {
 		);
 		const e1 = edge("a", "b");
 		const g = makeGraph([n1, n2], [e1]);
-		const { nodes, edges } = computeViewNodes(g, "all");
+		const { nodes, edges } = computeViewNodes(g, "expanded");
 		expect(nodes).toEqual([n1, n2]);
 		expect(edges).toEqual([e1]);
 	});
@@ -82,7 +82,7 @@ describe("computeViewNodes 'all' mode", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "all");
+		const { nodes } = computeViewNodes(g, "expanded");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 	});
@@ -90,7 +90,7 @@ describe("computeViewNodes 'all' mode", () => {
 
 // ─── collapse rules — in-scope ───────────────────────────────────────────────
 
-describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
+describe("computeViewNodes 'focused' — in-scope collapse", () => {
 	it("collapses an unchanged in-scope subdir to a stub", () => {
 		const n1 = node(
 			"a",
@@ -105,7 +105,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).toBe("stub");
 		expect(nodes[0].label).toBe(formatDirLabel("closed", "data-access", 2));
@@ -127,7 +127,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"modified",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 	});
@@ -146,7 +146,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"added",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.every((n) => n.type !== "stub")).toBe(true);
 	});
@@ -165,7 +165,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"removed",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 	});
@@ -184,7 +184,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.every((n) => n.type === "stub")).toBe(true);
 		const labels = nodes.map((n) => n.label).sort();
@@ -204,7 +204,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).not.toBe("stub");
 		expect(nodes[0].id).toBe("root");
@@ -213,7 +213,7 @@ describe("computeViewNodes 'diff-focused' — in-scope collapse", () => {
 
 // ─── collapse rules — partial (new import into an otherwise-unchanged dir) ──
 
-describe("computeViewNodes 'diff-focused' — partial collapse", () => {
+describe("computeViewNodes 'focused' — partial collapse", () => {
 	it("pulls only the edge-touched file out of an otherwise-unchanged dir, and drops its unchanged internal edge to the still-hidden sibling", () => {
 		// foo/a.ts is modified and adds a new import to bar/d.ts. bar/c.ts and
 		// bar/d.ts are both content-unchanged; d also has a pre-existing
@@ -224,7 +224,7 @@ describe("computeViewNodes 'diff-focused' — partial collapse", () => {
 		const addedEdge = edge("a", "d", "added");
 		const internalEdge = edge("d", "c", "unchanged");
 		const g = makeGraph([a, c, d], [addedEdge, internalEdge]);
-		const { nodes, edges, groupTotals } = computeViewNodes(g, "diff-focused");
+		const { nodes, edges, groupTotals } = computeViewNodes(g, "focused");
 
 		// foo/ fully expands as today (a is modified); bar/ goes partial: only
 		// d (edge-touched) is individually visible, c stays hidden.
@@ -248,7 +248,7 @@ describe("computeViewNodes 'diff-focused' — partial collapse", () => {
 			[c, d, x],
 			[edge("x", "c", "added"), edge("x", "d", "added")],
 		);
-		const { nodes, groupTotals } = computeViewNodes(g, "diff-focused");
+		const { nodes, groupTotals } = computeViewNodes(g, "focused");
 
 		expect(nodes.find((n) => n.id === "c")).toBeDefined();
 		expect(nodes.find((n) => n.id === "d")).toBeDefined();
@@ -273,7 +273,7 @@ describe("computeViewNodes 'diff-focused' — partial collapse", () => {
 		);
 		const removedEdge = edge("c", "ghost", "removed");
 		const g = makeGraph([c, d, ghost], [removedEdge]);
-		const { nodes, edges, groupTotals } = computeViewNodes(g, "diff-focused");
+		const { nodes, edges, groupTotals } = computeViewNodes(g, "focused");
 
 		expect(nodes.find((n) => n.id === "c")).toBeDefined();
 		expect(nodes.find((n) => n.id === "d")).toBeUndefined();
@@ -286,7 +286,7 @@ describe("computeViewNodes 'diff-focused' — partial collapse", () => {
 		const c = node("c", `${SCOPE}/bar/c.ts`, "in-scope", null);
 		const d = node("d", `${SCOPE}/bar/d.ts`, "in-scope", null);
 		const g = makeGraph([c, d], [{ from: "c", to: "d", kind: "import" }]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).toBe("stub");
@@ -296,7 +296,7 @@ describe("computeViewNodes 'diff-focused' — partial collapse", () => {
 
 // ─── collapse rules — out-of-scope ──────────────────────────────────────────
 
-describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
+describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 	it("collapses an unchanged OOS parent dir to a stub", () => {
 		const n1 = node(
 			"oos_a",
@@ -311,7 +311,7 @@ describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0].type).toBe("stub");
 		expect(nodes[0].scope).toBe("out-of-scope");
@@ -332,7 +332,7 @@ describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
 			"added",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 	});
@@ -351,7 +351,7 @@ describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
 			"unchanged",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "diff-focused");
+		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
 		expect(nodes.every((n) => n.type === "stub")).toBe(true);
 	});
@@ -359,7 +359,7 @@ describe("computeViewNodes 'diff-focused' — out-of-scope collapse", () => {
 
 // ─── edge preservation ────────────────────────────────────────────────────────
 
-describe("computeViewNodes 'diff-focused' — edge preservation", () => {
+describe("computeViewNodes 'focused' — edge preservation", () => {
 	it("redirects edges from collapsed nodes to stubs", () => {
 		const inNode = node(
 			"in",
@@ -382,7 +382,7 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		const e1 = edge("in", "oos_a");
 		const e2 = edge("in", "oos_b");
 		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
-		const { nodes, edges } = computeViewNodes(g, "diff-focused");
+		const { nodes, edges } = computeViewNodes(g, "focused");
 
 		const stub = nodes.find((n) => n.type === "stub");
 		expect(stub).toBeDefined();
@@ -413,7 +413,7 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		const e1 = edge("a", "c");
 		const e2 = edge("b", "c");
 		const g = makeGraph([n1, n2, n3], [e1, e2]);
-		const { edges } = computeViewNodes(g, "diff-focused");
+		const { edges } = computeViewNodes(g, "focused");
 		expect(edges).toHaveLength(1); // both edges become stub_data_access → stub_models
 	});
 
@@ -432,7 +432,7 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		);
 		const e = edge("a", "b"); // both collapse to same stub
 		const g = makeGraph([n1, n2], [e]);
-		const { edges } = computeViewNodes(g, "diff-focused");
+		const { edges } = computeViewNodes(g, "focused");
 		expect(edges).toHaveLength(0);
 	});
 
@@ -460,13 +460,13 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 
 		// unchanged edge first in graph.edges
 		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, addedEdge]);
-		const r1 = computeViewNodes(g1, "diff-focused");
+		const r1 = computeViewNodes(g1, "focused");
 		expect(r1.edges).toHaveLength(1);
 		expect(r1.edges[0].diff).toBe("added");
 
 		// added edge first in graph.edges
 		const g2 = makeGraph([inNode, oos1, oos2], [addedEdge, unchangedEdge]);
-		const r2 = computeViewNodes(g2, "diff-focused");
+		const r2 = computeViewNodes(g2, "focused");
 		expect(r2.edges).toHaveLength(1);
 		expect(r2.edges[0].diff).toBe("added");
 	});
@@ -495,13 +495,13 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 
 		// unchanged edge first (removed edges are appended last in diffGraphs)
 		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, removedEdge]);
-		const r1 = computeViewNodes(g1, "diff-focused");
+		const r1 = computeViewNodes(g1, "focused");
 		expect(r1.edges).toHaveLength(1);
 		expect(r1.edges[0].diff).toBe("removed");
 
 		// removed edge first
 		const g2 = makeGraph([inNode, oos1, oos2], [removedEdge, unchangedEdge]);
-		const r2 = computeViewNodes(g2, "diff-focused");
+		const r2 = computeViewNodes(g2, "focused");
 		expect(r2.edges).toHaveLength(1);
 		expect(r2.edges[0].diff).toBe("removed");
 	});
@@ -530,7 +530,7 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		const e1 = edge("in", "oos_a");
 		const e2 = edge("in", "oos_b");
 		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
-		const { nodes, edges } = computeViewNodes(g, "diff-focused");
+		const { nodes, edges } = computeViewNodes(g, "focused");
 
 		const stubs = nodes.filter((n) => n.type === "stub");
 		expect(stubs).toHaveLength(2);
@@ -560,21 +560,21 @@ describe("computeViewNodes 'diff-focused' — edge preservation", () => {
 		);
 		const e = edge("in", "oos", "added");
 		const g = makeGraph([inNode, oos], [e]);
-		const { nodes, edges } = computeViewNodes(g, "diff-focused");
+		const { nodes, edges } = computeViewNodes(g, "focused");
 		// analytics is 'added', so its OOS group expands — no stub
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 		expect(edges[0].diff).toBe("added");
 	});
 });
 
-// ─── 'clustered' mode ───────────────────────────────────────────────────────
+// ─── 'collapsed' mode ───────────────────────────────────────────────────────
 
-describe("computeViewNodes 'clustered' mode", () => {
+describe("computeViewNodes 'collapsed' mode", () => {
 	it("collapses a first-level subdirectory to one directory node", () => {
 		const a = nodeAt("a", `${SCOPE}/data-access/a.ts`);
 		const b = nodeAt("b", `${SCOPE}/data-access/b.ts`);
 		const g = makeGraph([a, b], [edge("a", "b")]);
-		const { nodes, edges } = computeViewNodes(g, "clustered");
+		const { nodes, edges } = computeViewNodes(g, "collapsed");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
 		expect(dirNodes).toHaveLength(1);
 		expect(dirNodes[0].label).toBe(formatDirLabel("closed", "data-access", 2));
@@ -585,7 +585,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const direct = nodeAt("direct", `${SCOPE}/data-access/direct.ts`);
 		const nested = nodeAt("nested", `${SCOPE}/data-access/store/nested.ts`);
 		const g = makeGraph([direct, nested]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
 		const labels = dirNodes.map((n) => n.label).sort();
 		expect(labels).toEqual(
@@ -608,7 +608,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const direct = nodeAt("direct", `${SCOPE}/data-access/direct.ts`);
 		const nested = nodeAt("nested", `${SCOPE}/data-access/store/nested.ts`);
 		const g = makeGraph([direct, nested], [edge("direct", "nested")]);
-		const { edges } = computeViewNodes(g, "clustered");
+		const { edges } = computeViewNodes(g, "collapsed");
 		expect(edges).toHaveLength(0);
 	});
 
@@ -616,7 +616,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const shallow = nodeAt("shallow", `${SCOPE}/data-access/store/shallow.ts`);
 		const deep = nodeAt("deep", `${SCOPE}/data-access/store/extra/deep.ts`);
 		const g = makeGraph([shallow, deep]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		const dirNodes = nodes.filter((n) => n.type === "directory");
 		expect(dirNodes.map((n) => n.label).sort()).toEqual(
 			[
@@ -629,7 +629,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 	it("leaves a root-level file as an individual node", () => {
 		const root = nodeAt("root", `${SCOPE}/root.ts`);
 		const g = makeGraph([root]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		expect(nodes).toHaveLength(1);
 		expect(nodes[0]).toEqual(root);
 	});
@@ -639,7 +639,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const added = nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added");
 		const modified = nodeAt("m1", `${SCOPE}/widgets/m1.ts`, "modified");
 		const g = makeGraph([unchanged1, added, modified]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		const widgets = nodes.find((n) => n.label.includes("widgets"));
 		expect(widgets?.diff).toBe("added"); // added (3) beats modified (1) beats unchanged (0)
 	});
@@ -651,7 +651,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 			"added",
 		);
 		const g = makeGraph([nested]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		const dataAccess = nodes.find((n) => n.label.includes("data-access"));
 		expect(dataAccess?.diff).toBe("added");
 	});
@@ -671,7 +671,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 			"out-of-scope",
 		);
 		const g = makeGraph([inScope, oos1, oos2], [edge("in", "oos1")]);
-		const { nodes, edges } = computeViewNodes(g, "clustered");
+		const { nodes, edges } = computeViewNodes(g, "collapsed");
 		const oosDirNodes = nodes.filter((n) => n.scope === "out-of-scope");
 		expect(oosDirNodes).toHaveLength(1);
 		expect(oosDirNodes[0].label).toBe(formatDirLabel("closed", "services", 2));
@@ -687,7 +687,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 			[a1, a2, b1],
 			[edge("a1", "b1", "unchanged"), edge("a2", "b1", "added")],
 		);
-		const { edges } = computeViewNodes(g, "clustered");
+		const { edges } = computeViewNodes(g, "collapsed");
 		expect(edges).toHaveLength(1);
 		expect(edges[0].diff).toBe("added");
 	});
@@ -696,7 +696,7 @@ describe("computeViewNodes 'clustered' mode", () => {
 		const a = nodeAt("a", `${SCOPE}/sub-one/utils/a.ts`);
 		const b = nodeAt("b", `${SCOPE}/sub-two/utils/b.ts`);
 		const g = makeGraph([a, b]);
-		const { nodes } = computeViewNodes(g, "clustered");
+		const { nodes } = computeViewNodes(g, "collapsed");
 		const utilsNodes = nodes.filter((n) => n.label.includes("utils"));
 		expect(utilsNodes).toHaveLength(2);
 		expect(utilsNodes[0].id).not.toBe(utilsNodes[1].id);
