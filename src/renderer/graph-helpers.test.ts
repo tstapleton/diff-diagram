@@ -634,14 +634,35 @@ describe("computeViewNodes 'collapsed' mode", () => {
 		expect(nodes[0]).toEqual(root);
 	});
 
-	it("colors a directory node by the dominant diff state among its members", () => {
+	it("colors a directory node 'modified' when its members' diff states are a mix, not unanimous", () => {
 		const unchanged1 = nodeAt("u1", `${SCOPE}/widgets/u1.ts`, "unchanged");
 		const added = nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added");
 		const modified = nodeAt("m1", `${SCOPE}/widgets/m1.ts`, "modified");
 		const g = makeGraph([unchanged1, added, modified]);
 		const { nodes } = computeViewNodes(g, "collapsed");
 		const widgets = nodes.find((n) => n.label.includes("widgets"));
-		expect(widgets?.diff).toBe("added"); // added (3) beats modified (1) beats unchanged (0)
+		// A mix of diff states (even without an explicit "modified" member) must
+		// not be painted as if every member agreed — only a unanimous diff state
+		// across all members earns that color; anything else is "modified".
+		expect(widgets?.diff).toBe("modified");
+	});
+
+	it("colors a directory node by its members' diff state only when every member unanimously agrees", () => {
+		const added1 = nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added");
+		const added2 = nodeAt("a2", `${SCOPE}/widgets/a2.ts`, "added");
+		const g = makeGraph([added1, added2]);
+		const { nodes } = computeViewNodes(g, "collapsed");
+		const widgets = nodes.find((n) => n.label.includes("widgets"));
+		expect(widgets?.diff).toBe("added");
+	});
+
+	it("colors a directory node 'modified' for a mix of added and unchanged members, not the highest-priority state", () => {
+		const unchanged1 = nodeAt("u1", `${SCOPE}/widgets/u1.ts`, "unchanged");
+		const added = nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added");
+		const g = makeGraph([unchanged1, added]);
+		const { nodes } = computeViewNodes(g, "collapsed");
+		const widgets = nodes.find((n) => n.label.includes("widgets"));
+		expect(widgets?.diff).toBe("modified");
 	});
 
 	it("a level1 directory's dominant color reflects its level2 child's members too, even with no direct files of its own", () => {

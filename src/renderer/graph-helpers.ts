@@ -329,19 +329,28 @@ function makeDirNode(
 	scope: "in-scope" | "out-of-scope",
 	members: GraphNode[],
 ): GraphNode {
-	const dominant = members.reduce<DiffState>((best, n) => {
-		return diffPriority(n.diff) > diffPriority(best)
-			? (n.diff ?? "unchanged")
-			: best;
-	}, "unchanged");
+	const aggregate = aggregateDiff(members.map((n) => n.diff ?? "unchanged"));
 	return {
 		id,
 		label: formatDirLabel("closed", label, members.length),
 		file,
 		type: "directory",
 		scope,
-		diff: dominant,
+		diff: aggregate,
 	};
+}
+
+// A directory box's diff state must not overstate what's inside it: it's only
+// "added"/"removed"/"unchanged" when every member unanimously agrees, and
+// "modified" for any other mix (e.g. some added + some unchanged) — a single
+// added file among twenty unchanged siblings should not paint the whole
+// directory green. This is distinct from diffPriority()'s highest-wins
+// reduction, which is still correct for its own use sites (edge dedup).
+function aggregateDiff(diffs: DiffState[]): DiffState {
+	if (diffs.every((d) => d === "added")) return "added";
+	if (diffs.every((d) => d === "removed")) return "removed";
+	if (diffs.every((d) => d === "unchanged")) return "unchanged";
+	return "modified";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

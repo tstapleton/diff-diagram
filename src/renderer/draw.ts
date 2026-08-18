@@ -34,6 +34,11 @@ const STUB_TEXT = "#d3e2f7";
 const TEST_DOT = "#22c55e"; // green — has unit test
 const STORY_DOT = "#a855f7"; // purple — has storybook story
 
+// Dashed border = "this box is abstracted/aggregated, not one concrete real
+// thing" — shared by typeOnly import nodes, stub nodes, clustered directory
+// nodes, and subdirectory group wrapper boxes.
+const AGGREGATE_DASH = "4,2";
+
 // ─── Color interpolation ──────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -98,7 +103,7 @@ function renderNode(
 	if (isStub) {
 		const cy = ly + lh / 2;
 		return [
-			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-dasharray="${AGGREGATE_DASH}"/>`,
 			`  <text x="${lx + lw / 2}" y="${cy + 4}" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
 		].join("\n");
 	}
@@ -110,14 +115,14 @@ function renderNode(
 		if (isOos) {
 			const dirPath = oosDisplayPath(node.file, sourceRoot);
 			return [
-				`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
+				`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${AGGREGATE_DASH}"/>`,
 				`  <text x="${lx + 8}" y="${ly + lh / 2 - 3}" font-family="${FONT_FAMILY}" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
 				`  <text x="${lx + 8}" y="${ly + lh / 2 + 9}" font-family="${FONT_FAMILY}" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
 			].join("\n");
 		}
 		const cy = ly + lh / 2 + 4;
 		return [
-			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="4,2"/>`,
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${typeOnlyFill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${AGGREGATE_DASH}"/>`,
 			`  <text x="${lx + 8}" y="${cy}" font-family="${FONT_FAMILY}" font-size="11" font-style="italic" fill="${TEXT_COLOR}">${label}</text>`,
 		].join("\n");
 	}
@@ -138,7 +143,7 @@ function renderNode(
 		// the label, so center it like every other node.
 		const textY = lh > NODE_HEIGHT ? ly + 13 : ly + lh / 2 + 4;
 		return [
-			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
+			`  <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${AGGREGATE_DASH}"/>`,
 			`  <text x="${lx + 8}" y="${textY}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
 		].join("\n");
 	}
@@ -257,7 +262,7 @@ export function toSvg(
 	// entry, subordinate to the outer feature container above it.
 	const subdirRects = (layout.subdirContainers ?? []).map((c) => {
 		return [
-			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/>`,
+			`  <rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25" stroke-dasharray="${AGGREGATE_DASH}"/>`,
 			`  <text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="#d3e2f7">${c.label}</text>`,
 		].join("\n");
 	});
