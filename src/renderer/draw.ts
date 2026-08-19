@@ -38,7 +38,6 @@ function toPositionedNode(
 		scope: gn.scope,
 		diff: gn.diff,
 		file: gn.file,
-		...(gn.typeOnly ? { typeOnly: true } : {}),
 		...(gn.hasTests ? { hasTests: true } : {}),
 		...(gn.hasStories ? { hasStories: true } : {}),
 		...(gn.magnitude !== undefined ? { magnitude: gn.magnitude } : {}),

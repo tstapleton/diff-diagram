@@ -172,7 +172,7 @@ function nodeInDir(id: string, file: string): GraphNode {
 		id,
 		label: id,
 		file,
-		type: "component",
+		type: "file",
 		scope: "in-scope",
 		diff: "unchanged",
 	};
@@ -664,7 +664,7 @@ describe("computeClusteredLayout", () => {
 			id: "root",
 			label: "root",
 			file: `${scopeDir}/root.ts`,
-			type: "component",
+			type: "file",
 			scope: "in-scope",
 			diff: "unchanged",
 		};

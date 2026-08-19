@@ -1,17 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { classifyByFilename, labelFromFile, toNodeId } from "./analyzer.js";
+import { labelFromFile, toNodeId } from "./analyzer.js";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
-
-function classifyOutOfScope(filePath: string): GraphNode["type"] {
-	const byFilename = classifyByFilename(filePath);
-	if (byFilename) return byFilename;
-	const base = path.basename(filePath);
-	if (base.endsWith(".service.ts")) return "service";
-	if (base.endsWith(".component.ts")) return "component";
-	if (base.endsWith(".pipe.ts")) return "pipe";
-	return "constants";
-}
 
 export function addContext(graph: Graph): Graph {
 	const repoRoot = graph.meta.repoRoot ?? "";
@@ -35,7 +25,7 @@ export function addContext(graph: Graph): Graph {
 				id,
 				label: labelFromFile(toFile),
 				file: path.relative(repoRoot, toFile),
-				type: classifyOutOfScope(toFile),
+				type: "file",
 				scope: "out-of-scope",
 				diff: null,
 				_content: readFileSync(toFile, "utf8"),

@@ -1,23 +1,12 @@
 export type DiffState = "added" | "modified" | "removed" | "unchanged";
 export type NodeScope = "in-scope" | "out-of-scope" | "removed-ghost";
-export type NodeType =
-	| "component"
-	| "service"
-	| "pipe"
-	| "guard"
-	| "resolver"
-	| "interceptor"
-	| "routing"
-	| "module"
-	| "model"
-	| "constants";
 export type EdgeKind = "import";
 
 export interface GraphNode {
 	id: string;
 	label: string;
 	file: string;
-	type: NodeType | "stub" | "directory";
+	type: "file" | "stub" | "directory";
 	scope: NodeScope;
 	diff: DiffState | null;
 	typeOnly?: boolean;
@@ -34,6 +23,8 @@ export interface GraphNode {
 	 * linesChanged scaled to [0, 1], relative to the most-changed node among
 	 * those that render a magnitude fill (in-scope and removed-ghost nodes).
 	 * Set by applyChangeMagnitude; absent on out-of-scope and unchanged nodes.
+	 * A synthesized directory node (collapsed view) instead takes the highest
+	 * magnitude among its member nodes — see makeDirNode in graph-helpers.ts.
 	 */
 	magnitude?: number;
 	/**

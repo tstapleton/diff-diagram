@@ -43,9 +43,3 @@ A view mode that shows every node individually with no collapsing. Useful for un
 
 **layout**  
 The output of `computeLayout(nodes, edges)` — x/y positions and dimensions for each node, plus bend-point coordinates for each edge. Computed server-side by elkjs and embedded in `diagram.html` as JSON. The browser renderer draws from these pre-computed positions without running elkjs.
-
-**node type**  
-Classification of what a `.ts` file is: `component`, `service`, `pipe`, `guard`, `resolver`, `interceptor`, `routing`, `module`, `model`, `constants`, or `stub`. Determined by Angular decorators and filename patterns. Affects border style in the diagram (not color — color is reserved for diff state).
-
-**type-only import**  
-An import used only for TypeScript type information (interfaces, type aliases). Detected via `import type { X }` syntax. Rendered with a dashed edge. Not all type imports use this syntax — see `docs/plans/task-02-type-only-imports.md` for context.

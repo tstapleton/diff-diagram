@@ -16,7 +16,7 @@ function node(id: string, overrides: Partial<GraphNode> = {}): GraphNode {
 		id,
 		label: id,
 		file: `${id}.ts`,
-		type: "component",
+		type: "file",
 		scope: "in-scope",
 		diff: "unchanged",
 		...overrides,
@@ -192,16 +192,13 @@ describe("toSvg", () => {
 		expect(svg).toContain("UserCard");
 	});
 
-	it("in-scope node shows label only — no type or diff text inside node", () => {
+	it("in-scope node shows label only — no diff text inside node", () => {
 		const n = node("svc", {
 			label: "MyService",
-			type: "service",
 			diff: "added",
 		});
 		const svg = toSvg(layout([n]), [n], []);
 		expect(svg).toContain("MyService");
-		expect(svg).not.toContain("service · added");
-		expect(svg).not.toContain(">service<");
 		expect(svg).not.toContain(">added<");
 	});
 
@@ -225,19 +222,42 @@ describe("toSvg", () => {
 		expect(svg).toContain("#22c55e"); // green
 	});
 
-	it("renders removed edges with dashed stroke", () => {
+	it("renders removed edges with red stroke, no dash", () => {
 		const n1 = node("a");
 		const n2 = node("b", { scope: "removed-ghost", diff: "removed" });
 		const e = edge("a", "b", "removed");
 		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
-		expect(svg).toContain("stroke-dasharray");
+		expect(svg).toContain("#ef4444"); // red
+		expect(svg).not.toContain("stroke-dasharray");
 	});
 
-	it("renders stub nodes with a dashed border — an aggregate, not one real file", () => {
+	it("renders stub nodes with a solid border and the directory label", () => {
 		const s = node("stub-dir", { type: "stub", label: "● data-access (2)" });
 		const svg = toSvg(layout([s]), [s], []);
-		expect(svg).toContain("stroke-dasharray");
+		expect(svg).not.toContain("stroke-dasharray");
 		expect(svg).toContain("data-access");
+	});
+
+	it("places a stub node's label at the same position as a directory node's label", () => {
+		// Same underlying fact (a fully-collapsed directory), shown by two
+		// different view modes — the label should sit in the same spot
+		// either way, even though color still differs between the two.
+		const s = node("stub-dir", { type: "stub", label: "widgets" });
+		const d = node("dir-node", { type: "directory", label: "widgets" });
+		const svgStub = toSvg(layout([s]), [s], []);
+		const svgDir = toSvg(layout([d]), [d], []);
+		const stubMatch = svgStub.match(
+			/<text x="([\d.]+)" y="([\d.]+)"[^>]*>widgets<\/text>/,
+		);
+		const dirMatch = svgDir.match(
+			/<text x="([\d.]+)" y="([\d.]+)"[^>]*>widgets<\/text>/,
+		);
+		expect(stubMatch).not.toBeNull();
+		expect(dirMatch).not.toBeNull();
+		expect([stubMatch?.[1], stubMatch?.[2]]).toEqual([
+			dirMatch?.[1],
+			dirMatch?.[2],
+		]);
 	});
 
 	it("does not truncate a stub label even when the layout box is narrow", () => {
@@ -258,7 +278,7 @@ describe("toSvg", () => {
 		expect(svg).toContain("a-very-long-directory-name (12)");
 	});
 
-	it("top-anchors a directory node's label instead of vertically centering it", () => {
+	it("top-anchors a directory node's label regardless of box height", () => {
 		// A compound level1 directory box is taller than a leaf (room for a
 		// nested level2 child in its lower portion) — a vertically-centered
 		// label would sit right where that child's opaque rect is drawn,
@@ -286,10 +306,11 @@ describe("toSvg", () => {
 		expect(labelY).toBeLessThan(20);
 	});
 
-	it("vertically centers a leaf directory node's label (no nested child)", () => {
-		// A leaf directory box (collapsed mode, no level2 child) is exactly
-		// NODE_HEIGHT tall — nothing sits below the label, so it should center
-		// like a regular node instead of top-anchoring.
+	it("top-anchors a leaf directory node's label too (no nested child)", () => {
+		// A leaf directory box (collapsed mode, no level2 child) has nothing
+		// below the label, but it still top-anchors — every directory box's
+		// label sits in the same place, whether or not it happens to have a
+		// nested child.
 		const dir = node("widgets", { type: "directory", label: "● widgets (2)" });
 		const svg = toSvg(layout([dir]), [dir], []); // default layout() height is 40
 		const textMatch = svg.match(
@@ -297,8 +318,8 @@ describe("toSvg", () => {
 		);
 		expect(textMatch).not.toBeNull();
 		const labelY = Number(textMatch?.[1]);
-		// height=40 box at y=0 -> vertically centered is y = 40/2 + 4 = 24.
-		expect(labelY).toBe(24);
+		// Top-anchored: y + 13 from this box's y=0.
+		expect(labelY).toBe(13);
 	});
 
 	it("includes arrow marker definitions in <defs>", () => {
@@ -315,40 +336,23 @@ describe("toSvg", () => {
 		expect(svg).toContain(`height="${l.height}"`);
 	});
 
-	it("type-only node has stroke-dasharray on rect", () => {
-		const n = node("typeOnlyNode", { typeOnly: true, label: "TypeOnlyNode" });
-		const svg = toSvg(layout([n]), [n], []);
-		expect(svg).toContain('stroke-dasharray="4,2"');
-	});
-
-	it("type-only node label has font-style italic", () => {
-		const n = node("typeOnlyNode", { typeOnly: true, label: "TypeOnlyNode" });
-		const svg = toSvg(layout([n]), [n], []);
-		expect(svg).toContain('font-style="italic"');
-	});
-
-	it("non-type-only node does not have stroke-dasharray (unless removed)", () => {
+	it("no node ever has a stroke-dasharray", () => {
 		const n = node("normalNode", { label: "NormalNode" });
 		const svg = toSvg(layout([n]), [n], []);
 		expect(svg).not.toContain("stroke-dasharray");
 	});
 
-	it("type-only out-of-scope node has stroke-dasharray and italic label", () => {
-		const n = node("oosTypeOnly", {
-			typeOnly: true,
-			scope: "out-of-scope",
-			diff: null,
-			label: "OosNode",
-		});
+	it("a typeOnly node renders identically to any other node — no distinct styling", () => {
+		const n = node("typeOnlyNode", { typeOnly: true, label: "TypeOnlyNode" });
 		const svg = toSvg(layout([n]), [n], []);
-		expect(svg).toContain('stroke-dasharray="4,2"');
-		expect(svg).toContain('font-style="italic"');
+		expect(svg).not.toContain("stroke-dasharray");
+		expect(svg).not.toContain('font-style="italic"');
 	});
 
-	it("node with hasTests shows green dot marker", () => {
+	it("node with hasTests shows cyan dot marker", () => {
 		const n = node("tested", { hasTests: true });
 		const svg = toSvg(layout([n]), [n], []);
-		expect(svg).toContain("#22c55e");
+		expect(svg).toContain("#06b6d4");
 		expect(svg).toContain("<circle");
 	});
 
@@ -376,7 +380,7 @@ describe("toSvg — subdirectory group boxes", () => {
 			{ x: 10, y: 20, width: 300, height: 100, label: "○ widgets (2)" },
 		];
 		const svg = toSvg(l, nodes, [], "feature");
-		expect(svg).not.toContain('stroke-dasharray="3,2"');
+		expect(svg).not.toContain("stroke-dasharray");
 		expect(svg).toContain(">○ widgets (2)<");
 	});
 
@@ -396,6 +400,6 @@ describe("toSvg — subdirectory group boxes", () => {
 		const nodes = [node("a")];
 		const l = layout(nodes);
 		const svg = toSvg(l, nodes, [], "feature");
-		expect(svg).not.toContain('stroke-dasharray="3,2"');
+		expect(svg).not.toContain("stroke-dasharray");
 	});
 });

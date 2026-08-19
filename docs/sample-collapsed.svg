@@ -1,62 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="690" height="742" viewBox="0 0 690 742">
 <defs><marker id="arrow-added" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#22c55e"/></marker><marker id="arrow-modified" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#f59e0b"/></marker><marker id="arrow-removed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ef4444"/></marker><marker id="arrow-unchanged" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#8fa8d6"/></marker></defs>
 <rect width="690" height="742" fill="#0a0f1c"/>
-<rect x="25" y="20" width="465" height="702" rx="6" fill="#182238" stroke="#5588cc" stroke-width="1.5"/>
+<rect x="25" y="20" width="465" height="702" rx="4" fill="#182238" stroke="#7ba3d9" stroke-width="1.25"/>
 <text x="35" y="33" font-family="Fira Code, monospace" font-size="10" fill="#a9c1e8">dashboard</text>
-<path data-from="src_app_features_dashboard_dashboard_component" data-to="src_app_features_dashboard_dashboard_stats_component" d="M 190 96.81818181818181 L 230 96.81818181818181 L 230 507 L 290 507" fill="none" stroke="#8fa8d6" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_data_access" d="M 190 75 L 295 75" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_export" d="M 190 78.63636363636364 L 280 78.63636363636364 L 280 135 L 295 135" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_layout" d="M 190 104.0909090909091 L 210 104.0909090909091 L 210 627 L 295 627" fill="none" stroke="#8fa8d6" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_notifications_email" d="M 190 85.9090909090909 L 260 85.9090909090909 L 260 319 L 303 319" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_notifications_push" d="M 190 89.54545454545455 L 250 89.54545454545455 L 250 379 L 303 379" fill="none" stroke="#8fa8d6" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_settings" d="M 190 82.27272727272728 L 270 82.27272727272728 L 270 213 L 303 213" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_widgets" d="M 190 107.72727272727273 L 200 107.72727272727273 L 200 687 L 312.5 687" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_stats_component" data-to="dir_oos_src_app_shared_services" d="M 475 507 L 485 507 L 485 226.33333333333331 L 515 226.33333333333331" fill="none" stroke="#8fa8d6" stroke-width="1.5" opacity="1" marker-end="url(#arrow-unchanged)"/><path data-from="dir_settings" data-to="dir_oos_src_app_shared_services" d="M 462 213 L 515 213" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="dir_widgets" data-to="dir_oos_src_app_shared_models" d="M 452.5 687 L 515 687" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="1" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="src_app_features_dashboard_dashboard_nav_component" d="M 190 93.18181818181819 L 240 93.18181818181819 L 240 447 L 295 447" fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0.5" stroke-dasharray="5,3" marker-end="url(#arrow-removed)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_legacy_summary" d="M 190 100.45454545454545 L 220 100.45454545454545 L 220 567 L 295 567" fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0.5" stroke-dasharray="5,3" marker-end="url(#arrow-removed)"/>
+<path data-from="src_app_features_dashboard_dashboard_component" data-to="src_app_features_dashboard_dashboard_stats_component" d="M 190 96.81818181818181 L 230 96.81818181818181 L 230 507 L 290 507" fill="none" stroke="#8fa8d6" stroke-width="1.5" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_data_access" d="M 190 75 L 295 75" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_export" d="M 190 78.63636363636364 L 280 78.63636363636364 L 280 135 L 295 135" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_layout" d="M 190 104.0909090909091 L 210 104.0909090909091 L 210 627 L 295 627" fill="none" stroke="#8fa8d6" stroke-width="1.5" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_notifications_email" d="M 190 85.9090909090909 L 260 85.9090909090909 L 260 319 L 303 319" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_notifications_push" d="M 190 89.54545454545455 L 250 89.54545454545455 L 250 379 L 303 379" fill="none" stroke="#8fa8d6" stroke-width="1.5" marker-end="url(#arrow-unchanged)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_settings" d="M 190 82.27272727272728 L 270 82.27272727272728 L 270 213 L 303 213" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_widgets" d="M 190 107.72727272727273 L 200 107.72727272727273 L 200 687 L 312.5 687" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_stats_component" data-to="dir_oos_src_app_shared_services" d="M 475 507 L 485 507 L 485 226.33333333333331 L 515 226.33333333333331" fill="none" stroke="#8fa8d6" stroke-width="1.5" marker-end="url(#arrow-unchanged)"/><path data-from="dir_settings" data-to="dir_oos_src_app_shared_services" d="M 462 213 L 515 213" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="dir_widgets" data-to="dir_oos_src_app_shared_models" d="M 452.5 687 L 515 687" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-added)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="src_app_features_dashboard_dashboard_nav_component" d="M 190 93.18181818181819 L 240 93.18181818181819 L 240 447 L 295 447" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-removed)"/><path data-from="src_app_features_dashboard_dashboard_component" data-to="dir_legacy_summary" d="M 190 100.45454545454545 L 220 100.45454545454545 L 220 567 L 295 567" fill="none" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-removed)"/>
 <g class="node-group" data-id="src_app_features_dashboard_dashboard_stats_component">
-<rect x="290" y="487" width="185" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.5"/>
+<rect x="290" y="487" width="185" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1"/>
 <text x="298" y="511" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">DashboardStatsComponent</text>
 <circle cx="469" cy="521" r="3" fill="#a855f7"/>
-<circle cx="461" cy="521" r="3" fill="#22c55e"/>
+<circle cx="461" cy="521" r="3" fill="#06b6d4"/>
 </g>
 <g class="node-group" data-id="src_app_features_dashboard_dashboard_component">
-<rect x="40" y="71.36363636363636" width="150" height="40" rx="4" fill="#9a5510" stroke="#f59e0b" stroke-width="1.5"/>
+<rect x="40" y="71.36363636363636" width="150" height="40" rx="4" fill="#9a5510" stroke="#f59e0b" stroke-width="1"/>
 <text x="48" y="95.36363636363636" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">DashboardComponent</text>
 </g>
 <g class="node-group" data-id="src_app_features_dashboard_dashboard_nav_component">
-<rect x="295" y="427" width="171" height="40" rx="4" fill="#6b3946" stroke="#ef4444" stroke-width="1.5"/>
+<rect x="295" y="427" width="171" height="40" rx="4" fill="#6b3946" stroke="#ef4444" stroke-width="1"/>
 <text x="303" y="451" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">DashboardNavComponent</text>
 </g>
 <g class="node-group" data-id="dir_data_access">
-<rect x="295" y="55" width="143" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="303" y="79" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● data-access (2)</text>
+<rect x="295" y="55" width="143" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.25"/>
+<text x="303" y="68" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● data-access (2)</text>
 </g>
 <g class="node-group" data-id="dir_export">
-<rect x="295" y="115" width="140" height="40" rx="4" fill="#9a5510" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="303" y="139" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● export (2)</text>
+<rect x="295" y="115" width="140" height="40" rx="4" fill="#7b4f26" stroke="#f59e0b" stroke-width="1.25"/>
+<text x="303" y="128" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● export (2)</text>
 </g>
 <g class="node-group" data-id="dir_layout">
-<rect x="295" y="607" width="140" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="303" y="631" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● layout (1)</text>
+<rect x="295" y="607" width="140" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.25"/>
+<text x="303" y="620" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● layout (1)</text>
 </g>
 <g class="node-group" data-id="dir_legacy_summary">
-<rect x="295" y="547" width="164" height="40" rx="4" fill="#a03333" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="303" y="571" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● legacy-summary (2)</text>
+<rect x="295" y="547" width="164" height="40" rx="4" fill="#7f363f" stroke="#ef4444" stroke-width="1.25"/>
+<text x="303" y="560" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● legacy-summary (2)</text>
 </g>
 <g class="node-group" data-id="dir_notifications">
-<rect x="295" y="271" width="156" height="136" rx="4" fill="#9a5510" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+<rect x="295" y="271" width="156" height="136" rx="4" fill="#6f4c2e" stroke="#f59e0b" stroke-width="1.25"/>
 <text x="303" y="284" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● notifications (4)</text>
 </g>
 <g class="node-group" data-id="dir_notifications_email">
-<rect x="303" y="299" width="140" height="40" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="311" y="323" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● email (2)</text>
+<rect x="303" y="299" width="140" height="40" rx="4" fill="#255a49" stroke="#22c55e" stroke-width="1.25"/>
+<text x="311" y="312" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● email (2)</text>
 </g>
 <g class="node-group" data-id="dir_notifications_push">
-<rect x="303" y="359" width="140" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="311" y="383" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● push (2)</text>
+<rect x="303" y="359" width="140" height="40" rx="4" fill="#2d3f5c" stroke="#8fa8d6" stroke-width="1.25"/>
+<text x="311" y="372" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● push (2)</text>
 </g>
 <g class="node-group" data-id="dir_settings">
-<rect x="303" y="175" width="159" height="76" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
+<rect x="303" y="175" width="159" height="76" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.25"/>
 <text x="311" y="188" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● settings (3)</text>
 </g>
 <g class="node-group" data-id="dir_settings_preferences">
-<rect x="311" y="203" width="143" height="40" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="319" y="227" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● preferences (2)</text>
+<rect x="311" y="203" width="143" height="40" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.25"/>
+<text x="319" y="216" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● preferences (2)</text>
 </g>
 <g class="node-group" data-id="dir_widgets">
-<rect x="312.5" y="667" width="140" height="40" rx="4" fill="#1f6b3d" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2"/>
-<text x="320.5" y="691" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● widgets (2)</text>
+<rect x="312.5" y="667" width="140" height="40" rx="4" fill="#216541" stroke="#22c55e" stroke-width="1.25"/>
+<text x="320.5" y="680" font-family="Fira Code, monospace" font-size="11" fill="#ffffff">● widgets (2)</text>
 </g>
 <g class="node-group" data-id="dir_oos_src_app_shared_services">
 <rect x="515" y="199.66666666666666" width="140" height="40" rx="4" fill="#1f3355" stroke="#5588cc" stroke-width="1"/>

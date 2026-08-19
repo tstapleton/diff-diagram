@@ -27,7 +27,7 @@ function node(
 	scope: GraphNode["scope"],
 	diff: GraphNode["diff"],
 ): GraphNode {
-	return { id, label: id, file, type: "component", scope, diff };
+	return { id, label: id, file, type: "file", scope, diff };
 }
 
 function edge(from: string, to: string, diff?: DiffState): GraphEdge {
@@ -42,7 +42,7 @@ function nodeAt(
 	diff: GraphNode["diff"] = "unchanged",
 	scope: GraphNode["scope"] = "in-scope",
 ): GraphNode {
-	return { id, label: id, file, type: "component", scope, diff };
+	return { id, label: id, file, type: "file", scope, diff };
 }
 
 // ─── 'expanded' mode ─────────────────────────────────────────────────────────────
@@ -776,6 +776,29 @@ describe("computeViewNodes 'collapsed' mode", () => {
 		const { nodes } = computeViewNodes(g, "collapsed");
 		const dataAccess = nodes.find((n) => n.label.includes("data-access"));
 		expect(dataAccess?.diff).toBe("added");
+	});
+
+	it("gives a directory node the highest magnitude among its members", () => {
+		const low: GraphNode = {
+			...nodeAt("a1", `${SCOPE}/widgets/a1.ts`, "added"),
+			magnitude: 0.2,
+		};
+		const high: GraphNode = {
+			...nodeAt("a2", `${SCOPE}/widgets/a2.ts`, "added"),
+			magnitude: 0.9,
+		};
+		const g = makeGraph([low, high]);
+		const { nodes } = computeViewNodes(g, "collapsed");
+		const widgets = nodes.find((n) => n.label.includes("widgets"));
+		expect(widgets?.magnitude).toBe(0.9);
+	});
+
+	it("leaves magnitude unset on a directory node when no member has one", () => {
+		const unchanged1 = nodeAt("u1", `${SCOPE}/widgets/u1.ts`, "unchanged");
+		const g = makeGraph([unchanged1]);
+		const { nodes } = computeViewNodes(g, "collapsed");
+		const widgets = nodes.find((n) => n.label.includes("widgets"));
+		expect(widgets?.magnitude).toBeUndefined();
 	});
 
 	it("collapses out-of-scope nodes by immediate parent directory, flat (no second level)", () => {

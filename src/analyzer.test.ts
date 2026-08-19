@@ -4,7 +4,6 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
 	analyze,
-	classifyByFilename,
 	dedupeId,
 	findTsConfig,
 	labelFromFile,
@@ -74,56 +73,6 @@ describe("labelFromFile", () => {
 		expect(labelFromFile("/src/app/shared/lookup-entity/index.ts")).toBe(
 			"LookupEntity",
 		);
-	});
-});
-
-// ─── classifyByFilename ──────────────────────────────────────────────────────
-
-describe("classifyByFilename", () => {
-	it("returns routing for .routes.ts", () => {
-		expect(classifyByFilename("users.routes.ts")).toBe("routing");
-	});
-
-	it("returns guard for .guard.ts", () => {
-		expect(classifyByFilename("auth.guard.ts")).toBe("guard");
-	});
-
-	it("returns resolver for .resolver.ts", () => {
-		expect(classifyByFilename("user.resolver.ts")).toBe("resolver");
-	});
-
-	it("returns interceptor for .interceptor.ts", () => {
-		expect(classifyByFilename("http.interceptor.ts")).toBe("interceptor");
-	});
-
-	it("returns model for .model.ts", () => {
-		expect(classifyByFilename("user.model.ts")).toBe("model");
-	});
-
-	it("returns model for .interface.ts", () => {
-		expect(classifyByFilename("user.interface.ts")).toBe("model");
-	});
-
-	it("returns null for .service.ts (needs decorator inspection)", () => {
-		expect(classifyByFilename("users.service.ts")).toBeNull();
-	});
-
-	it("returns null for .component.ts (needs decorator inspection)", () => {
-		expect(classifyByFilename("user-list.component.ts")).toBeNull();
-	});
-
-	it("returns null for .pipe.ts (needs decorator inspection)", () => {
-		expect(classifyByFilename("user-status.pipe.ts")).toBeNull();
-	});
-
-	it("returns null for plain .ts files", () => {
-		expect(classifyByFilename("validation.utils.ts")).toBeNull();
-	});
-
-	it("works with full paths", () => {
-		expect(
-			classifyByFilename("/repo/src/app/features/users/users.routes.ts"),
-		).toBe("routing");
 	});
 });
 
@@ -218,12 +167,6 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
 		const files = graph.nodes.map((n) => n.file);
 		expect(files.every((f) => !f.includes("node_modules"))).toBe(true);
-	});
-
-	it("classifies .routes.ts as routing type", async () => {
-		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
-		const routesNode = graph.nodes.find((n) => n.file.includes("users.routes"));
-		expect(routesNode?.type).toBe("routing");
 	});
 
 	it("excludes .stories.ts files", async () => {
