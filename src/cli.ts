@@ -127,7 +127,6 @@ interface ModeData {
 		diff: string | null;
 		scope: string;
 		file: string;
-		typeOnly?: boolean;
 		hasTests?: boolean;
 		hasStories?: boolean;
 		linesChanged?: number;
@@ -171,11 +170,10 @@ function buildModeData(
 		return {
 			...ln,
 			label: gn?.label ?? ln.id,
-			type: gn?.type ?? "constants",
+			type: gn?.type ?? "file",
 			diff: gn?.diff ?? null,
 			scope: gn?.scope ?? "in-scope",
 			file: gn?.file ?? "",
-			...(gn?.typeOnly ? { typeOnly: true } : {}),
 			...(gn?.hasTests ? { hasTests: true } : {}),
 			...(gn?.hasStories ? { hasStories: true } : {}),
 			...(gn?.linesChanged !== undefined

@@ -22,7 +22,7 @@ const node = (id: string, diff: string, x: number) => ({
 	id,
 	label: `${id}.component`,
 	file: `src/app/features/users/${id}/${id}.component.ts`,
-	type: "component",
+	type: "file",
 	scope: "in-scope",
 	diff,
 	x,

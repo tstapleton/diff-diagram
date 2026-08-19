@@ -36,13 +36,12 @@ CLI args
 Canonical TypeScript types shared across all modules. Always import types from here — do not redeclare.
 
 Key types:
-- `GraphNode` — `{ id, label, file, type: NodeType | 'stub', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, linesChanged?: number, magnitude?: number, _content?: string }` (`linesChanged`/`magnitude` are set by `diffGraphs`/`applyChangeMagnitude` — see below; `_content` is internal only — raw file text used by `diffGraphs` to detect content changes, stripped from `graph.json` before it's written)
+- `GraphNode` — `{ id, label, file, type: 'file' | 'stub' | 'directory', scope: NodeScope, diff: DiffState | null, typeOnly?: boolean, hasTests?: boolean, hasStories?: boolean, linesChanged?: number, magnitude?: number, _content?: string }` (`linesChanged`/`magnitude` are set by `diffGraphs`/`applyChangeMagnitude` — see below; `_content` is internal only — raw file text used by `diffGraphs` to detect content changes, stripped from `graph.json` before it's written). `type` is structural only — `'file'` for any real source file regardless of its Angular role, `'stub'`/`'directory'` for the rendering layer's synthesized collapsed-directory nodes; no per-role classification (component/service/pipe/etc.) is tracked, since nothing in the renderer varies by it.
 - `GraphEdge` — `{ from, to, kind: EdgeKind, diff?: DiffState, importedNames?: string[], typeOnly?: boolean }`
 - `Graph` — `{ meta: GraphMeta, nodes, edges, _oosEdges? }`
 - `GraphMeta` — `{ scopeDir, repoRoot?: string, generatedAt, nodeCount, edgeCount }` (`scopeDir` is the JSON field name for the feature directory path)
 - `DiffState` — `'added' | 'modified' | 'removed' | 'unchanged'`
 - `NodeScope` — `'in-scope' | 'out-of-scope' | 'removed-ghost'`
-- `NodeType` — `'component' | 'service' | 'pipe' | 'guard' | 'resolver' | 'interceptor' | 'routing' | 'module' | 'model' | 'constants'` (Angular file types only; `'stub'` is a separate rendering-layer value on `GraphNode.type`)
 
 ### `src/analyzer.ts`
 
@@ -57,7 +56,7 @@ The `analyze()` function takes:
 
 The tsconfig is auto-detected by walking up from `scopeDir`, stopping at `repoRoot`; each analysis pass therefore resolves imports against its own checkout's tsconfig.
 
-Exports: `analyze`, `classifyByFilename`, `labelFromFile`, `toNodeId`, `dedupeId`, `oosDisplayPath`
+Exports: `analyze`, `labelFromFile`, `toNodeId`, `dedupeId`, `oosDisplayPath`
 
 **Node ID** — derived from the file path relative to `repoRoot`, without `.ts` extension, with non-alphanumeric chars replaced by `_`, deduplicated underscores stripped.
 
@@ -193,12 +192,6 @@ Writes three or four files:
 4. Embed the new mode's data in `diagramData.modes` in `cli.ts`
 5. Add a button in `renderer.html`'s `.mode-group` and a case in `setMode()`
 6. Write tests in `graph-helpers.test.ts`
-
-## Adding a new node type
-
-1. Add to `NodeType` union in `src/types.ts` (note: `'stub'` is a rendering-layer sentinel on `GraphNode.type` and is intentionally not in `NodeType`)
-2. Handle classification in `src/analyzer.ts` `classifyFile()` and/or `classifyByFilename()`
-3. Add color logic in `src/renderer/render.ts` `nodeColor()` (currently all types share diff-state colors; add a special case if needed) — both `draw.ts` and `renderer.html` pick this up automatically, no separate step needed
 
 ## Graph node ID stability
 

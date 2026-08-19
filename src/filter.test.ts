@@ -48,7 +48,7 @@ function makeNode(file: string, overrides: Record<string, unknown> = {}) {
 		id: base.replace(/[^a-zA-Z0-9]/g, "_"),
 		label: base,
 		file,
-		type: "component",
+		type: "file",
 		scope: "in-scope",
 		diff: null,
 		...overrides,

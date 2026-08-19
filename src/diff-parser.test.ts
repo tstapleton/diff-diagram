@@ -31,7 +31,7 @@ function gNode(file: string, overrides: Record<string, unknown> = {}) {
 		id,
 		label: id,
 		file,
-		type: "component",
+		type: "file",
 		scope: "in-scope",
 		diff: null,
 		...overrides,

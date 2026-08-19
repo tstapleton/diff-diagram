@@ -392,6 +392,7 @@ function makeDirNode(
 	members: GraphNode[],
 ): GraphNode {
 	const aggregate = aggregateDiff(members.map((n) => n.diff ?? "unchanged"));
+	const magnitude = maxMagnitude(members);
 	return {
 		id,
 		label: formatDirLabel("closed", label, members.length),
@@ -399,7 +400,18 @@ function makeDirNode(
 		type: "directory",
 		scope,
 		diff: aggregate,
+		...(magnitude !== undefined ? { magnitude } : {}),
 	};
+}
+
+// The heaviest single change among a directory's members stands in for the
+// whole collapsed box — consistent with aggregateDiff() above already using
+// an extremum (unanimity) rather than an average to decide the diff state.
+function maxMagnitude(members: GraphNode[]): number | undefined {
+	const magnitudes = members
+		.map((n) => n.magnitude)
+		.filter((m): m is number => m !== undefined);
+	return magnitudes.length > 0 ? Math.max(...magnitudes) : undefined;
 }
 
 // A directory box's diff state must not overstate what's inside it: it's only

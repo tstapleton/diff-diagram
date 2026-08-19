@@ -126,8 +126,7 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 The following features are designed but not yet implemented. Full design decisions and implementation steps are tracked as GitHub issues.
 
 - **GitHub Action** — runs on PR events, posts `diagram.svg` as an inline PR comment image, no external storage required
-- **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, all node types, sidecar markers), committed to the repo and referenced in the README
+- **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, sidecar markers), committed to the repo and referenced in the README
 - **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
 - **Out-of-scope grouping** — collapse OOS nodes by parent directory into a single group node, reducing clutter when a feature imports many things from the same shared area
-- **Type-only import detection** — style edges differently when an import is type-only (no runtime dependency), pending adoption of `verbatimModuleSyntax` in the target codebase
 - **Subdirectory grouping** — visually group in-scope nodes by their first-level subdirectory using background rects, requiring compound/hierarchical ELK layout

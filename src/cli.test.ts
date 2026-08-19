@@ -417,7 +417,7 @@ describe("buildHtml embedded JSON", () => {
 							// sequences; "</script>" would terminate the inline
 							// <script> block early if not escaped.
 							label: "$& $' $$ </script>",
-							type: "component",
+							type: "file",
 							diff: null,
 							scope: "in-scope",
 							file: "a</script>b.ts",

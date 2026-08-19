@@ -2,48 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { Project, type SourceFile } from "ts-morph";
-import type { Graph, GraphEdge, GraphNode, NodeType } from "./types.js";
-
-// ─── File type classification ─────────────────────────────────────────────────
-
-export function classifyByFilename(filePath: string): NodeType | null {
-	const base = path.basename(filePath);
-	if (base.endsWith(".routes.ts")) return "routing";
-	if (base.endsWith(".guard.ts")) return "guard";
-	if (base.endsWith(".resolver.ts")) return "resolver";
-	if (base.endsWith(".interceptor.ts")) return "interceptor";
-	if (base.endsWith(".model.ts") || base.endsWith(".interface.ts"))
-		return "model";
-	return null;
-}
-
-function classifyFile(sourceFile: SourceFile): NodeType {
-	const byFilename = classifyByFilename(sourceFile.getFilePath());
-	if (byFilename) return byFilename;
-
-	for (const cls of sourceFile.getClasses()) {
-		for (const dec of cls.getDecorators()) {
-			const name = dec.getName();
-			if (name === "Component") return "component";
-			if (name === "Pipe") return "pipe";
-			if (name === "NgModule") return "module";
-			if (name === "Injectable") return "service";
-		}
-	}
-
-	const exported = [...sourceFile.getExportedDeclarations().values()].flat();
-	if (
-		exported.length > 0 &&
-		exported.every(
-			(d) =>
-				d.getKindName().includes("Interface") ||
-				d.getKindName().includes("TypeAlias"),
-		)
-	)
-		return "model";
-
-	return "constants";
-}
+import type { Graph, GraphEdge, GraphNode } from "./types.js";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -225,7 +184,7 @@ export async function analyze(
 			id,
 			label: labelFromFile(fp),
 			file: path.relative(resolvedRoot, fp),
-			type: classifyFile(sf),
+			type: "file",
 			scope: "in-scope",
 			diff: null,
 			_content: sf.getFullText(),
