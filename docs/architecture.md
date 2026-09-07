@@ -21,11 +21,15 @@ CLI args
   │    computeLayout(nodes, edges) → Layout (expanded-mode positions)
   │
   ├─ computeViewNodes(diffed, 'focused') → { nodes, edges }
-  │    computeLayout(nodes, edges) → Layout (diff-mode positions)
+  │    computeLayout(nodes, edges) → Layout (focused-mode positions)
+  │
+  ├─ computeViewNodes(diffed, 'collapsed') → { nodes, edges }
+  │    computeClusteredLayout(nodes, edges) → Layout (collapsed-mode positions)
   │
   ├─ toSvg(allLayout, ...) → SVG string → diagram-expanded.svg
   ├─ toSvg(diffLayout, ...) → SVG string → diagram-focused.svg (only when --base-repo-root given)
-  ├─ buildHtml(data, template) → HTML string → diagram.html
+  ├─ toSvg(clusteredLayout, ...) → SVG string → diagram-collapsed.svg (always written)
+  ├─ buildHtml(data, template) → HTML string → diagram.html (embeds all three modes)
   └─ graph.json
 ```
 
@@ -90,6 +94,7 @@ Algorithm:
 
 Modes:
 - `'expanded'` — returns `{ nodes: graph.nodes, edges: graph.edges }` unchanged
+- `'collapsed'` — delegates to `computeClusteredNodes` (same file), which collapses every subdirectory (up to 2 levels) and out-of-scope parent directory into a synthetic `type: 'directory'` node regardless of diff state — described together with `computeClusteredLayout` under `layout.ts` below, since the two were designed and documented as one feature
 - `'focused'` — applies collapse rules:
   1. Group in-scope nodes by immediate subdirectory (1 level below the feature directory; `graph.meta.scopeDir` is the JSON field name)
   2. If ALL nodes in a group are `unchanged` → collapse to a stub node
@@ -133,17 +138,11 @@ When both in-scope and out-of-scope nodes exist, ELK partitioning is enabled for
 
 Canonical node/edge/marker markup builder — palette constants, `lerpHex`, `nodeColor`, `edgeStroke`, and the actual `<rect>`/`<text>`/`<path>` string templates (`renderNodeMarkup`, `renderEdgeMarkup`, `renderDiagramSvg`). Ordinary strict TypeScript, no Node APIs — `draw.ts` imports it directly, and `buildHtml` (in `cli.ts`) reads the *compiled* `dist/renderer/render.js` (type-stripped, no leftover `import`s since its only import is `import type`) and splices it verbatim into `renderer.html`'s `<script>`. This is the single source of truth for how a diagram looks; `draw.ts` and `renderer.html` no longer have independent rendering logic to keep in sync (issue #50). Because it reads compiled output rather than the `.ts` source, generating `diagram.html` requires a prior `npm run build` — same precondition `dist/cli.js`-subprocess tests already have (`src/cli.test.ts`).
 
+**Color and magnitude:** `nodeColor(node)` returns a flat fill/stroke for out-of-scope and stub nodes; for everything else, fill is `lerpHex(NODE_FILL.unchanged, NODE_FILL[diff], magnitude)` when the node has a `magnitude` (in-scope/removed-ghost changed nodes, plus collapsed-view directory nodes — see `makeDirNode` in `graph-helpers.ts`) — an sRGB per-channel lerp — else the flat diff-state fill. Stroke always stays at full diff-state intensity regardless of magnitude, so a barely-changed node's diff state is never ambiguous. Every line in the diagram (node border, edge, directory box) is solid — no dashed borders or opacity variation anywhere (issue #63/#72 removed both; dash previously meant two unrelated things depending on element type, and removed edges triple-encoded the same fact via color + dash + opacity). Exact hex values and every other color/width/typography decision are tracked in `docs/visual-encoding-reference.md`, the living source of truth for the rendered visual language — update it in the same PR as any rendering change rather than duplicating hex codes elsewhere.
+
 ### `src/renderer/draw.ts`
 
-**`toSvg(layout, nodes, edges)`** — pure function, no DOM, no side effects. Merges layout positions with node/edge diff data and calls `render.ts`'s `renderDiagramSvg`. Produces an SVG string from pre-computed layout positions.
-
-Color scheme:
-- Node fill by diff: `added=#14532d`, `modified=#78350f`, `removed=#7f1d1d`, `unchanged=#1e293b`
-- Node stroke by diff: `added=#22c55e`, `modified=#f59e0b`, `removed=#ef4444`, `unchanged=#475569`
-- Out-of-scope fill: `#0a1829`, stroke: `#1e3a5f`
-- Stub: fill `#0f172a`, stroke `#334155`, dashed border
-- Edge stroke same as node stroke; removed edges are dashed + 50% opacity
-- **Change magnitude:** when a node has a `magnitude` (in-scope and removed-ghost changed nodes — see `diffGraphs` above), its fill is `lerpHex(unchangedFill, diffStateFill, magnitude)` — an sRGB per-channel lerp — instead of the flat diff-state fill. Stroke is unaffected by magnitude; it always renders at full diff-state intensity, so even a barely-changed node's diff state stays unambiguous.
+**`toSvg(layout, nodes, edges)`** — pure function, no DOM, no side effects. Merges layout positions with node/edge diff data and calls `render.ts`'s `renderDiagramSvg`. Produces an SVG string from pre-computed layout positions. Re-exports `nodeColor`, `edgeStroke`, and `lerpHex` from `render.ts` (see above) — it owns no color logic of its own.
 
 Exports: `toSvg`, `nodeColor`, `edgeStroke`, `truncateLabel`, `lerpHex`
 
@@ -157,14 +156,17 @@ Data structure embedded by CLI:
 ```typescript
 {
   meta: { scopeDir, generatedAt, nodeCount, edgeCount },
+  sourceRoot: string,
+  initialMode?: 'expanded' | 'focused' | 'collapsed', // set to 'expanded' in single-branch mode; otherwise omitted so the template's own default ('focused') applies
   modes: {
-    expanded: { nodes: ModeNode[], edges: ModeEdge[], width, height },
-    focused:  { nodes: ModeNode[], edges: ModeEdge[], width, height },
+    expanded:  { nodes: ModeNode[], edges: ModeEdge[], width, height, container?, subdirContainers? },
+    focused:   { nodes: ModeNode[], edges: ModeEdge[], width, height, container?, subdirContainers? },
+    collapsed: { nodes: ModeNode[], edges: ModeEdge[], width, height, container?, subdirContainers? },
   }
 }
 ```
 
-Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope }` and `ModeEdge` augments `LayoutEdge` with `{ diff? }`.
+Where `ModeNode` augments `LayoutNode` with `{ label, type, diff, scope, file, hasTests?, hasStories?, linesChanged?, magnitude? }` and `ModeEdge` augments `LayoutEdge` with `{ diff? }`.
 
 Client-side renderer: calls `renderDiagramSvg` from the compiled `render.js` (spliced in verbatim by `buildHtml`, replacing the `__DIFF_DIAGRAM_RENDER_JS__` placeholder ahead of `__DIFF_DIAGRAM_DATA__`) — not a hand-mirrored copy. `data-id` on node groups and `data-from`/`data-to` on edge paths (added by `render.ts`) drive hover event delegation below.
 
@@ -178,11 +180,20 @@ Key flags: `--base-repo-root`, `--repo-root`, `--out-dir`, `--source-root`, posi
 
 When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs current-branch-only analysis.
 
-Writes three or four files:
+Writes four or five files:
 - `diagram-expanded.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — expanded, real layout. Always written.
+- `diagram-collapsed.svg` — `toSvg(clusteredLayout, clusteredView.nodes, clusteredView.edges)` — collapsed, directory-only layout. Always written — dominant-diff-state coloring per directory is still meaningful (all "unchanged") without a base to diff against.
 - `diagram-focused.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — focused, real layout. Only written when `--base-repo-root` is given.
-- `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_RENDER_JS__` replaced by the compiled `render.js`'s source and `__DIFF_DIAGRAM_DATA__` replaced by JSON
+- `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_RENDER_JS__` replaced by the compiled `render.js`'s source and `__DIFF_DIAGRAM_DATA__` replaced by JSON; embeds all three modes
 - `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)
+
+### `src/action/`
+
+Packages the CLI as a GitHub composite action (`action.yml`, consumed as `tstapleton/diff-diagram@main`). The action itself is shell steps — checkout is the *consuming* workflow's job (see `docs/action-usage.yml`); this action builds and runs the CLI, uploads `diagram.html` as an unarchived workflow artifact, then runs the one step that's compiled JS: `dist/action/comment.js`.
+
+**`comment.ts`** — the action's entry point (`node dist/action/comment.js`). Reads `GITHUB_TOKEN`/`ARTIFACT_URL`/`GRAPH_JSON` from env (set by the preceding action.yml steps), loads `graph.json`, and uses `@actions/github`'s octokit client to post a new PR comment or update an existing one.
+
+**`comment-body.ts`** — pure, no GitHub API calls. `commentMarker(scopeDir)` returns the HTML comment embedded in the body, used both to render and to locate an existing comment to update (`findExistingCommentId`) — keyed by scope directory so multiple diagrammed directories in one PR each keep their own comment. `buildCommentBody(graph, ctx)` renders the markdown body: added/modified/removed counts for in-scope files, out-of-scope files, and imports, a changed-file list, and a link to the artifact.
 
 ## Adding a new view mode
 
