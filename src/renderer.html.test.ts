@@ -54,6 +54,19 @@ const FIXTURE = {
 			width: 300,
 			height: 120,
 		},
+		collapsed: {
+			nodes: [
+				{
+					...node("widgets", "unchanged", 10),
+					id: "dir_widgets",
+					type: "directory",
+					label: "widgets",
+				},
+			],
+			edges: [],
+			width: 200,
+			height: 80,
+		},
 	},
 };
 
@@ -112,6 +125,129 @@ describe("renderer.html view-mode switching", () => {
 		expect(modeButton(window, "Expanded").classList.contains("active")).toBe(
 			false,
 		);
+	});
+
+	it("switches to collapsed mode too", async () => {
+		const window = await loadDiagram();
+
+		modeButton(window, "Collapsed").click();
+		expect(window.document.querySelectorAll(".node-group")).toHaveLength(1);
+		expect(window.document.getElementById("meta-nodes")?.textContent).toBe("1");
+		expect(modeButton(window, "Collapsed").classList.contains("active")).toBe(
+			true,
+		);
+	});
+});
+
+describe("renderer.html hover highlighting", () => {
+	const HOVER_FIXTURE = {
+		meta: { scopeDir: "src/app/features/users" },
+		sourceRoot: "src/app",
+		modes: {
+			expanded: {
+				nodes: [
+					node("alpha", "unchanged", 10),
+					node("beta", "unchanged", 150),
+					node("gamma", "unchanged", 290),
+				],
+				edges: [
+					{
+						from: "alpha",
+						to: "beta",
+						sections: [
+							{ startPoint: { x: 130, y: 28 }, endPoint: { x: 150, y: 28 } },
+						],
+					},
+					{
+						from: "beta",
+						to: "gamma",
+						sections: [
+							{ startPoint: { x: 270, y: 28 }, endPoint: { x: 290, y: 28 } },
+						],
+					},
+				],
+				width: 440,
+				height: 120,
+			},
+			focused: {
+				nodes: [
+					node("alpha", "unchanged", 10),
+					node("beta", "unchanged", 150),
+					node("gamma", "unchanged", 290),
+				],
+				edges: [
+					{
+						from: "alpha",
+						to: "beta",
+						sections: [
+							{ startPoint: { x: 130, y: 28 }, endPoint: { x: 150, y: 28 } },
+						],
+					},
+					{
+						from: "beta",
+						to: "gamma",
+						sections: [
+							{ startPoint: { x: 270, y: 28 }, endPoint: { x: 290, y: 28 } },
+						],
+					},
+				],
+				width: 440,
+				height: 120,
+			},
+		},
+	};
+
+	function nodeGroup(window: Window, id: string) {
+		const g = window.document.querySelector(`[data-id="${id}"]`);
+		if (!g) throw new Error(`node group "${id}" not found`);
+		return g;
+	}
+
+	function edgePath(window: Window, from: string, to: string) {
+		const p = window.document.querySelector(
+			`path[data-from="${from}"][data-to="${to}"]`,
+		);
+		if (!p) throw new Error(`edge path ${from}->${to} not found`);
+		return p as HTMLElement;
+	}
+
+	it("dims edges not connected to the hovered node", async () => {
+		const window = await loadDiagram(HOVER_FIXTURE);
+
+		// mouseover bubbles from a child of the node-group, exercising the
+		// same closest('[data-id]') lookup a real pointer event would hit.
+		const event = new window.MouseEvent("mouseover", { bubbles: true });
+		nodeGroup(window, "beta").querySelector("rect")?.dispatchEvent(event);
+
+		expect(edgePath(window, "alpha", "beta").style.opacity).toBe("1");
+		expect(edgePath(window, "beta", "gamma").style.opacity).toBe("1");
+	});
+
+	it("keeps unconnected edges dimmed and connected edges at full opacity", async () => {
+		const window = await loadDiagram(HOVER_FIXTURE);
+
+		const event = new window.MouseEvent("mouseover", { bubbles: true });
+		nodeGroup(window, "alpha").querySelector("rect")?.dispatchEvent(event);
+
+		expect(edgePath(window, "alpha", "beta").style.opacity).toBe("1");
+		expect(edgePath(window, "beta", "gamma").style.opacity).toBe("0.2");
+	});
+
+	it("restores full opacity on mouseleave", async () => {
+		const window = await loadDiagram(HOVER_FIXTURE);
+		// Scoped to #svg-wrap: the sidebar legend has its own small <svg> icons
+		// (test/story markers), so a bare "svg" selector can match those instead
+		// of the diagram — which is exactly what attachHover() is bound to.
+		const svg = window.document.querySelector("#svg-wrap svg") as HTMLElement;
+
+		nodeGroup(window, "alpha")
+			.querySelector("rect")
+			?.dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+		expect(edgePath(window, "beta", "gamma").style.opacity).toBe("0.2");
+
+		svg.dispatchEvent(new window.MouseEvent("mouseleave", { bubbles: true }));
+		expect(edgePath(window, "alpha", "beta").style.opacity).toBe("");
+		expect(edgePath(window, "beta", "gamma").style.opacity).toBe("");
 	});
 });
 
