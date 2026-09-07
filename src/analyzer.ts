@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { Project, type SourceFile } from "ts-morph";
+import { Node, Project, type SourceFile } from "ts-morph";
 import type { Graph, GraphEdge, GraphNode } from "./types.js";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -73,19 +73,15 @@ function extractDecoratorImports(
 	const paths: string[] = [];
 	for (const dec of cls.getDecorators()) {
 		if (dec.getName() !== "Component") continue;
-		const args = dec.getArguments();
-		if (!args.length) continue;
-		// biome-ignore lint/suspicious/noExplicitAny: ts-morph decorator argument nodes have no typed introspection API
-		const objLit = args[0] as any;
-		if (!objLit.getProperties) continue;
-		for (const prop of objLit.getProperties()) {
-			if (!prop.getName?.() || prop.getName() !== "imports") continue;
-			const init = prop.getInitializer?.();
-			if (!init?.getElements) continue;
-			for (const elem of init.getElements()) {
-				const sf = elem.getSymbol()?.getDeclarations()?.[0]?.getSourceFile();
-				if (sf) paths.push(sf.getFilePath());
-			}
+		const [arg] = dec.getArguments();
+		if (!arg || !Node.isObjectLiteralExpression(arg)) continue;
+		const importsProp = arg.getProperty("imports");
+		if (!importsProp || !Node.isPropertyAssignment(importsProp)) continue;
+		const init = importsProp.getInitializer();
+		if (!init || !Node.isArrayLiteralExpression(init)) continue;
+		for (const elem of init.getElements()) {
+			const sf = elem.getSymbol()?.getDeclarations()?.[0]?.getSourceFile();
+			if (sf) paths.push(sf.getFilePath());
 		}
 	}
 	return paths;
