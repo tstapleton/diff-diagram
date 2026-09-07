@@ -39,6 +39,15 @@ All three samples above are generated from the `fixtures/sample-app/` + `fixture
 | Subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
 | `○` / `◐` / `●` before a subdirectory box's name, `(N)` after it | How much of that subdirectory is shown, out of its `N` files: `○` open (all shown), `◐` partial (only the files touched by an added/removed/modified import are shown; the rest are collapsed away), `●` closed (all collapsed into one stub box). Focused mode only — `expanded` mode is always `○`, `collapsed` mode is always `●` |
 
+What each notable piece of the fixture diff demonstrates:
+
+- The `legacy-summary/` directory (its component + service, 28 lines total) exists only in the base branch — in collapsed view its box is solid dark red, and in focused/expanded view both files render as removed ghost nodes.
+- `export/` pairs one untouched service (`export-history.service.ts`) with one newly-added component (`export-button.component.ts`) — a genuinely mixed directory, so its collapsed-view box renders amber/`modified` rather than being skewed green by the one new file.
+- `notifications/` nests two levels deep: the whole `email/` subdirectory is new, while `push/` is untouched — the parent `notifications` box renders amber/mixed in both collapsed and focused view, its `email` child box is solid green, and its `push` child collapses away. This shows a mixed diff state propagating up through a nested (2nd-level) grouping box.
+- `data-access/dashboard-metrics.service.ts` is byte-identical between branches (still `unchanged`/grey) but gains a new incoming import from the modified `dashboard.component.ts` — so in focused view the `data-access/` box marks `◐` partial: this file is shown for its new edge, while its untouched sibling `dashboard-alerts.service.ts` collapses away.
+- Added files span a wide size range, from a 1-line model (`email-digest.model.ts`) to a 48-line component (`dashboard-notification-prefs.component.ts`) — giving a visible fill-intensity gradient across the green added nodes, fullest for the largest.
+- `dashboard.component.ts` is the only modified file in the sample, with the bulk of its imports and template rewritten — its amber fill sits near full intensity, reflecting how much of the file actually changed.
+
 ## Setup
 
 ```bash
