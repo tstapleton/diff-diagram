@@ -132,9 +132,3 @@ See `docs/action-usage.yml` for an example consuming workflow.
 - **CI platforms beyond GitHub Actions** — the bundled composite action (see above) targets GitHub Actions specifically; publishing to GitHub Pages or supporting other CI platforms is out of scope.
 - **Full repo diagrams** — the tool scopes to a single feature directory. Whole-repo analysis is not a goal.
 - **Runtime dependency analysis** — the diagram shows static TypeScript imports only. Dynamic imports, lazy-loaded modules, and Angular DI injection chains are not traced.
-
-## Planned
-
-The following features are designed but not yet implemented. Full design decisions and implementation steps are tracked as GitHub issues.
-
-- **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
