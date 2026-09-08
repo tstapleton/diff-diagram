@@ -2,51 +2,69 @@
 
 CLI tool for Angular PR review that generates a dependency diagram for a feature directory, showing what changed between branches. Parses TypeScript imports, includes one layer of dependencies outside the feature directory, diffs base vs. current, and renders a component graph.
 
-## What it produces
-
-| File | Purpose |
-|---|---|
-| `dist/diagram-focused.svg` | Focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
-| `dist/diagram-expanded.svg` | Expanded graph, same diff coloring, no collapsing |
-| `dist/diagram-collapsed.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
-| `dist/diagram.html` | Interactive diagram with mode switching and hover highlights |
-| `dist/graph.json` | Full diffed graph JSON for downstream tooling |
-
 ## Reading the diagram
 
-The tool renders three view modes from the same diff. **Focused** is the primary review artifact: changed areas are expanded, unchanged areas collapse into stub nodes so the diagram stays small on large features. **Expanded** shows every file individually with the same diff coloring — useful for seeing the full architecture at once. **Collapsed** zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes.
+The tool renders three view modes from the same diff:
+
+- **Focused** — the primary review artifact. Changed areas expand, unchanged areas collapse into a single placeholder box, so large features stay readable.
+- **Collapsed** — zoomed all the way out to one box per subdirectory. Good for orienting on a feature with many files before diving into detail.
+- **Expanded** — every file shown individually, no collapsing. Good for seeing the full architecture at once.
+
+Every mode shares the same visual language:
+
+### Visual encoding
+
+#### Colors
+
+Files and the arrows between them share one color key:
+
+- **Green** — added in this PR
+- **Amber** — modified (content changed)
+- **Red** — removed (still drawn, so you can see what depended on it)
+- **Grey** — unchanged
+- A file's fill also gets lighter or darker with how much it actually changed — fullest color for the most heavily changed files, fading toward grey for small edits. A file's border always stays full color, so its diff state is never ambiguous even for a one-line tweak.
+
+#### Containers
+
+- **Outlined box around every file in the feature directory** — the feature directory itself, labeled with its name in the top-left corner
+- **Subtle box inside it** — files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level
+- **Darker box outside the feature container** — a dependency from outside the feature directory, with its path shown underneath
+
+#### Indicators
+
+- **Cyan dot** — file has a `.spec.ts` unit test
+- **Purple dot** — file has a `.stories.ts` Storybook story
+- **`○` / `◐` / `●`** before a subdirectory box's name — how much of it is shown: `○` open (every file shown), `◐` partial (only the files touched by an added/removed/modified import are shown), `●` closed (collapsed to one box). Focused mode only — Expanded is always `○`, Collapsed is always `●`
+- **`(N)`** after a subdirectory box's name — how many files that subdirectory actually has
+
+### Focused
+
+The primary review artifact: changed areas are expanded, unchanged areas collapse into a placeholder box so the diagram stays small on large features. A few things to notice in the sample below:
+
+- **Partial collapse** — `data-access/` shows only `dashboard-metrics.service.ts`, marked `◐`. Its content is unchanged, but it gained a new import from the modified `dashboard.component.ts`, so it stays visible while its untouched sibling stays hidden.
+- **Nested collapse, two levels deep** — inside `notifications/`, the `email/` subdirectory fully expands (everything in it was touched) while `push/` collapses to a single box (nothing inside changed).
+- **Removed files stay visible** — both files that used to live in `legacy-summary/` are gone from the current branch, but still drawn in red so you can see what depended on them. (Expanded, further down, shows the same thing — removed files are never collapsed away in either mode.)
 
 ![Sample diagram, focused view](docs/sample-focused.svg)
 
-![Sample diagram, expanded view](docs/sample-expanded.svg)
+### Collapsed
+
+Zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes. A few things to notice in the sample below:
+
+- **A removed directory** — `legacy-summary/` existed only in the base branch, so its box is solid red.
+- **One new file doesn't skew the whole box** — `export/` has one untouched service and one newly-added component, so its box renders amber (mixed), not green.
+- **Mixed state carries up through nesting** — `notifications/` has a mixed inner state too (the whole `email/` subdirectory added, `push/` untouched), so its box is amber as well.
 
 ![Sample diagram, collapsed view](docs/sample-collapsed.svg)
 
-All three samples above are generated from the `fixtures/sample-app/` + `fixtures/sample-app-base/` fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current). They show every visual element the tool renders:
+### Expanded
 
-| Element | Meaning |
-|---|---|
-| Green border, dark green fill | File added in this PR |
-| Amber border, dark amber fill | File modified in this PR (its content changed) |
-| Red border, dark red fill | File removed in this PR (kept as a ghost so you can see what pointed at it) |
-| Grey border, slate fill | File unchanged |
-| Fill intensity, within a diff color | Change magnitude — how much of the file changed, relative to the most heavily changed files in the diagram. The border always shows full diff-state color regardless of magnitude; only the fill fades toward the unchanged slate for smaller edits, so a one-line tweak stays visually distinct from a full rewrite. |
-| Darker box outside the feature container | Out-of-scope dependency (imported from outside the feature directory), with its directory path under the name |
-| Solid arrow | Import; color follows its diff state (green added, amber changed, red removed, grey unchanged) |
-| Cyan dot | File has a unit test (`.spec.ts` sidecar) |
-| Purple dot | File has a Storybook story (`.stories.ts` sidecar) |
-| Outlined box around the in-scope files | The feature directory being diagrammed, labeled with its name in the top-left corner |
-| Subtle box inside the feature container | Files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level |
-| `○` / `◐` / `●` before a subdirectory box's name, `(N)` after it | How much of that subdirectory is shown, out of its `N` files: `○` open (all shown), `◐` partial (only the files touched by an added/removed/modified import are shown; the rest are collapsed away), `●` closed (all collapsed into one stub box). Focused mode only — `expanded` mode is always `○`, `collapsed` mode is always `●` |
+Every file shown individually with the same diff coloring, no collapsing — useful for seeing the full architecture at once, and comparing how much different files changed. A few things to notice in the sample below:
 
-What each notable piece of the fixture diff demonstrates:
+- **Fill intensity tracks size of change** — added files here range from a 1-line model to a 48-line component; the small one's green is barely tinted, the large one's is fully saturated.
+- **Same for modifications** — `dashboard.component.ts` is the only modified file here, and most of its content changed, so its amber fill sits near full intensity.
 
-- The `legacy-summary/` directory (its component + service, 28 lines total) exists only in the base branch — in collapsed view its box is solid dark red, and in focused/expanded view both files render as removed ghost nodes.
-- `export/` pairs one untouched service (`export-history.service.ts`) with one newly-added component (`export-button.component.ts`) — a genuinely mixed directory, so its collapsed-view box renders amber/`modified` rather than being skewed green by the one new file.
-- `notifications/` nests two levels deep: the whole `email/` subdirectory is new, while `push/` is untouched — the parent `notifications` box renders amber/mixed in both collapsed and focused view, its `email` child box is solid green, and its `push` child collapses away. This shows a mixed diff state propagating up through a nested (2nd-level) grouping box.
-- `data-access/dashboard-metrics.service.ts` is byte-identical between branches (still `unchanged`/grey) but gains a new incoming import from the modified `dashboard.component.ts` — so in focused view the `data-access/` box marks `◐` partial: this file is shown for its new edge, while its untouched sibling `dashboard-alerts.service.ts` collapses away.
-- Added files span a wide size range, from a 1-line model (`email-digest.model.ts`) to a 48-line component (`dashboard-notification-prefs.component.ts`) — giving a visible fill-intensity gradient across the green added nodes, fullest for the largest.
-- `dashboard.component.ts` is the only modified file in the sample, with the bulk of its imports and template rewritten — its amber fill sits near full intensity, reflecting how much of the file actually changed.
+![Sample diagram, expanded view](docs/sample-expanded.svg)
 
 ## Setup
 
@@ -95,6 +113,18 @@ node dist/cli.js \
   src/app/features/my-feature
 ```
 
+## What it produces
+
+Written to `--out-dir` (`dist` by default):
+
+| File | Purpose |
+|---|---|
+| `diagram-focused.svg` | Focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
+| `diagram-expanded.svg` | Expanded graph, same diff coloring, no collapsing |
+| `diagram-collapsed.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
+| `diagram.html` | Interactive diagram with mode switching and hover highlights |
+| `graph.json` | Full diffed graph JSON for downstream tooling |
+
 ## Development
 
 ```bash
@@ -111,15 +141,32 @@ Tests are colocated with source files in `src/`.
 
 Fixture apps live under `fixtures/`.
 
+### Integration app
+
 `fixtures/integration-app/` — "after PR" state  
 `fixtures/integration-app-base/` — "before PR" state
 
-Fixture diff: three files added in `user-settings/` (two components plus a small model, deliberately sized apart to show the change-magnitude gradient's range), one removed in `user-list/`, four files modified (three small, one substantially larger — also demonstrating the gradient), plus a Storybook story and an out-of-scope `shared/services` barrel added in the current branch. Used by the integration and visual regression tests.
+Fixture diff:
+- 3 files added in `user-settings/` — two components plus a small model, deliberately sized apart to show the change-magnitude gradient's range
+- 1 file removed in `user-list/`
+- 4 files modified — three small, one substantially larger, also demonstrating the gradient
+- A Storybook story and an out-of-scope `shared/services` barrel added in the current branch
 
-`fixtures/sample-app/` — "after PR" state for the "Reading the diagram" sample above  
-`fixtures/sample-app-base/` — "before PR" state for the "Reading the diagram" sample above
+Used by the integration and visual regression tests.
 
-Fixture diff: designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce (added/modified/removed/unchanged nodes, out-of-scope dependencies, test/story markers, and both first- and second-level subdirectory group boxes). The dashboard feature has 3 files at its root, a `widgets/` subdirectory (2 files, first-level box only), a `settings/` subdirectory (1 root file plus a nested `settings/preferences/` directory with 2 linked files, demonstrating a second-level grouping box nested inside the first-level one), a `layout/` subdirectory whose one file is unchanged between branches (collapses to a stub in focused mode), a `data-access/` subdirectory with two unchanged services where only one (`DashboardMetricsService`) gains a new import from the modified `DashboardComponent` — the partial-collapse case, where focused mode shows just that one file and hides its untouched sibling — an `export/` subdirectory with one pre-existing unchanged service plus one newly-added component, giving collapsed mode's directory-aggregate box a genuine mixed diff state (renders `modified`/amber, rather than being skewed fully "added" by its one new member), and a `legacy-summary/` subdirectory present only in the base branch, wholly removed in the current branch (renders `removed`/red in collapsed mode). Not used by any automated test.
+### Sample app
+
+`fixtures/sample-app/` — "after PR" state for the "Reading the diagram" samples above  
+`fixtures/sample-app-base/` — "before PR" state for the same samples
+
+Structure:
+- 3 files at the dashboard feature's root
+- `widgets/`, `settings/` (with a nested `settings/preferences/`), `layout/`, `data-access/`, `export/`, and `notifications/` (with nested `email/`/`push/`) subdirectories
+- A `legacy-summary/` directory present only in the base branch
+
+Designed so `npm run diagram:sample` produces one diagram containing every visual element the renderer can produce — added/modified/removed/unchanged nodes, out-of-scope dependencies, test/story markers, and both first- and second-level subdirectory group boxes. See "Reading the diagram" above for what each directory specifically demonstrates. Not used by any automated test.
+
+The images in "Reading the diagram" are regenerated from this fixture pair by `npm run docs:sample:generate` (build first: the script assumes `dist/` is current).
 
 ## Architecture
 
