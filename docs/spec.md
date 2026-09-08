@@ -138,3 +138,4 @@ See `docs/action-usage.yml` for an example consuming workflow.
 The following features are designed but not yet implemented. Full design decisions and implementation steps are tracked as GitHub issues.
 
 - **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
+- **Out-of-scope grouping for mixed directories, in Focused/Expanded view** — Focused view already collapses an out-of-scope parent directory to a stub when every member is unchanged (same rule as in-scope subdirectories — see Collapse rules above), and Collapsed view already groups every out-of-scope directory unconditionally. What's still missing is the case in between: a *mixed* changed/unchanged out-of-scope directory in Focused or Expanded view still shows every member individually rather than collapsing to one group node colored by dominant diff state. See issue #25.
