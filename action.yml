@@ -38,13 +38,19 @@ runs:
         npm run build
     - name: Generate diagram
       shell: bash
+      env:
+        FEATURE_DIR: ${{ inputs.feature-dir }}
+        REPO_ROOT: ${{ inputs.repo-root }}
+        BASE_REPO_ROOT: ${{ inputs.base-repo-root }}
+        SOURCE_ROOT: ${{ inputs.source-root }}
+        OUT_DIR: ${{ runner.temp }}/diff-diagram
       run: |
         node "${{ github.action_path }}/dist/cli.js" \
-          --repo-root "${{ inputs.repo-root }}" \
-          --base-repo-root "${{ inputs.base-repo-root }}" \
-          --source-root "${{ inputs.source-root }}" \
-          --out-dir "${{ runner.temp }}/diff-diagram" \
-          "${{ inputs.feature-dir }}"
+          --repo-root "$REPO_ROOT" \
+          --base-repo-root "$BASE_REPO_ROOT" \
+          --source-root "$SOURCE_ROOT" \
+          --out-dir "$OUT_DIR" \
+          "$FEATURE_DIR"
     - name: Stage diagram under a scope-unique name
       id: stage
       shell: bash
