@@ -45,6 +45,10 @@ runs:
         SOURCE_ROOT: ${{ inputs.source-root }}
         OUT_DIR: ${{ runner.temp }}/diff-diagram
       run: |
+        if [ -z "$BASE_REPO_ROOT" ]; then
+          echo "::error::base-repo-root input is required (path to a pre-checked-out base branch)"
+          exit 1
+        fi
         node "${{ github.action_path }}/dist/cli.js" \
           --repo-root "$REPO_ROOT" \
           --base-repo-root "$BASE_REPO_ROOT" \
