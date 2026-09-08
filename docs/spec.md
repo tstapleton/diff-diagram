@@ -14,11 +14,11 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 |---|---|
 | `<out-dir>/diagram-focused.svg` | Static focused diagram — paste as an image into a PR comment. Only written when `--base-repo-root` is given. |
 | `<out-dir>/diagram-expanded.svg` | Static expanded diagram — same diff coloring, no collapsing |
-| `<out-dir>/diagram-collapsed.svg` | Static collapsed diagram — one box per subdirectory, colored by dominant diff state. Always written. |
+| `<out-dir>/diagram-collapsed.svg` | Static collapsed diagram — one box per subdirectory, colored by its members' diff state (unanimous, else modified). Always written. |
 | `<out-dir>/diagram.html` | Interactive diagram — mode switching, hover highlighting |
 | `<out-dir>/graph.json` | Full diffed graph in JSON — for debugging or downstream tooling |
 
-`diagram-focused.svg` uses the focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-expanded.svg` uses the expanded view with the same diff coloring. `diagram-collapsed.svg` uses the collapsed view, zoomed all the way out to one box per subdirectory — written regardless of whether a base branch was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
+`diagram-focused.svg` uses the focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-expanded.svg` uses the expanded view with the same diff coloring. `diagram-collapsed.svg` uses the collapsed view, zoomed all the way out to one box per subdirectory — written regardless of whether a base branch was given, since directory coloring is still meaningful (all "unchanged") in single-branch mode.
 
 `diagram.html` embeds pre-computed layouts for all view modes. No server required — open the file directly in a browser.
 
@@ -80,17 +80,17 @@ Rules:
 
 ### View modes
 
-Three view modes are available in `diagram.html`. `diagram-focused.svg` always uses the focused mode; `diagram-expanded.svg` always uses the expanded mode; `diagram-collapsed.svg` always uses the collapsed mode and is always written regardless of whether a base to diff against was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
+Three view modes are available in `diagram.html`. `diagram-focused.svg` always uses the focused mode; `diagram-expanded.svg` always uses the expanded mode; `diagram-collapsed.svg` always uses the collapsed mode and is always written regardless of whether a base to diff against was given, since directory coloring is still meaningful (all "unchanged") in single-branch mode.
 
 **Expanded** — every node is shown individually. Useful for seeing the full architecture of a feature without any collapsing.
 
 **Focused** — the default and primary view. Changed areas are expanded; unchanged areas are collapsed to stub nodes (directory-level placeholders).
 
-**Collapsed** — a third mode for orientation on large features: every subdirectory (up to 2 levels deep) collapses to one box regardless of diff state, colored by the most significant change inside it. Independent of focused's stub-collapsing rules below — a directory renders as a box here even if focused would show it fully expanded or collapse it to a stub.
+**Collapsed** — a third mode for orientation on large features: every subdirectory (up to 2 levels deep) collapses to one box regardless of diff state. The box is colored `added`/`removed`/`unchanged` only if every file it represents unanimously agrees on that state; any other mix (including a real `modified` file) renders `modified`. Independent of focused's stub-collapsing rules below — a directory renders as a box here even if focused would show it fully expanded or collapse it to a stub.
 
 Collapse rules for focused:
-- In-scope: group nodes by their first-level subdirectory under the feature directory. If all nodes in a group are `unchanged`, collapse the group to a single stub. If any node is `added`, `modified`, or `removed`, expand all nodes in that group individually.
-- Out-of-scope: group nodes by their immediate parent directory. Same collapse rule.
+- In-scope: group nodes by their first-level subdirectory under the feature directory. A node is shown on its own if it changed itself (added/modified/removed) or is touched, as either endpoint, by an added/removed/modified edge — either reason is sufficient by itself. If no node in the group is shown this way, the group collapses to a single stub. If every node is shown, the group renders exactly as it would unexpanded. If only some are, the rest are dropped entirely — no stand-in node — since a hidden node has, by construction, no diff-relevant changes of its own or edges touching it.
+- Out-of-scope: group nodes by their immediate parent directory. Only the simpler all-unchanged-or-not rule applies here for now — no partial state yet.
 - Nodes at the feature directory root (not inside any subdirectory) are always shown individually.
 - Edges targeting collapsed nodes are redirected to the stub. Duplicate edges and self-loops after collapsing are dropped.
 

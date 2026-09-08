@@ -97,14 +97,15 @@ Modes:
 - `'collapsed'` — delegates to `computeClusteredNodes` (same file), which collapses every subdirectory (up to 2 levels) and out-of-scope parent directory into a synthetic `type: 'directory'` node regardless of diff state — described together with `computeClusteredLayout` under `layout.ts` below, since the two were designed and documented as one feature
 - `'focused'` — applies collapse rules:
   1. Group in-scope nodes by immediate subdirectory (1 level below the feature directory; `graph.meta.scopeDir` is the JSON field name)
-  2. If ALL nodes in a group are `unchanged` → collapse to a stub node
-  3. If ANY node is `added/modified/removed` → expand the entire group individually
-  4. Nodes at the scope root level (no subdirectory) are always shown individually
-  5. Group out-of-scope nodes by their parent directory (1 level up from file)
-  6. Same collapse logic: all-unchanged → stub
-  7. Remap edges: if a node was collapsed, redirect its edges to the stub ID
-  8. Deduplicate edges (multiple original edges may map to the same stub→stub edge)
-  9. Drop self-loops (both endpoints collapsed to the same stub)
+  2. A node is `isVisible` if it changed itself (`diffPriority(n.diff) > 0`) or is touched, as either endpoint, by an edge with `diffPriority(e.diff) > 0` — either reason is independently sufficient
+  3. No visible member in a group → collapse to one stub node
+  4. Every member visible → group renders exactly as `'expanded'` would for it
+  5. Some but not all visible ("partial") → only the visible members are shown; the rest are dropped entirely (no stand-in node) — lossless, since a hidden member has, by construction, no diff-relevant changes of its own or edges touching it. Re-run per level-2 bucket (1 level deeper) instead of flattening the whole level-1 group, so the layout's 2-level box cap (`layout.ts`'s `subdirOf`) isn't forced open by an unrelated nested subdirectory
+  6. Nodes at the scope root level (no subdirectory) are always shown individually
+  7. Group out-of-scope nodes by their parent directory (1 level up from file); only rules 3/4 apply here (all-visible or none) — the partial case doesn't extend to out-of-scope grouping yet (issue #25)
+  8. Remap edges: if a node was collapsed, redirect its edges to the stub ID; an edge touching a dropped partial member (no stub, no collapsedMap entry) is dropped instead
+  9. Deduplicate edges (multiple original edges may map to the same stub→stub edge)
+  10. Drop self-loops (both endpoints collapsed to the same stub)
 
 Stub nodes have `type: 'stub'`, `diff: 'unchanged'`. They are a rendering abstraction — they represent a directory, not a real file.
 
@@ -126,7 +127,7 @@ LayoutEdge sections contain `startPoint`, `endPoint`, and optional `bendPoints` 
 
 See `docs/superpowers/specs/2026-08-06-second-level-subdir-grouping-design.md` for the second-level extension's design.
 
-**Collapsed view mode (`computeViewNodes(graph, "collapsed")` + `computeClusteredLayout`):** a third view mode, entirely separate from the focused stub-collapsing above — it collapses every in-scope subdirectory (up to 2 levels deep, same cap) and every out-of-scope parent directory to one synthetic `GraphNode` (`type: "directory"`), regardless of diff state, for high-level orientation on features with many files. A directory node's `diff` is the dominant state among every real file it represents (added > removed > modified > unchanged priority, `graph-helpers.ts`'s exported `diffPriority`). `computeClusteredLayout` reuses the same ELK compound/hierarchical-layout technique as the subdirectory-grouping boxes above, but a level1 directory node's own ELK node *is* the rendered box — it becomes a compound node containing its level2 child (if one exists) rather than a separate wrapper, so `draw.ts`/`renderer.html` need no rendering-code changes at all: a directory node is drawn exactly like any other node, just with `type: "directory"` instead of a real file's type. See `docs/superpowers/specs/2026-08-07-clustered-view-design.md`.
+**Collapsed view mode (`computeViewNodes(graph, "collapsed")` + `computeClusteredLayout`):** a third view mode, entirely separate from the focused stub-collapsing above — it collapses every in-scope subdirectory (up to 2 levels deep, same cap) and every out-of-scope parent directory to one synthetic `GraphNode` (`type: "directory"`), regardless of diff state, for high-level orientation on features with many files. A directory node's `diff` is `added`/`removed`/`unchanged` only when every real file it represents unanimously agrees on that state; any other mix (e.g. some added, some unchanged) is `modified` — a single added file among twenty unchanged siblings shouldn't paint the whole directory green (`graph-helpers.ts`'s `aggregateDiff`, distinct from `diffPriority`'s highest-wins reduction used for edge dedup). `computeClusteredLayout` reuses the same ELK compound/hierarchical-layout technique as the subdirectory-grouping boxes above, but a level1 directory node's own ELK node *is* the rendered box — it becomes a compound node containing its level2 child (if one exists) rather than a separate wrapper, so `draw.ts`/`renderer.html` need no rendering-code changes at all: a directory node is drawn exactly like any other node, just with `type: "directory"` instead of a real file's type. See `docs/superpowers/specs/2026-08-07-clustered-view-design.md`.
 
 After `elk.layout()`, the result tree is flattened recursively back to absolute canvas coordinates — ELK returns each child's `x`/`y` relative to its own parent's origin, and edge sections declared on a compound node are in that same local frame, so both need the accumulated parent offset added during the walk.
 
@@ -182,7 +183,7 @@ When `--base-repo-root` is omitted, diff mode is skipped — the CLI runs curren
 
 Writes four or five files:
 - `diagram-expanded.svg` — `toSvg(allLayout, allView.nodes, allView.edges)` — expanded, real layout. Always written.
-- `diagram-collapsed.svg` — `toSvg(clusteredLayout, clusteredView.nodes, clusteredView.edges)` — collapsed, directory-only layout. Always written — dominant-diff-state coloring per directory is still meaningful (all "unchanged") without a base to diff against.
+- `diagram-collapsed.svg` — `toSvg(clusteredLayout, clusteredView.nodes, clusteredView.edges)` — collapsed, directory-only layout. Always written — directory coloring is still meaningful (all "unchanged") without a base to diff against.
 - `diagram-focused.svg` — `toSvg(diffLayout, diffView.nodes, diffView.edges)` — focused, real layout. Only written when `--base-repo-root` is given.
 - `diagram.html` — `src/renderer.html` with `__DIFF_DIAGRAM_RENDER_JS__` replaced by the compiled `render.js`'s source and `__DIFF_DIAGRAM_DATA__` replaced by JSON; embeds all three modes
 - `graph.json` — full diffed graph without internal `_oosEdges` and without `meta.repoRoot` (an absolute local path that must not leak into output)

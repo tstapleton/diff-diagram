@@ -41,7 +41,8 @@ Files and the arrows between them share one color key:
 
 The primary review artifact: changed areas are expanded, unchanged areas collapse into a placeholder box so the diagram stays small on large features. A few things to notice in the sample below:
 
-- **Partial collapse** — `data-access/` shows only `dashboard-metrics.service.ts`, marked `◐`. Its content is unchanged, but it gained a new import from the modified `dashboard.component.ts`, so it stays visible while its untouched sibling stays hidden.
+- **Partial collapse, from a touched edge** — `data-access/` shows only `dashboard-metrics.service.ts`, marked `◐`. Its content is unchanged, but it gained a new import from the modified `dashboard.component.ts`, so it stays visible while its untouched sibling stays hidden.
+- **Partial collapse, from the file itself changing** — `layout/` shows only the newly added `dashboard-footer.component.ts`. Its sibling `dashboard-shell.component.ts` has no content change and no changed edge touching it, so it collapses away even though the directory now contains an added file — a directory isn't dragged open just because *something* in it changed.
 - **Nested collapse, two levels deep** — inside `notifications/`, the `email/` subdirectory fully expands (everything in it was touched) while `push/` collapses to a single box (nothing inside changed).
 - **Removed files stay visible** — both files that used to live in `legacy-summary/` are gone from the current branch, but still drawn in red so you can see what depended on them. (Expanded, further down, shows the same thing — removed files are never collapsed away in either mode.)
 
@@ -49,7 +50,7 @@ The primary review artifact: changed areas are expanded, unchanged areas collaps
 
 ### Collapsed
 
-Zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored by the most significant change inside it — useful for orienting on a feature with many files before diving into the other two modes. A few things to notice in the sample below:
+Zooms all the way out: every subdirectory (up to 2 levels deep) becomes one box, colored `added`/`modified`/`removed`/`unchanged` — `modified` for any directory whose members don't unanimously agree on a state — useful for orienting on a feature with many files before diving into the other two modes. A few things to notice in the sample below:
 
 - **A removed directory** — `legacy-summary/` existed only in the base branch, so its box is solid red.
 - **One new file doesn't skew the whole box** — `export/` has one untouched service and one newly-added component, so its box renders amber (mixed), not green.
@@ -121,7 +122,7 @@ Written to `--out-dir` (`dist` by default):
 |---|---|
 | `diagram-focused.svg` | Focused graph (paste as image in PR comment); written only when `--base-repo-root` is given |
 | `diagram-expanded.svg` | Expanded graph, same diff coloring, no collapsing |
-| `diagram-collapsed.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by dominant diff state |
+| `diagram-collapsed.svg` | Directory-only zoomed-out graph — one box per subdirectory (up to 2 levels deep), colored by its members' diff state (unanimous, else modified) |
 | `diagram.html` | Interactive diagram with mode switching and hover highlights |
 | `graph.json` | Full diffed graph JSON for downstream tooling |
 

@@ -113,7 +113,10 @@ describe("computeViewNodes 'focused' — in-scope collapse", () => {
 		expect(nodes[0].diff).toBe("unchanged");
 	});
 
-	it("expands a subdir when any node is modified", () => {
+	it("shows a modified node and collapses its unchanged, untouched sibling", () => {
+		// b's own content changed, so it's visible regardless of edges; a is
+		// unchanged and touched by nothing, so it collapses away — a changed
+		// sibling no longer drags the whole subdir open with it.
 		const n1 = node(
 			"a",
 			`${SCOPE}/user-list/user-card.component.ts`,
@@ -127,12 +130,13 @@ describe("computeViewNodes 'focused' — in-scope collapse", () => {
 			"modified",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "focused");
-		expect(nodes).toHaveLength(2);
-		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		const { nodes, groupTotals } = computeViewNodes(g, "focused");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].id).toBe("b");
+		expect(groupTotals?.get("user-list")).toBe(2);
 	});
 
-	it("expands a subdir when any node is added", () => {
+	it("shows an added node and collapses its unchanged, untouched sibling", () => {
 		const n1 = node(
 			"a",
 			`${SCOPE}/user-settings/user-settings.component.ts`,
@@ -146,12 +150,13 @@ describe("computeViewNodes 'focused' — in-scope collapse", () => {
 			"added",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "focused");
-		expect(nodes).toHaveLength(2);
-		expect(nodes.every((n) => n.type !== "stub")).toBe(true);
+		const { nodes, groupTotals } = computeViewNodes(g, "focused");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].id).toBe("b");
+		expect(groupTotals?.get("user-settings")).toBe(2);
 	});
 
-	it("expands a subdir containing a removed-ghost", () => {
+	it("shows a removed-ghost node and collapses its unchanged, untouched sibling", () => {
 		const n1 = node(
 			"a",
 			`${SCOPE}/user-list/users-list.component.ts`,
@@ -165,9 +170,10 @@ describe("computeViewNodes 'focused' — in-scope collapse", () => {
 			"removed",
 		);
 		const g = makeGraph([n1, n2]);
-		const { nodes } = computeViewNodes(g, "focused");
-		expect(nodes).toHaveLength(2);
-		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		const { nodes, groupTotals } = computeViewNodes(g, "focused");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].id).toBe("b");
+		expect(groupTotals?.get("user-list")).toBe(2);
 	});
 
 	it("collapses multiple unchanged subdirs independently", () => {
@@ -211,7 +217,7 @@ describe("computeViewNodes 'focused' — in-scope collapse", () => {
 	});
 });
 
-// ─── collapse rules — partial (new import into an otherwise-unchanged dir) ──
+// ─── collapse rules — partial (edge-touched members pulled out individually) ─
 
 describe("computeViewNodes 'focused' — partial collapse", () => {
 	it("pulls only the edge-touched file out of an otherwise-unchanged dir, and drops its unchanged internal edge to the still-hidden sibling", () => {
@@ -226,8 +232,9 @@ describe("computeViewNodes 'focused' — partial collapse", () => {
 		const g = makeGraph([a, c, d], [addedEdge, internalEdge]);
 		const { nodes, edges, groupTotals } = computeViewNodes(g, "focused");
 
-		// foo/ fully expands as today (a is modified); bar/ goes partial: only
-		// d (edge-touched) is individually visible, c stays hidden.
+		// foo/'s only member, a, is visible because it's modified (foo/ has
+		// no untouched sibling to hide); bar/ goes partial: only d
+		// (edge-touched) is individually visible, c stays hidden.
 		expect(nodes.find((n) => n.id === "a")).toBeDefined();
 		expect(nodes.find((n) => n.id === "d")).toBeDefined();
 		expect(nodes.find((n) => n.id === "c")).toBeUndefined();
@@ -294,15 +301,18 @@ describe("computeViewNodes 'focused' — partial collapse", () => {
 	});
 });
 
-// ─── collapse rules — level-2 granularity within a changed level-1 group ────
+// ─── collapse rules — level-2 granularity within a partial level-1 group ────
 
-describe("computeViewNodes 'diff-focused' — level-2 granularity within a changed level-1 group", () => {
-	it("collapses an unrelated, untouched level-2 subdir to its own stub instead of exploding the whole level-1 group", () => {
-		// data-access/store/ has a real change; data-access/cache/ is a
-		// completely unrelated, content-unchanged subdir with no edges
-		// touching it. The layout only boxes 2 levels deep, so cache/ should
-		// still collapse to its own stub rather than being swept into the
-		// level-1 group's forced expansion caused by store/'s change.
+describe("computeViewNodes 'diff-focused' — level-2 granularity within a partial level-1 group", () => {
+	it("partially collapses the level-2 subdir containing the change too, and fully collapses the unrelated one", () => {
+		// data-access/store/ has one modified file (a) and one unchanged,
+		// untouched sibling (b) — b collapses away just like it would if it
+		// were alone in its own subdir; a changed sibling doesn't drag it
+		// open. data-access/cache/ is a completely unrelated, content-
+		// unchanged subdir with no edges touching it, so it fully collapses
+		// to one stub. The layout only boxes 2 levels deep, so both
+		// decisions are scoped to their own level-2 bucket rather than one
+		// flat decision for the whole level-1 group.
 		const a = node(
 			"a",
 			`${SCOPE}/data-access/store/a.ts`,
@@ -330,24 +340,26 @@ describe("computeViewNodes 'diff-focused' — level-2 granularity within a chang
 		const g = makeGraph([a, b, c, d]);
 		const { nodes, groupTotals } = computeViewNodes(g, "focused");
 
-		// store/ has a genuine change, so both its members show individually.
+		// store/'s modified file shows; its untouched sibling collapses away
+		// with no stand-in node.
 		expect(nodes.find((n) => n.id === "a")).toBeDefined();
-		expect(nodes.find((n) => n.id === "b")).toBeDefined();
+		expect(nodes.find((n) => n.id === "b")).toBeUndefined();
 
 		// cache/ is unrelated and fully unchanged: one stub, not two loose
-		// nodes — this is the behavior that was broken before the fix.
+		// nodes.
 		expect(nodes.find((n) => n.id === "c")).toBeUndefined();
 		expect(nodes.find((n) => n.id === "d")).toBeUndefined();
 		const stubs = nodes.filter((n) => n.type === "stub");
 		expect(stubs).toHaveLength(1);
 		expect(stubs[0].label).toBe(formatDirLabel("closed", "cache", 2));
 
-		// The level-1 group as a whole isn't flattened to 4 individual nodes
-		// the way it would be today: 2 real nodes (store) + 1 stub (cache).
-		expect(nodes).toHaveLength(3);
+		// Only a plus the cache stub survive — not all 4 members flattened,
+		// and not even store/'s own 2 members shown in full.
+		expect(nodes).toHaveLength(2);
 
-		// The level-1 container's own header needs the true total so it shows
-		// the partial (◐) icon rather than "open".
+		// Both the level-2 store bucket and the level-1 container need their
+		// true totals so they render the partial (◐) icon rather than "open".
+		expect(groupTotals?.get("data-access/store")).toBe(2);
 		expect(groupTotals?.get("data-access")).toBe(4);
 	});
 
