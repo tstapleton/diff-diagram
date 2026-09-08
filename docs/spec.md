@@ -14,10 +14,11 @@ The tool runs once per PR, against a specific feature directory, producing outpu
 |---|---|
 | `<out-dir>/diagram-focused.svg` | Static focused diagram — paste as an image into a PR comment. Only written when `--base-repo-root` is given. |
 | `<out-dir>/diagram-expanded.svg` | Static expanded diagram — same diff coloring, no collapsing |
+| `<out-dir>/diagram-collapsed.svg` | Static collapsed diagram — one box per subdirectory, colored by dominant diff state. Always written. |
 | `<out-dir>/diagram.html` | Interactive diagram — mode switching, hover highlighting |
 | `<out-dir>/graph.json` | Full diffed graph in JSON — for debugging or downstream tooling |
 
-`diagram-focused.svg` uses the focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-expanded.svg` uses the expanded view with the same diff coloring.
+`diagram-focused.svg` uses the focused view (changed areas expanded, unchanged areas collapsed). It is intended to be the primary review artifact. `diagram-expanded.svg` uses the expanded view with the same diff coloring. `diagram-collapsed.svg` uses the collapsed view, zoomed all the way out to one box per subdirectory — written regardless of whether a base branch was given, since dominant-diff-state coloring per directory is still meaningful (all "unchanged") in single-branch mode.
 
 `diagram.html` embeds pre-computed layouts for all view modes. No server required — open the file directly in a browser.
 
@@ -45,7 +46,7 @@ Every `.ts` file in the feature directory becomes a node, except:
 - `.d.ts` files (type declarations)
 - Files under `node_modules/`
 
-Spec and stories sidecars are excluded from the graph but their *presence* is noted on their associated node — a green dot for a test sidecar, a purple dot for a stories sidecar.
+Spec and stories sidecars are excluded from the graph but their *presence* is noted on their associated node — a cyan dot for a test sidecar, a purple dot for a stories sidecar.
 
 Node labels are derived from filenames: `user-list.component.ts` → `UserListComponent`. See [architecture.md](./architecture.md) for the full derivation rules.
 
@@ -61,7 +62,7 @@ The tool runs the analyzer twice — once on the base branch, once on the curren
 
 **Edge diff states:**
 - `added` — import exists in current, not in base
-- `removed` — import exists in base, not in current; rendered as a dashed line
+- `removed` — import exists in base, not in current
 - `modified` — import exists in both, but its set of imported names changed
 - `unchanged` — import exists in both with the same imported names
 
@@ -101,23 +102,34 @@ Collapse rules for focused:
 - `removed` — red
 - `unchanged` — dark slate
 
-For `added`, `modified`, and `removed` nodes, fill intensity additionally scales with **change magnitude** — how much of the file changed (a real line-level diff for `modified` nodes, the file's own length for `added`/`removed`), relative to the 80th percentile of change size among changed nodes in the diagram (not the single largest node — a lone outlier file was found to crush every other node's magnitude toward zero in real PRs). Nodes at or above that percentile render at full diff-state color; more lightly changed nodes fade toward the unchanged fill. Border color always stays at full diff-state intensity regardless of magnitude, so a node's diff state is never ambiguous even when barely changed.
+For `added`, `modified`, and `removed` nodes, fill intensity additionally scales with **change magnitude** — how much of the file changed (a real line-level diff for `modified` nodes, the file's own length for `added`/`removed`), relative to the 80th percentile of change size among changed nodes in the diagram (not the single largest node — a lone outlier file was found to crush every other node's magnitude toward zero in real PRs). Nodes at or above that percentile render at full diff-state color; more lightly changed nodes fade toward the unchanged fill. Border color always stays at full diff-state intensity regardless of magnitude, so a node's diff state is never ambiguous even when barely changed. A collapsed directory node (Collapsed view) gets the same magnitude fill too, taken from the heaviest change among its members.
 
 Out-of-scope nodes use a distinct dark background and blue stroke regardless of diff state, and do not participate in change-magnitude styling.
 
-Stub nodes (collapsed directories) use a dashed border and a neutral fill.
+Stub nodes (collapsed directories in Focused view) use a solid border and a neutral fill, the same treatment every directory-related box (subdirectory group, stub, whole-feature boundary) shares.
 
-**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state (`modified` edges are amber). Removed edges are dashed and partially transparent.
+**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state (`modified` edges are amber). Every line in the diagram — node border, edge, directory box — is solid; diff state is color alone, with no dash or opacity variation anywhere.
 
 **Sidecar markers** appear as small dots in the node corner:
-- Green dot — a `.spec.ts` sidecar exists for this file
+- Cyan dot — a `.spec.ts` sidecar exists for this file
 - Purple dot — a `.stories.ts` sidecar exists for this file
+
+See `docs/visual-encoding-reference.md` for the exact color values and every other typography/width decision, kept current with the code.
+
+## GitHub Action
+
+`action.yml` packages the CLI as a composite GitHub Action (`tstapleton/diff-diagram@main`) for a consuming repo's own PR workflow. Given `feature-dir` and a pre-checked-out `base-repo-root` (the consuming workflow's responsibility, same contract as the CLI's own `--base-repo-root`), it:
+1. Builds and runs the CLI to produce `diagram.html`.
+2. Uploads it as a workflow artifact (unarchived, so it opens directly in the browser).
+3. Posts or updates one PR comment per scope directory (matched by an HTML marker comment, so re-runs edit in place rather than piling up) summarizing added/modified/removed file and import counts, with a link to the artifact.
+
+See `docs/action-usage.yml` for an example consuming workflow.
 
 ## Non-goals
 
-- **Git management** — the tool never checks out branches, creates worktrees, or reads git history. Callers handle git state.
+- **Git management** — the tool never checks out branches, creates worktrees, or reads git history. Callers (and, for the composite action, its consuming workflow) handle git state.
 - **Rename tracking** — a renamed file is treated as removed + added. No git-based rename detection.
-- **CI integration** — posting comments, uploading images, and publishing to GitHub Pages are out of scope for this repo.
+- **CI platforms beyond GitHub Actions** — the bundled composite action (see above) targets GitHub Actions specifically; publishing to GitHub Pages or supporting other CI platforms is out of scope.
 - **Full repo diagrams** — the tool scopes to a single feature directory. Whole-repo analysis is not a goal.
 - **Runtime dependency analysis** — the diagram shows static TypeScript imports only. Dynamic imports, lazy-loaded modules, and Angular DI injection chains are not traced.
 
@@ -125,8 +137,4 @@ Stub nodes (collapsed directories) use a dashed border and a neutral fill.
 
 The following features are designed but not yet implemented. Full design decisions and implementation steps are tracked as GitHub issues.
 
-- **GitHub Action** — runs on PR events, posts `diagram.svg` as an inline PR comment image, no external storage required
-- **Sample diagram** — a purpose-built fixture demonstrating every visual element (all diff states, sidecar markers), committed to the repo and referenced in the README
 - **Sidecar diff state** — encode whether a test or story file was added, removed, or unchanged as part of this PR, reflected on the sidecar dot
-- **Out-of-scope grouping** — collapse OOS nodes by parent directory into a single group node, reducing clutter when a feature imports many things from the same shared area
-- **Subdirectory grouping** — visually group in-scope nodes by their first-level subdirectory using background rects, requiring compound/hierarchical ELK layout
