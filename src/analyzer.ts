@@ -50,8 +50,18 @@ export function dedupeId(
 	return id;
 }
 
-export function oosDisplayPath(file: string, sourceRoot: string): string {
-	const dir = path.dirname(file);
+// For a genuine file, the subtitle is the file's own containing directory
+// (`path.dirname`). For a collapsed-group node (a stub or a Collapsed-view
+// directory box), `file` already IS the group's own directory, not a file —
+// taking `path.dirname` of it would incorrectly strip one more real segment,
+// showing the group's *parent* instead of the group itself, so `isGroup`
+// skips that step.
+export function oosDisplayPath(
+	file: string,
+	sourceRoot: string,
+	isGroup = false,
+): string {
+	const dir = isGroup ? file : path.dirname(file);
 	const prefix = sourceRoot.endsWith("/") ? sourceRoot : `${sourceRoot}/`;
 	return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
 }

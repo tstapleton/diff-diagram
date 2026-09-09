@@ -311,9 +311,9 @@ async function main(): Promise<void> {
 
 	// Compute layouts for all three view modes in parallel
 	console.log("Computing layouts...");
-	const allView = computeViewNodes(diffed, "expanded");
-	const diffView = computeViewNodes(diffed, "focused");
-	const clusteredView = computeViewNodes(diffed, "collapsed");
+	const allView = computeViewNodes(diffed, "expanded", args.sourceRoot);
+	const diffView = computeViewNodes(diffed, "focused", args.sourceRoot);
+	const clusteredView = computeViewNodes(diffed, "collapsed", args.sourceRoot);
 
 	const [allLayout, diffLayout, clusteredLayout] = await Promise.all([
 		computeLayout(

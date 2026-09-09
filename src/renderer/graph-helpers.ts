@@ -21,12 +21,16 @@ import { formatDirLabel } from "./dir-label.js";
 //     changes of its own or edges touching it
 //   • Stubs inherit edges (edges to collapsed nodes redirect to stub)
 //
-// Out-of-scope grouping doesn't yet support the partial case — see allUnchanged
-// below; only in-scope subdirectories get the full open/partial/closed split.
+// Out-of-scope grouping uses the same isVisible check as in-scope grouping
+// (any member changed itself or is touched by a changed edge keeps the whole
+// group visible), but doesn't yet support the partial case — an out-of-scope
+// group is all-or-nothing; only in-scope subdirectories get the full
+// open/partial/closed split.
 
 export function computeViewNodes(
 	graph: Graph,
 	mode: "expanded" | "focused" | "collapsed",
+	sourceRoot = "src/app",
 ): {
 	nodes: GraphNode[];
 	edges: GraphEdge[];
@@ -36,7 +40,7 @@ export function computeViewNodes(
 		return { nodes: graph.nodes, edges: graph.edges };
 	}
 	if (mode === "collapsed") {
-		return computeClusteredNodes(graph);
+		return computeClusteredNodes(graph, sourceRoot);
 	}
 
 	const scopeDir = graph.meta.scopeDir; // repo-relative, e.g. "src/app/features/users"
@@ -168,15 +172,24 @@ export function computeViewNodes(
 		groupTotals.set(subdir, nodes.length);
 	}
 
-	// ── Group out-of-scope nodes by parent directory ──────────────────────────
+	// ── Group out-of-scope nodes by capped-depth directory ────────────────────
 	const oosGroups = new Map<string, GraphNode[]>();
 	for (const node of oosNodes) {
-		const key = path.dirname(node.file);
+		const key = oosGroupDir(node.file, sourceRoot);
 		appendToGroup(oosGroups, key, node);
 	}
 
 	for (const [dir, nodes] of oosGroups) {
-		if (!allUnchanged(nodes)) {
+		// Same isVisible check the in-scope loop above uses: a group shows
+		// individually if any member changed itself OR is touched by a
+		// changed edge — not just "changed itself" (issue #89). An
+		// out-of-scope node's own diff is null in single-branch mode, but a
+		// real added/modified/unchanged value once diffed against a base
+		// (see diffGraphs) — either way, a content-unchanged member that
+		// just gained a new edge (e.g. an existing shared file with a
+		// brand-new caller) still deserves to stay visible, the same reason
+		// this matters for in-scope members.
+		if (nodes.some(isVisible)) {
 			for (const n of nodes) outputNodes.push(n);
 		} else {
 			const sourceKey = `oos:${dir}`;
@@ -224,7 +237,10 @@ export function computeViewNodes(
 // high-level orientation on features with many files. See
 // docs/superpowers/specs/2026-08-07-clustered-view-design.md.
 
-function computeClusteredNodes(graph: Graph): {
+function computeClusteredNodes(
+	graph: Graph,
+	sourceRoot: string,
+): {
 	nodes: GraphNode[];
 	edges: GraphEdge[];
 } {
@@ -319,10 +335,10 @@ function computeClusteredNodes(graph: Graph): {
 		}
 	}
 
-	// ── Out-of-scope: one flat node per immediate parent directory ───────────
+	// ── Out-of-scope: one flat node per capped-depth directory ────────────────
 	const oosGroups = new Map<string, GraphNode[]>();
 	for (const n of oosNodes) {
-		const dir = path.dirname(n.file);
+		const dir = oosGroupDir(n.file, sourceRoot);
 		if (!oosGroups.has(dir)) oosGroups.set(dir, []);
 		oosGroups.get(dir)?.push(n);
 	}
@@ -420,8 +436,31 @@ export function diffPriority(diff: DiffState | null | undefined): number {
 	return diff ? DIFF_PRIORITY[diff] : 0;
 }
 
-function allUnchanged(nodes: GraphNode[]): boolean {
-	return nodes.every((n) => n.diff === "unchanged" || n.diff === null);
+// An out-of-scope file's own immediate parent directory, with a cap on how
+// far below sourceRoot it can be: a file arbitrarily deep under some shared
+// directory (e.g. shared/services/api-client/services/http.service.ts)
+// groups with its siblings at the same depth-capped ancestor
+// (shared/services/api-client) instead of fragmenting into one box per
+// exact directory — which, beyond just being more boxes than necessary,
+// can also produce same-named boxes for two unrelated directories that
+// happen to share a basename (e.g. two different "services"
+// subdirectories at different depths). Falls back to the file's own
+// immediate parent directory, uncapped, when that directory has fewer
+// segments than the cap (nothing to truncate) or sits outside sourceRoot
+// entirely (no meaningful depth to measure from — e.g. a monorepo import
+// from a sibling package).
+//
+// Hardcoded for now — see issue #92 to make this configurable if one
+// repo's directory shape doesn't generalize well.
+const OOS_GROUP_DEPTH = 3;
+
+function oosGroupDir(file: string, sourceRoot: string): string {
+	const dir = path.dirname(file);
+	const rel = path.relative(sourceRoot, dir);
+	if (rel.startsWith("..")) return dir;
+	const parts = rel.split(path.sep);
+	if (parts.length <= OOS_GROUP_DEPTH) return dir;
+	return path.join(sourceRoot, ...parts.slice(0, OOS_GROUP_DEPTH));
 }
 
 function makeStub(

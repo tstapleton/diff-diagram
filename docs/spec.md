@@ -90,7 +90,7 @@ Three view modes are available in `diagram.html`. `diagram-focused.svg` always u
 
 Collapse rules for focused:
 - In-scope: group nodes by their first-level subdirectory under the feature directory. A node is shown on its own if it changed itself (added/modified/removed) or is touched, as either endpoint, by an added/removed/modified edge — either reason is sufficient by itself. If no node in the group is shown this way, the group collapses to a single stub. If every node is shown, the group renders exactly as it would unexpanded. If only some are, the rest are dropped entirely — no stand-in node — since a hidden node has, by construction, no diff-relevant changes of its own or edges touching it.
-- Out-of-scope: group nodes by their immediate parent directory. Only the simpler all-unchanged-or-not rule applies here for now — no partial state yet.
+- Out-of-scope: group nodes by directory, capped at a fixed depth below `sourceRoot` (`OOS_GROUP_DEPTH`, currently 3) rather than each file's exact immediate parent — a file arbitrarily deep under a shared directory groups with its siblings at the same depth-capped ancestor instead of fragmenting into one box per exact directory. A group shows individually (every member) if any member changed itself or is touched by a changed edge, same rule as in-scope groups — but only that all-or-nothing rule applies here for now, no partial state yet.
 - Nodes at the feature directory root (not inside any subdirectory) are always shown individually.
 - Edges targeting collapsed nodes are redirected to the stub. Duplicate edges and self-loops after collapsing are dropped.
 

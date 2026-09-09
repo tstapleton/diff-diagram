@@ -468,6 +468,78 @@ describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 		expect(nodes).toHaveLength(2);
 		expect(nodes.every((n) => n.type === "stub")).toBe(true);
 	});
+
+	it("consolidates a deeply-nested OOS cluster into one depth-capped group instead of fragmenting per exact directory", () => {
+		// shared/services/api-client is 3 segments below "src/app" — at the
+		// cap — so a direct file there, plus files one level deeper under
+		// api-client/services and api-client/models, all group together
+		// instead of producing 3 separate same-cluster boxes (two of which
+		// would otherwise collide on the basename "services").
+		const direct = node(
+			"api_client",
+			"src/app/shared/services/api-client/api-client.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const nested1 = node(
+			"http",
+			"src/app/shared/services/api-client/services/http.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const nested2 = node(
+			"model",
+			"src/app/shared/services/api-client/models/response.model.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const g = makeGraph([direct, nested1, nested2]);
+		const { nodes } = computeViewNodes(g, "focused", "src/app");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].label).toBe(formatDirLabel("closed", "api-client", 3));
+	});
+
+	it("keeps a shallow OOS directory (at or under the depth cap) as its own group, separate from a deeper cluster with the same basename", () => {
+		const shallow1 = node(
+			"foo",
+			"src/app/shared/services/foo.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const shallow2 = node(
+			"bar",
+			"src/app/shared/services/bar.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const nestedSameBasename = node(
+			"http",
+			"src/app/shared/services/api-client/services/http.service.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const g = makeGraph([shallow1, shallow2, nestedSameBasename]);
+		const { nodes } = computeViewNodes(g, "focused", "src/app");
+		expect(nodes).toHaveLength(2);
+		const labels = nodes.map((n) => n.label).sort();
+		expect(labels).toEqual([
+			formatDirLabel("closed", "api-client", 1),
+			formatDirLabel("closed", "services", 2),
+		]);
+	});
+
+	it("falls back to the immediate parent directory, uncapped, for an OOS file outside sourceRoot", () => {
+		const outside = node(
+			"lib_a",
+			"packages/shared-lib/deep/nested/path/thing.ts",
+			"out-of-scope",
+			"unchanged",
+		);
+		const g = makeGraph([outside]);
+		const { nodes } = computeViewNodes(g, "focused", "src/app");
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].label).toBe(formatDirLabel("closed", "path", 1));
+	});
 });
 
 // ─── edge preservation ────────────────────────────────────────────────────────
@@ -549,7 +621,13 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		expect(edges).toHaveLength(0);
 	});
 
-	it("keeps 'added' diff when an added edge dedups with an unchanged edge to the same stub", () => {
+	it("opens the whole out-of-scope group instead of collapsing to a stub when one content-unchanged member is touched by a changed edge (issue #89)", () => {
+		// oos_a and oos_b are both content-unchanged, but oos_b just gained a
+		// brand-new caller (an added edge) — the group must not collapse to a
+		// stub that hides this: allUnchanged(nodes) alone would have said
+		// yes (both nodes' own diff is "unchanged"), missing the touched
+		// edge entirely, same bug the in-scope loop already guards against
+		// via isVisible/touchedIds.
 		const inNode = node(
 			"in",
 			`${SCOPE}/user-list/users-list.component.ts`,
@@ -570,26 +648,22 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		);
 		const unchangedEdge = edge("in", "oos_a", "unchanged");
 		const addedEdge = edge("in", "oos_b", "added");
+		const g = makeGraph([inNode, oos1, oos2], [unchangedEdge, addedEdge]);
+		const { nodes, edges } = computeViewNodes(g, "focused");
 
-		// unchanged edge first in graph.edges
-		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, addedEdge]);
-		const r1 = computeViewNodes(g1, "focused");
-		expect(r1.edges).toHaveLength(1);
-		expect(r1.edges[0].diff).toBe("added");
-
-		// added edge first in graph.edges
-		const g2 = makeGraph([inNode, oos1, oos2], [addedEdge, unchangedEdge]);
-		const r2 = computeViewNodes(g2, "focused");
-		expect(r2.edges).toHaveLength(1);
-		expect(r2.edges[0].diff).toBe("added");
+		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		expect(nodes.find((n) => n.id === "oos_a")).toBeDefined();
+		expect(nodes.find((n) => n.id === "oos_b")).toBeDefined();
+		expect(edges).toHaveLength(2);
+		expect(edges.find((e) => e.to === "oos_b")?.diff).toBe("added");
 	});
 
-	it("keeps 'removed' diff when a removed edge dedups with an unchanged edge to the same stub", () => {
+	it("still collapses an out-of-scope group to a stub when every member is genuinely untouched, at either the file or edge level", () => {
 		const inNode = node(
 			"in",
 			`${SCOPE}/user-list/users-list.component.ts`,
 			"in-scope",
-			"modified",
+			"unchanged",
 		);
 		const oos1 = node(
 			"oos_a",
@@ -603,20 +677,16 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 			"out-of-scope",
 			"unchanged",
 		);
-		const unchangedEdge = edge("in", "oos_a", "unchanged");
-		const removedEdge = edge("in", "oos_b", "removed");
+		const e1 = edge("in", "oos_a", "unchanged");
+		const e2 = edge("in", "oos_b", "unchanged");
+		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
+		const { nodes, edges } = computeViewNodes(g, "focused");
 
-		// unchanged edge first (removed edges are appended last in diffGraphs)
-		const g1 = makeGraph([inNode, oos1, oos2], [unchangedEdge, removedEdge]);
-		const r1 = computeViewNodes(g1, "focused");
-		expect(r1.edges).toHaveLength(1);
-		expect(r1.edges[0].diff).toBe("removed");
-
-		// removed edge first
-		const g2 = makeGraph([inNode, oos1, oos2], [removedEdge, unchangedEdge]);
-		const r2 = computeViewNodes(g2, "focused");
-		expect(r2.edges).toHaveLength(1);
-		expect(r2.edges[0].diff).toBe("removed");
+		const stub = nodes.find((n) => n.type === "stub");
+		expect(stub).toBeDefined();
+		expect(nodes.find((n) => n.id === "oos_a")).toBeUndefined();
+		expect(nodes.find((n) => n.id === "oos_b")).toBeUndefined();
+		expect(edges).toHaveLength(1); // both unchanged edges dedup to one stub edge
 	});
 
 	it("assigns distinct stub ids to OOS parent dirs that sanitize to the same string (BUG-11)", () => {
@@ -834,6 +904,29 @@ describe("computeViewNodes 'collapsed' mode", () => {
 		expect(oosDirNodes[0].label).toBe(formatDirLabel("closed", "services", 2));
 		expect(edges).toHaveLength(1);
 		expect(edges[0].to).toBe(oosDirNodes[0].id);
+	});
+
+	it("consolidates a deeply-nested out-of-scope cluster into one depth-capped group (same rule as Focused view)", () => {
+		const inScope = nodeAt("in", `${SCOPE}/widgets/in.ts`);
+		const direct = nodeAt(
+			"api_client",
+			"src/app/shared/services/api-client/api-client.service.ts",
+			"unchanged",
+			"out-of-scope",
+		);
+		const nested = nodeAt(
+			"http",
+			"src/app/shared/services/api-client/services/http.service.ts",
+			"unchanged",
+			"out-of-scope",
+		);
+		const g = makeGraph([inScope, direct, nested]);
+		const { nodes } = computeViewNodes(g, "collapsed", "src/app");
+		const oosDirNodes = nodes.filter((n) => n.scope === "out-of-scope");
+		expect(oosDirNodes).toHaveLength(1);
+		expect(oosDirNodes[0].label).toBe(
+			formatDirLabel("closed", "api-client", 2),
+		);
 	});
 
 	it("aggregates and dedupes an edge between two directories, keeping the highest-priority diff state", () => {

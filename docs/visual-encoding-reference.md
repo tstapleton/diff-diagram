@@ -132,7 +132,7 @@ whether that's intentional.*
 | `#7ba3d9` | Soft blue | directory, accent tone | collapsed-directory stroke (Focused view); partially-shown-directory stroke; whole-feature boundary stroke | (inline) |
 | `#ffffff` | White | label text | file and directory labels | `TEXT_COLOR` |
 | `#a9c1e8` | Pale blue | subtitle/meta text | out-of-scope file subtitle; whole-feature boundary label | `META_COLOR` |
-| `#d3e2f7` | Near-white blue | directory label text | collapsed-directory label (Focused view); partially-shown-directory label | `STUB_TEXT` |
+| `#d3e2f7` | Near-white blue | directory label text | partially-shown-directory label; whole-feature-boundary-adjacent subdirectory group box label | `STUB_TEXT` |
 | `#a855f7` | Purple | has-story | story-coverage dot | `STORY_DOT` |
 | `#06b6d4` | Cyan | has-test | test-coverage dot | `TEST_DOT` |
 | `#0a0f1c` | Canvas black | page background | fills the entire SVG, behind every other element | (inline) |
@@ -148,11 +148,11 @@ have no fill at all.*
 | Applies to | Element | Style | Notes |
 |---|---|---|---|
 | Everything (files, directories, edges) | Font | Fira Code, monospace | single global constant |
-| File, directory (collapsed in Collapsed view) | Label color | Primary Text | — |
-| Directory — aggregate | Label color | Directory Text | — |
-| Out-of-scope files only | Subtitle (dir path) | Secondary Text, second text row | — |
-| Directory — aggregate (`●` when fully collapsed, `◐`/`○` when partially shown); Directory — collapsed, Collapsed view (always `●`) | Label prefix icon + count | `●` closed / `◐` partial / `○` open | shared `formatDirLabel` helper; not used on the whole-feature boundary, which just shows the feature name |
-| Directory — aggregate, and Directory — collapsed (Collapsed view) | Label position | always top-anchored, left-aligned (`x+8, y+13`) | same position in both cases, regardless of view mode — leaves room for a nested child box when a Collapsed-view directory is compound; kept identical for every other case too |
+| File, directory (collapsed in Collapsed view), stub (collapsed in Focused view) | Label color | Primary Text | in-scope stub used to render its label in Directory Text at a smaller font size (10 vs. 11) — unified onto the same style as directory, since an in-scope stub and an in-scope directory box are the same "collapsed group" concept and previously diverged only because they came from different view modes. An out-of-scope stub/directory box is styled like an out-of-scope file instead (see below), not like this row |
+| Directory — aggregate (partially shown, or the whole-feature boundary) | Label color | Directory Text | — |
+| Out-of-scope, any type (file, stub, or directory box) | Subtitle (dir path) | Secondary Text, second text row | every out-of-scope node shows this, not just individual files — its label alone is just a bare basename, which can be ambiguous, and the tool doesn't control out-of-scope naming the way it does the in-scope feature being diagrammed. For a stub/directory node the subtitle is the group's own full directory (its `.file` already *is* a directory, unlike a real file's `.file`, which needs its trailing filename segment stripped first) |
+| Stub, Directory — collapsed (Collapsed view) (`●` when fully collapsed), Directory — aggregate (`◐`/`○` when partially shown) | Label prefix icon + count | `●` closed / `◐` partial / `○` open | shared `formatDirLabel` helper; not used on the whole-feature boundary, which just shows the feature name |
+| Stub, Directory — aggregate, Directory — collapsed (Collapsed view) — **in scope only** | Label position | top-anchored, left-aligned (`x+8, y+13`) | leaves room for a nested child box when a Collapsed-view directory is compound; kept identical for every in-scope case. An **out-of-scope** stub/directory box is vertically centered instead, with the path subtitle below the label — the same two-line layout as an individual out-of-scope file uses, not this top-anchored one |
 | Every edge | Arrowhead marker | filled triangle, color = edge stroke | one `<marker>` def per diff state |
 | Edges | Label/text | none | edges carry no text at all |
 | Whole-feature boundary | Label color | Secondary Text | top-left placement |

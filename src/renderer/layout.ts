@@ -76,7 +76,13 @@ function nodeDims(
 	node: GraphNode,
 	sourceRoot = "src/app",
 ): { width: number; height: number } {
-	if (node.type === "stub") {
+	// An in-scope stub is a compact single-line box — its label is already a
+	// relative directory name, so there's no useful path to show as a
+	// subtitle. An out-of-scope stub, like an out-of-scope directory box or
+	// individual file, shows a path subtitle (its label is just a bare
+	// basename, ambiguous on its own), so it needs the same full-height,
+	// path-aware sizing as those — not the compact stub sizing.
+	if (node.type === "stub" && node.scope !== "out-of-scope") {
 		// Stub labels now end with a "(N)" member count, which must stay fully
 		// visible — the box grows with the label instead of truncating it.
 		const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
@@ -85,7 +91,7 @@ function nodeDims(
 	const labelWidth = node.label.length * APPROX_CHAR_WIDTH + NODE_PADDING;
 	let pathWidth = 0;
 	if (node.scope === "out-of-scope") {
-		const dir = oosDisplayPath(node.file, sourceRoot);
+		const dir = oosDisplayPath(node.file, sourceRoot, node.type !== "file");
 		pathWidth = dir.length * APPROX_CHAR_WIDTH_SMALL + NODE_PADDING;
 	}
 	const width = Math.max(MIN_NODE_WIDTH, labelWidth, pathWidth);
