@@ -22,16 +22,85 @@ baseline. See git history for prior states.
 
 ## Table 1: Structure
 
-| Kind | Fill | Stroke | Width |
-|---|---|---|---|
-| File — in scope | Diff Fill, gradient toward Unchanged Fill by magnitude | Diff Accent | 1 |
-| File — out of scope | External Fill | External Accent | 1 |
-| Directory — aggregate (collapsed in Focused view, partially shown, or the whole-feature boundary) | Directory Fill (transparent when partially shown) | Directory Accent | 1.25 |
-| Directory — collapsed, Collapsed view | Diff Fill via `aggregateDiff()`, gradient toward Unchanged Fill by the highest member magnitude | Diff Accent | 1.25 |
-| Edge | - | Diff Accent | 1.5 |
+| Kind | Fill | Stroke | Width | Opacity |
+|---|---|---|---|---|
+| File — in scope, changed itself or touched by a changed edge | Diff Fill, gradient toward Unchanged Fill by magnitude | Diff Accent | 1 | 1 |
+| File — in scope, `unchanged` and untouched | Diff Fill (unchanged tone) | Diff Accent (unchanged tone) | 1 | 0.45 |
+| File — out of scope | External Fill | External Accent | 1 | 1 (exempt from dimming) |
+| Stub (fully-collapsed directory placeholder, either scope), touched | fixed navy fill (in-scope) / External Fill (out-of-scope) | fixed blue stroke / External Accent | 1.25 | 1 |
+| Stub (fully-collapsed directory placeholder, either scope), untouched | fixed navy fill (in-scope) / External Fill (out-of-scope) | fixed blue stroke / External Accent | 1.25 | 0.45 |
+| Directory — aggregate (partially shown, or the whole-feature boundary) | Directory Fill (transparent when partially shown) | Directory Accent | 1.25 | 1 (exempt from dimming) |
+| Directory — collapsed, Collapsed view, either scope, changed itself or touched | Diff Fill via `aggregateDiff()`, gradient toward Unchanged Fill by the highest member magnitude | Diff Accent | 1.25 | 1 |
+| Directory — collapsed, Collapsed view, either scope, `unchanged` and untouched | Diff Fill (unchanged tone) | Diff Accent (unchanged tone) | 1.25 | 0.45 |
+| Edge — touching a changed node, or itself diff-colored | - | Diff Accent | 1.5 | 1 |
+| Edge — touching no changed node | - | Diff Accent (unchanged tone unless the edge itself is diff-colored) | 1.5 | 0.35 |
 
 Every fill and stroke is flat except the two gradient rows noted above. No dash
-anywhere, no opacity variation anywhere, corner radius is 4 everywhere.
+anywhere, corner radius is 4 everywhere. Node and edge opacity are the one
+place opacity varies, and they're driven by two different rules. Edge opacity
+renders at full opacity (1) if either endpoint is a *changed* node — a node
+whose own diff state is added/modified/removed — or the edge's own diff state
+is added/modified/removed, and at 0.35 otherwise (`EDGE_OPACITY_FULL` /
+`EDGE_OPACITY_DIMMED` and `computeChangedNodeIds` in `render.ts`). This
+deliberately stops at nodes that changed themselves — it does **not** also
+light up every edge touching a node that merely gained or lost some *other*
+changed edge (that broader "touched" notion is what decides node opacity,
+below, and Focused-view visibility, but applying it to edge opacity
+over-spread: one added edge into an existing, otherwise-untouched node lit up
+every other edge on that node too). A genuinely-unchanged edge landing on an
+existing, content-unchanged file still renders at full opacity when its
+*other* endpoint changed — e.g. an existing file gaining a new caller —
+since that's exactly the context a reviewer needs alongside the change; an
+edge whose own diff changed (e.g. a resolved import shifting because of a
+barrel re-export elsewhere) is likewise always full opacity even if neither
+endpoint file's own content changed.
+
+Node opacity uses the broader "touched" rule instead: a node renders at full
+opacity if it changed itself (added/modified/removed) OR it's an endpoint of
+some *other* edge whose diff state changed, and at 0.45 otherwise
+(`NODE_OPACITY_FULL`/`NODE_OPACITY_DIMMED` and `computeTouchedNodeIds` in
+`render.ts`) — the same "touched" notion `graph-helpers.ts`'s
+`touchedIds`/`isVisible` use to decide Focused-view visibility. This means a
+content-unchanged file that just gained a new caller elsewhere renders at
+full opacity, even though the *edge* into it might render dimmed if the
+change lives one hop further away. Only a genuine out-of-scope leaf file is
+exempt from this dimming (it's rendered with fixed colors regardless of diff
+state — see `nodeColor()`'s early return — and has no meaningful diff state
+of its own). A collapsed directory box is never exempt just because it's
+out-of-scope or a stub: whether it's an in-scope stub, an out-of-scope stub,
+an in-scope directory box (Collapsed view), or an out-of-scope directory box
+(Collapsed view), it dims when genuinely untouched and lights up when a
+changed edge was remapped onto it, same as any other node — a stub's `diff`
+field is hardcoded `"unchanged"`, but that's accurate, not a placeholder: a
+directory only collapses to a stub in Focused view when nothing inside it
+changed at either the file or edge level.
+
+`unchanged`/untouched elements are pure context and typically the large
+majority of both nodes and edges in a real diagram; rendering them at the
+same visual weight as genuinely-changed elements was the top-ranked finding
+of a graph-drawing/information-visualization literature review (Purchase,
+Tufte's data-ink ratio, Ware) into this diagram's busyness. Node dimming is
+applied as an `opacity` attribute on the outer `<g class="node-group">`
+wrapper, so the rect, label text, and test/story dots all dim together as
+one unit — this mirrors the edge convention (a presentation attribute, not
+inline style, kept free for `renderer.html`'s hover JS to layer transient
+highlighting on top of; in practice the hover JS only touches edge opacity
+today, not node opacity, but the convention is kept consistent regardless).
+Stroke width stays uniform for every node and edge — opacity is the one
+de-emphasis mechanism used, not stacked with a width change. Edge paths are
+also rendered as a locally-rounded curve through ELK's routed points rather
+than sharp straight-line bends (see `buildEdgePath` in `render.ts`) —
+smoothing bends reduces the visual-tracing effort of following a path, per
+Ware's findings on bend perception. This rounds each corner independently (a
+quadratic Bezier arc, radius up to 12px, clamped to at most half of each
+adjacent segment) rather than fitting a spline through every point — ELK's
+routing is orthogonal and often produces very short stair-step segments
+(parallel edges fanning into adjacent ports), and a spline's extrapolated
+tangents overshoot those, producing visible looping/waviness; local
+corner-rounding never strays from the original routed path by more than the
+radius. ELK spacing (`elk.spacing.edgeNode`/`elk.spacing.edgeEdge` in
+`layout.ts`) is also opened up beyond the default, giving routed edges more
+room to breathe around nodes and each other.
 
 *A file's diff state defaults to `unchanged` when unset. A directory collapsed
 because nothing inside it changed does not get a magnitude gradient — there's
@@ -56,7 +125,7 @@ whether that's intentional.*
 | `#22c55e` | Bright green | added, accent tone | file stroke, edge stroke, arrowhead (added) | `NODE_STROKE.added` / `EDGE_STROKE.added` |
 | `#f59e0b` | Bright amber | modified, accent tone | file stroke, edge stroke, arrowhead (modified) | `NODE_STROKE.modified` / `EDGE_STROKE.modified` |
 | `#ef4444` | Bright red | removed, accent tone | file stroke, edge stroke, arrowhead (removed) | `NODE_STROKE.removed` / `EDGE_STROKE.removed` |
-| `#8fa8d6` | Periwinkle blue | unchanged, accent tone | file stroke, edge stroke, arrowhead (unchanged) | `NODE_STROKE.unchanged` / `EDGE_STROKE.unchanged` |
+| `#8fa8d6` | Periwinkle blue | unchanged, accent tone | file stroke, edge stroke, arrowhead (unchanged) — an unchanged edge's stroke *and* its arrowhead render at opacity 0.35 when neither endpoint is a changed node (see Table 1); the SVG `opacity` attribute on a path dims its `marker-end` too, so line and arrowhead recede together; an untouched in-scope/directory/stub node also renders at opacity 0.45 via the `opacity` attribute on its `<g class="node-group">` wrapper | `NODE_STROKE.unchanged` / `EDGE_STROKE.unchanged` / `EDGE_OPACITY_DIMMED` / `NODE_OPACITY_DIMMED` |
 | `#1f3355` | Dark navy | external, fill tone | out-of-scope file fill | `OOS_FILL` |
 | `#5588cc` | Medium blue | external, accent tone | out-of-scope file stroke | `OOS_STROKE` |
 | `#182238` | Near-black navy | directory, fill tone | collapsed-directory fill (Focused view); whole-feature boundary fill | (inline) |

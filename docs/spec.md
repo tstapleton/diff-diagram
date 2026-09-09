@@ -108,7 +108,7 @@ Out-of-scope nodes use a distinct dark background and blue stroke regardless of 
 
 Stub nodes (collapsed directories in Focused view) use a solid border and a neutral fill, the same treatment every directory-related box (subdirectory group, stub, whole-feature boundary) shares.
 
-**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state (`modified` edges are amber). Every line in the diagram — node border, edge, directory box — is solid; diff state is color alone, with no dash or opacity variation anywhere.
+**Edge stroke** uses the same color palette as nodes, keyed to the edge's own diff state (`modified` edges are amber). Every line in the diagram — node border, edge, directory box — is solid; there is no dash anywhere. Nodes and edges also recede in opacity unless they're near a change: an edge stays full opacity if either endpoint is a node that itself changed, or the edge's own diff state changed; a node (including a collapsed stub or directory box, in-scope or out-of-scope) stays full opacity if it changed itself or is touched, as either endpoint, by some other changed edge — the broader rule is what lets a content-unchanged file that just gained a new caller stay visible at full weight. Out-of-scope leaf files are the one element exempt from this dimming, since they represent surrounding context rather than a node with a genuine diff state of its own. See `docs/visual-encoding-reference.md` for the exact opacity values.
 
 **Sidecar markers** appear as small dots in the node corner:
 - Cyan dot — a `.spec.ts` sidecar exists for this file

@@ -231,6 +231,112 @@ describe("toSvg", () => {
 		expect(svg).not.toContain("stroke-dasharray");
 	});
 
+	it("an unchanged edge between two untouched nodes renders at reduced opacity", () => {
+		const n1 = node("a");
+		const n2 = node("b");
+		const e = edge("a", "b"); // no diff → unchanged
+		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(path).toMatch(/opacity="0\.\d+"/);
+		expect(Number(path.match(/opacity="([\d.]+)"/)?.[1])).toBeLessThan(1);
+	});
+
+	it.each([
+		"added",
+		"modified",
+		"removed",
+	] as const)("%s edges render at full opacity (no opacity attribute)", (diff) => {
+		const n1 = node("a");
+		const n2 = node("b", { diff });
+		const e = edge("a", "b", diff);
+		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(path).not.toContain("opacity=");
+	});
+
+	it("an added/removed edge renders at full opacity even when both endpoint nodes' own diff is unchanged", () => {
+		// e.g. a barrel re-export change can add/remove a resolved edge
+		// without either endpoint file's own content changing — the edge's
+		// own diff state alone is enough to keep it at full opacity.
+		const n1 = node("a");
+		const n2 = node("b");
+		const e = edge("a", "b", "added");
+		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(path).not.toContain("opacity=");
+	});
+
+	it("an unchanged edge into a node that itself changed renders at full opacity — proximity, not the edge's own diff state, governs dimming", () => {
+		const n1 = node("a"); // unchanged
+		const n2 = node("b", { diff: "modified" }); // touched via its own diff
+		const e = edge("a", "b"); // edge itself carries no diff (unchanged)
+		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(path).not.toContain("opacity=");
+	});
+
+	it("an unchanged edge stays dimmed even when its neighbor node was only reached by a changed edge, not changed itself", () => {
+		// a --(unchanged)--> b --(added)--> c
+		// b's own diff state is unchanged — being an endpoint of the added
+		// b→c edge does NOT make the unrelated a→b edge light up too. Dimming
+		// only follows nodes that changed themselves, not edge-to-edge
+		// propagation through an untouched intermediary — otherwise one
+		// added/removed edge would light up every other edge on that node,
+		// well beyond the actual change.
+		const n1 = node("a");
+		const n2 = node("b");
+		const n3 = node("c", { diff: "added" });
+		const eAB = edge("a", "b");
+		const eBC = edge("b", "c", "added");
+		const svg = toSvg(
+			layout([n1, n2, n3], [eAB, eBC]),
+			[n1, n2, n3],
+			[eAB, eBC],
+		);
+		const pathAB = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(pathAB).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("an unchanged edge landing on an existing, content-unchanged node still renders at full opacity, because the source node changed", () => {
+		// a --(added)--> b: a is a changed node (diff added on the edge
+		// implies a's own content changed too, but even if it hadn't) — the
+		// edge itself is added, so it's full opacity regardless of b's own
+		// diff state, which stays unchanged.
+		const n1 = node("a", { diff: "modified" });
+		const n2 = node("b");
+		const e = edge("a", "b", "added");
+		const svg = toSvg(layout([n1, n2], [e]), [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(path).not.toContain("opacity=");
+	});
+
+	it("an unchanged edge stays dimmed even when an unrelated change exists elsewhere in the graph", () => {
+		// a --(unchanged)--> b, plus an unrelated added edge c→d elsewhere.
+		// Neither a nor b is touched by the c→d change, so a→b stays dimmed.
+		const n1 = node("a");
+		const n2 = node("b");
+		const n3 = node("c");
+		const n4 = node("d", { diff: "added" });
+		const eAB = edge("a", "b");
+		const eCD = edge("c", "d", "added");
+		const svg = toSvg(
+			layout([n1, n2, n3, n4], [eAB, eCD]),
+			[n1, n2, n3, n4],
+			[eAB, eCD],
+		);
+		const pathAB = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		expect(pathAB).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("no edge ever has a stroke-dasharray, diff-colored or unchanged", () => {
+		const n1 = node("a");
+		const n2 = node("b");
+		const n3 = node("c", { diff: "removed" });
+		const edges = [edge("a", "b"), edge("b", "c", "removed")];
+		const svg = toSvg(layout([n1, n2, n3], edges), [n1, n2, n3], edges);
+		expect(svg).not.toContain("stroke-dasharray");
+	});
+
 	it("renders stub nodes with a solid border and the directory label", () => {
 		const s = node("stub-dir", { type: "stub", label: "● data-access (2)" });
 		const svg = toSvg(layout([s]), [s], []);
@@ -328,6 +434,48 @@ describe("toSvg", () => {
 		expect(svg).toContain("<marker");
 	});
 
+	it("smooths a bend-point edge into a curve, still anchored at ELK's start/end points, with an arrowhead", () => {
+		const n1 = node("a");
+		const n2 = node("b");
+		const e = edge("a", "b");
+		const bentLayout: Layout = {
+			nodes: [
+				{ id: "a", x: 0, y: 0, width: 140, height: 40 },
+				{ id: "b", x: 300, y: 100, width: 140, height: 40 },
+			],
+			edges: [
+				{
+					from: "a",
+					to: "b",
+					sections: [
+						{
+							startPoint: { x: 140, y: 20 },
+							bendPoints: [
+								{ x: 200, y: 20 },
+								{ x: 200, y: 120 },
+							],
+							endPoint: { x: 300, y: 120 },
+						},
+					],
+				},
+			],
+			width: 500,
+			height: 200,
+		};
+		const svg = toSvg(bentLayout, [n1, n2], [e]);
+		const path = svg.match(/<path[^>]*data-from="a"[^>]*\/>/)?.[0] ?? "";
+		// Still starts and ends exactly at ELK's computed anchor points.
+		expect(path).toContain('d="M 140 20');
+		expect(path).toContain("300 120");
+		// Bends are now rounded via a quadratic Bezier arc at each corner,
+		// not a sharp L corner exactly at the bend point.
+		expect(path).toContain(" Q ");
+		expect(path).not.toMatch(/L 200 20\b/);
+		expect(path).not.toMatch(/L 200 120\b/);
+		// Arrowhead marker still attached.
+		expect(path).toContain("marker-end=");
+	});
+
 	it("sets SVG width and height from layout", () => {
 		const n = node("a");
 		const l = layout([n]);
@@ -367,6 +515,127 @@ describe("toSvg", () => {
 		const n = node("plain");
 		const svg = toSvg(layout([n]), [n], []);
 		expect(svg).not.toContain("<circle");
+	});
+});
+
+describe("toSvg — node opacity", () => {
+	it("unchanged in-scope node renders at reduced opacity", () => {
+		const n = node("a", { diff: "unchanged" });
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="a"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
+		expect(Number(group.match(/opacity="([\d.]+)"/)?.[1])).toBeLessThan(1);
+	});
+
+	it.each([
+		"added",
+		"modified",
+		"removed",
+	] as const)("%s node renders at full opacity (no opacity attribute)", (diff) => {
+		const n = node("a", { diff });
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="a"[^>]*>/)?.[0] ?? "";
+		expect(group).not.toContain("opacity=");
+	});
+
+	it("in-scope stub node dims like any other unchanged node — a collapsed subdirectory is, by construction, entirely unchanged", () => {
+		const n = node("stub-dir", { type: "stub", label: "widgets" });
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="stub-dir"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("in-scope stub node stays full opacity if a changed edge was remapped onto it", () => {
+		// The stub itself never earns its own diff state — it's still hardcoded
+		// "unchanged" — but a changed edge touching it should still light it up,
+		// same as any other node reached by the broader touchedIds definition.
+		const stub = node("stub-dir", { type: "stub", label: "widgets" });
+		const other = node("other", { diff: "modified" });
+		const e = edge("other", "stub-dir", "added");
+		const svg = toSvg(layout([stub, other], [e]), [stub, other], [e]);
+		const group =
+			svg.match(/<g class="node-group" data-id="stub-dir"[^>]*>/)?.[0] ?? "";
+		expect(group).not.toContain("opacity=");
+	});
+
+	it("out-of-scope leaf node is exempt from dimming regardless of diff", () => {
+		const n = node("oos", { scope: "out-of-scope", diff: "unchanged" });
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="oos"[^>]*>/)?.[0] ?? "";
+		expect(group).not.toContain("opacity=");
+	});
+
+	it("out-of-scope stub (collapsed out-of-scope directory) dims when untouched, same as an in-scope stub", () => {
+		const n = node("stub-oos", {
+			type: "stub",
+			scope: "out-of-scope",
+			label: "vendor",
+		});
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="stub-oos"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("out-of-scope stub stays full opacity if a changed edge was remapped onto it", () => {
+		const stub = node("stub-oos", {
+			type: "stub",
+			scope: "out-of-scope",
+			label: "vendor",
+		});
+		const other = node("other", { diff: "modified" });
+		const e = edge("other", "stub-oos", "added");
+		const svg = toSvg(layout([stub, other], [e]), [stub, other], [e]);
+		const group =
+			svg.match(/<g class="node-group" data-id="stub-oos"[^>]*>/)?.[0] ?? "";
+		expect(group).not.toContain("opacity=");
+	});
+
+	it("out-of-scope directory box (Collapsed view) dims when untouched, same as an in-scope directory box", () => {
+		const n = node("dir-oos", {
+			type: "directory",
+			scope: "out-of-scope",
+			label: "vendor",
+		});
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="dir-oos"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("content-unchanged node with a changed edge going into it renders at full opacity", () => {
+		// b's own content is unchanged, but a modified file a just gained a new
+		// import into it — that's context a reviewer needs to see, not context
+		// that should recede.
+		const a = node("a", { diff: "modified" });
+		const b = node("b"); // unchanged
+		const e = edge("a", "b", "added");
+		const svg = toSvg(layout([a, b], [e]), [a, b], [e]);
+		const group =
+			svg.match(/<g class="node-group" data-id="b"[^>]*>/)?.[0] ?? "";
+		expect(group).not.toContain("opacity=");
+	});
+
+	it("content-unchanged node with no changed edges anywhere near it renders dimmed", () => {
+		const a = node("a"); // unchanged
+		const b = node("b"); // unchanged
+		const e = edge("a", "b"); // unchanged edge
+		const svg = toSvg(layout([a, b], [e]), [a, b], [e]);
+		const group =
+			svg.match(/<g class="node-group" data-id="b"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
+	});
+
+	it("unchanged directory node renders at reduced opacity like any other unchanged node", () => {
+		const n = node("dir", { type: "directory", diff: "unchanged" });
+		const svg = toSvg(layout([n]), [n], []);
+		const group =
+			svg.match(/<g class="node-group" data-id="dir"[^>]*>/)?.[0] ?? "";
+		expect(group).toMatch(/opacity="0\.\d+"/);
 	});
 });
 
