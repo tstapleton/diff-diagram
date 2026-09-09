@@ -200,6 +200,8 @@ export async function computeLayout(
 			"elk.algorithm": "layered",
 			"elk.direction": "RIGHT",
 			"elk.spacing.nodeNode": "20",
+			"elk.spacing.edgeNode": "20",
+			"elk.spacing.edgeEdge": "14",
 			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
 			// Top reserves room for the subdir label drawn inside the box.
 			"elk.padding": "[top=16, left=6, bottom=6, right=6]",
@@ -342,6 +344,8 @@ export async function computeLayout(
 			"elk.direction": "RIGHT",
 			...(usePartitions ? { "elk.partitioning.activate": "true" } : {}),
 			"elk.spacing.nodeNode": "20",
+			"elk.spacing.edgeNode": "20",
+			"elk.spacing.edgeEdge": "14",
 			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
 			// When the container box will be drawn, top needs 55px so its label
 			// (minY − 35) stays above y=0. Left needs 40px so the container left
@@ -607,6 +611,8 @@ export async function computeClusteredLayout(
 				"elk.algorithm": "layered",
 				"elk.direction": "RIGHT",
 				"elk.spacing.nodeNode": "20",
+				"elk.spacing.edgeNode": "20",
+				"elk.spacing.edgeEdge": "14",
 				"elk.layered.spacing.nodeNodeBetweenLayers": "40",
 				// Top reserves room for this node's own label, drawn the same
 				// way any other node's label is; the nested level2 child sits
@@ -626,6 +632,8 @@ export async function computeClusteredLayout(
 			"elk.direction": "RIGHT",
 			...(usePartitions ? { "elk.partitioning.activate": "true" } : {}),
 			"elk.spacing.nodeNode": "20",
+			"elk.spacing.edgeNode": "20",
+			"elk.spacing.edgeEdge": "14",
 			"elk.layered.spacing.nodeNodeBetweenLayers": "40",
 			"elk.padding": showContainer
 				? "[top=55, left=40, bottom=35, right=35]"
