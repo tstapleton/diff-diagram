@@ -214,6 +214,83 @@ describe("toSvg", () => {
 		expect(svg).not.toContain(">src/app/shared/services<");
 	});
 
+	it("out-of-scope directory box (Collapsed view) shows a path subtitle (its own full group directory, not a truncated one), unlike an in-scope directory box", () => {
+		// A collapsed out-of-scope *directory* box's label is just a bare
+		// basename ("services"), which can be genuinely ambiguous — so
+		// unlike an in-scope directory box (whose label is already a
+		// relative path under the feature being diagrammed), it keeps the
+		// path subtitle. Since node.file for a directory/stub node is
+		// already the group's own directory (not a file with a basename to
+		// strip), the subtitle must be the group's full path
+		// ("shared/services"), not one level shallower ("shared") — a
+		// naive dirname() of an already-a-directory path would be wrong.
+		const oosDir = node("dir-oos", {
+			label: "● services (2)",
+			type: "directory",
+			scope: "out-of-scope",
+			file: "src/app/shared/services",
+		});
+		const inScopeDir = node("dir-in", {
+			label: "● users (2)",
+			type: "directory",
+			file: "src/app/features/users",
+		});
+		const svg = toSvg(
+			layout([oosDir, inScopeDir]),
+			[oosDir, inScopeDir],
+			[],
+			undefined,
+			"src/app",
+		);
+		expect(svg).toContain(">shared/services<");
+		expect(svg).not.toContain(">features/users<");
+		const oosLabel = svg.match(/<text[^>]*>● services \(2\)<\/text>/)?.[0];
+		const inScopeLabel = svg.match(/<text[^>]*>● users \(2\)<\/text>/)?.[0];
+		expect(oosLabel).toContain('font-size="11"');
+		expect(oosLabel).toContain('fill="#ffffff"');
+		expect(inScopeLabel).toContain('font-size="11"');
+		expect(inScopeLabel).toContain('fill="#ffffff"');
+		// Stroke width is unaffected by the subtitle — both are still
+		// collapsed-group boxes, drawn with the same heavier border.
+		const oosGroup =
+			svg.match(
+				/<g class="node-group" data-id="dir-oos"[^>]*>[\s\S]*?<\/g>/,
+			)?.[0] ?? "";
+		const inScopeGroup =
+			svg.match(
+				/<g class="node-group" data-id="dir-in"[^>]*>[\s\S]*?<\/g>/,
+			)?.[0] ?? "";
+		expect(oosGroup).toContain('stroke-width="1.25"');
+		expect(inScopeGroup).toContain('stroke-width="1.25"');
+	});
+
+	it("stub node (Focused view) and directory box (Collapsed view) render with identical text styling", () => {
+		const stub = node("stub-x", {
+			label: "● widgets (2)",
+			type: "stub",
+		});
+		const dir = node("dir-x", {
+			label: "● widgets (2)",
+			type: "directory",
+		});
+		const svgStub = toSvg(layout([stub]), [stub], []);
+		const svgDir = toSvg(layout([dir]), [dir], []);
+		const stubText = svgStub.match(/<text[^>]*>● widgets \(2\)<\/text>/)?.[0];
+		const dirText = svgDir.match(/<text[^>]*>● widgets \(2\)<\/text>/)?.[0];
+		expect(stubText).toBe(dirText);
+	});
+
+	it("out-of-scope stub (Focused view) shows its own full group directory as a path subtitle, same as an out-of-scope directory box (Collapsed view)", () => {
+		const stub = node("stub-oos", {
+			label: "● services (2)",
+			type: "stub",
+			scope: "out-of-scope",
+			file: "src/app/shared/services",
+		});
+		const svg = toSvg(layout([stub]), [stub], [], undefined, "src/app");
+		expect(svg).toContain(">shared/services<");
+	});
+
 	it("renders added edges with green stroke color", () => {
 		const n1 = node("a");
 		const n2 = node("b");

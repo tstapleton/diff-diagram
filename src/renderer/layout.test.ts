@@ -49,6 +49,20 @@ describe("computeLayout — ELK input construction", () => {
 		expect(rn.height).toBeGreaterThan(sn.height);
 	});
 
+	it("gives an out-of-scope stub the full node height, not the compact stub height, to fit its path subtitle", async () => {
+		const inScopeStub = node("in-stub", "stub");
+		const oosStub = {
+			...node("oos-stub", "stub"),
+			scope: "out-of-scope" as const,
+			file: "src/app/shared/services",
+		};
+		const layout = await computeLayout([inScopeStub, oosStub], []);
+		const inNode = layout.nodes.find((n) => n.id === "in-stub");
+		const oosNode = layout.nodes.find((n) => n.id === "oos-stub");
+		expect(inNode?.height).toBe(32);
+		expect(oosNode?.height).toBe(40);
+	});
+
 	it("widens a stub box to fit a long label instead of leaving it fixed-width", async () => {
 		// Stub labels now end with a "(N)" member count that must stay fully
 		// visible (draw.ts no longer truncates) — the box must grow to fit.

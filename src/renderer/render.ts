@@ -316,10 +316,21 @@ function buildEdgePath(section: PositionedEdgeSection): string {
 
 // ─── Out-of-scope directory display path ─────────────────────────────────────
 
-function oosDisplayDir(file: string, sourceRoot: string): string {
-	const dir = file.includes("/")
-		? file.substring(0, file.lastIndexOf("/"))
-		: ".";
+// For a genuine file, the subtitle is the file's own containing directory.
+// For a collapsed-group node (a stub or a Collapsed-view directory box),
+// `file` already IS the group's own directory, not a file — stripping a
+// trailing segment from it would incorrectly show the group's *parent*
+// instead of the group itself, so `isGroup` skips that step.
+function oosDisplayDir(
+	file: string,
+	sourceRoot: string,
+	isGroup: boolean,
+): string {
+	const dir = isGroup
+		? file
+		: file.includes("/")
+			? file.substring(0, file.lastIndexOf("/"))
+			: ".";
 	const prefix = sourceRoot.endsWith("/") ? sourceRoot : `${sourceRoot}/`;
 	return dir.startsWith(prefix) ? dir.slice(prefix.length) : dir;
 }
@@ -348,27 +359,46 @@ export function renderNodeMarkup(
 	const opacity = isOosLeaf ? 1 : nodeOpacity(node, touchedIds);
 	const opacityAttr = opacity < 1 ? ` opacity="${opacity}"` : "";
 
+	// A collapsed-group box (a stub, or a Collapsed-view directory box) is
+	// drawn with a heavier border than a leaf file, regardless of scope —
+	// this is orthogonal to whether it also gets a path subtitle below.
+	const isCollapsedGroup = isStub || node.type === "directory";
+	const strokeWidth = isCollapsedGroup ? "1.25" : "1";
+
 	let inner: string;
-	if (isStub) {
+	if (isOos) {
+		// Every out-of-scope node — a genuine individual file (Expanded
+		// view), a stub (Focused view's collapsed-directory placeholder), or
+		// a directory box (Collapsed view) — gets a path subtitle: its label
+		// alone is just a bare basename (a filename, or a directory's own
+		// name with no ancestry), which can be genuinely ambiguous once two
+		// unrelated directories share a basename, and the tool has no
+		// control over out-of-scope naming the way it does over the
+		// in-scope feature it's actually diagramming. For a stub or
+		// directory node `node.file` is already the group's own directory
+		// (not a file with a basename to strip), so `oosDisplayDir` is told
+		// not to strip a trailing segment from it the way it does for a
+		// real file.
+		const dirPath = oosDisplayDir(node.file, sourceRoot, node.type !== "file");
 		inner = [
-			`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.25"/>`,
-			`<text x="${x + 8}" y="${y + 13}" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${label}</text>`,
-		].join("\n");
-	} else if (isOos) {
-		const dirPath = oosDisplayDir(node.file, sourceRoot);
-		inner = [
-			`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`,
+			`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`,
 			`<text x="${x + 8}" y="${y + h / 2 - 3}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
 			`<text x="${x + 8}" y="${y + h / 2 + 9}" font-family="${FONT_FAMILY}" font-size="8" fill="${META_COLOR}">${dirPath}</text>`,
 		].join("\n");
-	} else if (node.type === "directory") {
-		// Always top-anchored: a compound directory box (taller than a leaf)
-		// reserves its lower portion for a nested level2 child, so the label
-		// can't sit at vertical center without overlapping it — top-anchoring
-		// unconditionally keeps every directory box's label in the same place
-		// regardless of whether it happens to have a nested child.
+	} else if (isCollapsedGroup) {
+		// An in-scope stub (Focused view's collapsed-directory placeholder)
+		// and an in-scope directory box (Collapsed view) are the same
+		// concept — a collapsed group — and render identically: no
+		// subtitle, since the label is already a relative directory name
+		// under the feature being diagrammed, not an ambiguous bare
+		// basename. Always top-anchored, since a compound directory box
+		// (taller than a leaf) reserves its lower portion for a nested
+		// level2 child, so the label can't sit at vertical center without
+		// overlapping it; top-anchoring unconditionally keeps every
+		// collapsed box's label in the same place regardless of whether it
+		// happens to have a nested child.
 		inner = [
-			`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="1.25"/>`,
+			`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`,
 			`<text x="${x + 8}" y="${y + 13}" font-family="${FONT_FAMILY}" font-size="11" fill="${TEXT_COLOR}">${label}</text>`,
 		].join("\n");
 	} else {
