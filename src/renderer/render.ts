@@ -27,6 +27,9 @@ export interface PositionedNode {
 	hasTests?: boolean;
 	hasStories?: boolean;
 	magnitude?: number;
+	// Nesting tier of a fully-collapsed in-scope subdirectory stub (1 or 2);
+	// see GraphNode.depth. Absent on every other node kind.
+	depth?: number;
 }
 
 export interface PositionedEdgePoint {
@@ -56,6 +59,9 @@ export interface RenderContainer {
 
 export interface RenderSubdirContainer extends RenderContainer {
 	label: string;
+	// Nesting tier below the whole-feature boundary: 1 for a level-1
+	// subdirectory box, 2 for a level-2 one — selects the container fill.
+	depth: number;
 }
 
 export interface RenderDiagramData {
@@ -97,6 +103,32 @@ export const EDGE_STROKE: Record<DiffState, string> = {
 
 export const OOS_FILL = "#1f3355";
 export const OOS_STROKE = "#5588cc";
+
+// Depth-stepped structural container fills. The purely-structural directory
+// chrome — the whole-feature boundary, the subdirectory group boxes, and the
+// fully-collapsed in-scope subdirectory stubs — carries no diff state, so it
+// leans on Gestalt *enclosure* (a filled, tinted region reads as "a group" on
+// its own — Munzner, Ware) rather than a contrasting border to separate itself
+// from diff-colored nodes and from edges routed nearby (issue #90). Each
+// nesting tier steps lighter than the one enclosing it: index 0 is the
+// whole-feature boundary, index 1 a level-1 subdirectory, index 2 a level-2
+// subdirectory. The canvas behind everything is #0a0f1c. The tier-0 -> tier-1
+// step is kept small on purpose — a level-1 subdirectory box should read as a
+// gentle subdivision of the boundary, not a bold panel of its own — while the
+// tier-1 -> tier-2 step is larger, so a level-2 nest still stands out clearly
+// against its level-1 parent. Depths past the array clamp to the last entry
+// (layout never nests deeper than 2).
+export const CONTAINER_FILL_BY_DEPTH = ["#1c3352", "#2a4569", "#4a72a4"];
+// Faint, low-contrast rim so a box's extent stays crisp where edges crowd it,
+// without the stroke competing as a relationship line — it's darker and less
+// saturated than the periwinkle unchanged-edge accent (#8fa8d6) and the
+// out-of-scope blue (#5588cc), the two lines it could be confused with.
+export const CONTAINER_STROKE = "#3a5170";
+
+export function containerFill(depth: number): string {
+	const i = Math.max(0, Math.min(depth, CONTAINER_FILL_BY_DEPTH.length - 1));
+	return CONTAINER_FILL_BY_DEPTH[i];
+}
 export const TEXT_COLOR = "#ffffff";
 export const META_COLOR = "#a9c1e8";
 export const STUB_TEXT = "#d3e2f7";
@@ -212,9 +244,14 @@ export function nodeColor(node: PositionedNode): {
 	stroke: string;
 } {
 	if (node.scope === "out-of-scope" || node.type === "stub") {
+		// An in-scope stub is a fully-collapsed subdirectory — pure structural
+		// chrome, so it takes the depth-stepped container fill (tier 1 or 2)
+		// and the faint container rim, matching the subdirectory group boxes
+		// and the whole-feature boundary. An out-of-scope stub keeps the
+		// out-of-scope palette.
 		return node.scope === "out-of-scope"
 			? { fill: OOS_FILL, stroke: OOS_STROKE }
-			: { fill: "#182238", stroke: "#7ba3d9" };
+			: { fill: containerFill(node.depth ?? 1), stroke: CONTAINER_STROKE };
 	}
 	const diff = node.diff ?? "unchanged";
 	const fill =
@@ -361,9 +398,14 @@ export function renderNodeMarkup(
 
 	// A collapsed-group box (a stub, or a Collapsed-view directory box) is
 	// drawn with a heavier border than a leaf file, regardless of scope —
-	// this is orthogonal to whether it also gets a path subtitle below.
+	// this is orthogonal to whether it also gets a path subtitle below. The
+	// exception is an in-scope stub: it's now purely structural chrome
+	// (depth-tinted fill + faint CONTAINER_STROKE rim, like the subdirectory
+	// group boxes it stands in for), so it takes the thin leaf-weight stroke
+	// and lets the fill do the grouping work.
 	const isCollapsedGroup = isStub || node.type === "directory";
-	const strokeWidth = isCollapsedGroup ? "1.25" : "1";
+	const isStructuralStub = isStub && !isOos;
+	const strokeWidth = isCollapsedGroup && !isStructuralStub ? "1.25" : "1";
 
 	let inner: string;
 	if (isOos) {
@@ -473,7 +515,7 @@ function renderContainerMarkup(
 	if (!container || featureLabel === undefined) return "";
 	const { x, y, width, height } = container;
 	return [
-		`<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" fill="#182238" stroke="#7ba3d9" stroke-width="1.25"/>`,
+		`<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" fill="${containerFill(0)}" stroke="${CONTAINER_STROKE}" stroke-width="1"/>`,
 		`<text x="${x + 10}" y="${y + 13}" font-family="${FONT_FAMILY}" font-size="10" fill="${META_COLOR}">${featureLabel}</text>`,
 	].join("\n");
 }
@@ -484,7 +526,7 @@ function renderSubdirMarkup(
 	return (subdirContainers ?? [])
 		.map(
 			(c) =>
-				`<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="none" stroke="#7ba3d9" stroke-width="1.25"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${c.label}</text></g>`,
+				`<g class="subdir-group"><rect x="${c.x}" y="${c.y}" width="${c.width}" height="${c.height}" rx="4" fill="${containerFill(c.depth)}" stroke="${CONTAINER_STROKE}" stroke-width="1"/><text x="${c.x + 8}" y="${c.y + 12}" font-family="${FONT_FAMILY}" font-size="10" fill="${STUB_TEXT}">${c.label}</text></g>`,
 		)
 		.join("");
 }

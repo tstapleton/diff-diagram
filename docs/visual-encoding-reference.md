@@ -27,9 +27,12 @@ baseline. See git history for prior states.
 | File — in scope, changed itself or touched by a changed edge | Diff Fill, gradient toward Unchanged Fill by magnitude | Diff Accent | 1 | 1 |
 | File — in scope, `unchanged` and untouched | Diff Fill (unchanged tone) | Diff Accent (unchanged tone) | 1 | 0.45 |
 | File — out of scope | External Fill | External Accent | 1 | 1 (exempt from dimming) |
-| Stub (fully-collapsed directory placeholder, either scope), touched | fixed navy fill (in-scope) / External Fill (out-of-scope) | fixed blue stroke / External Accent | 1.25 | 1 |
-| Stub (fully-collapsed directory placeholder, either scope), untouched | fixed navy fill (in-scope) / External Fill (out-of-scope) | fixed blue stroke / External Accent | 1.25 | 0.45 |
-| Directory — aggregate (partially shown, or the whole-feature boundary) | Directory Fill (transparent when partially shown) | Directory Accent | 1.25 | 1 (exempt from dimming) |
+| Stub (fully-collapsed directory placeholder), in scope, touched | Container Fill by nesting tier (tier 1 or tier 2) | Container Rim (faint) | 1 | 1 |
+| Stub (fully-collapsed directory placeholder), in scope, untouched | Container Fill by nesting tier (tier 1 or tier 2) | Container Rim (faint) | 1 | 0.45 |
+| Stub (fully-collapsed directory placeholder), out of scope, touched | External Fill | External Accent | 1.25 | 1 |
+| Stub (fully-collapsed directory placeholder), out of scope, untouched | External Fill | External Accent | 1.25 | 0.45 |
+| Whole-feature boundary (nesting tier 0) | Container Fill tier 0 | Container Rim (faint) | 1 | 1 (exempt from dimming) |
+| Subdirectory group box (nesting tier 1 or tier 2; Focused + Expanded views) | Container Fill by nesting tier | Container Rim (faint) | 1 | 1 (exempt from dimming) |
 | Directory — collapsed, Collapsed view, either scope, changed itself or touched | Diff Fill via `aggregateDiff()`, gradient toward Unchanged Fill by the highest member magnitude | Diff Accent | 1.25 | 1 |
 | Directory — collapsed, Collapsed view, either scope, `unchanged` and untouched | Diff Fill (unchanged tone) | Diff Accent (unchanged tone) | 1.25 | 0.45 |
 | Edge — touching a changed node, or itself diff-colored | - | Diff Accent | 1.5 | 1 |
@@ -86,7 +89,10 @@ one unit — this mirrors the edge convention (a presentation attribute, not
 inline style, kept free for `renderer.html`'s hover JS to layer transient
 highlighting on top of; in practice the hover JS only touches edge opacity
 today, not node opacity, but the convention is kept consistent regardless).
-Stroke width stays uniform for every node and edge — opacity is the one
+Stroke width does not vary by diff state or by dimming — it's a fixed value
+per element kind: 1 for a leaf file and for structural chrome (the boundary,
+subdirectory group boxes, in-scope stubs), 1.25 for an out-of-scope stub and
+a Collapsed-view directory box, 1.5 for an edge. Opacity is the one
 de-emphasis mechanism used, not stacked with a width change. Edge paths are
 also rendered as a locally-rounded curve through ELK's routed points rather
 than sharp straight-line bends (see `buildEdgePath` in `render.ts`) —
@@ -102,17 +108,46 @@ radius. ELK spacing (`elk.spacing.edgeNode`/`elk.spacing.edgeEdge` in
 `layout.ts`) is also opened up beyond the default, giving routed edges more
 room to breathe around nodes and each other.
 
-*A file's diff state defaults to `unchanged` when unset. A directory collapsed
-because nothing inside it changed does not get a magnitude gradient — there's
-nothing for a gradient to represent, so the flat Directory Fill is already the
-correct, most-informative rendering.*
+The purely-structural directory chrome — the whole-feature boundary, the
+subdirectory group boxes, and the fully-collapsed in-scope subdirectory stubs
+— carries no diff state, so it is distinguished from diff-colored nodes and
+from edges routed nearby (issue #90) by a **depth-stepped background fill**
+rather than a contrasting border: a filled, tinted region reads as "a group"
+on its own via Gestalt *enclosure* (Munzner, Ware), which is often a stronger
+grouping cue than an outline. Each nesting tier steps lighter than the one
+enclosing it, with a deliberately small tier-0 -> tier-1 step (a level-1
+subdirectory box reads as a gentle subdivision of the boundary, not a bold
+panel) and a larger tier-1 -> tier-2 step (a level-2 nest still stands out
+clearly against its level-1 parent):
+Container Fill tier 0 (`#1c3352`) for the whole-feature boundary, tier 1
+(`#2a4569`) for a level-1 subdirectory box or stub, tier 2 (`#4a72a4`) for a
+level-2 one, all over the `#0a0f1c` canvas (`CONTAINER_FILL_BY_DEPTH` in
+`render.ts`; `containerFill()` clamps deeper nesting to the last tier — layout
+never boxes more than 2 levels deep). The tier is threaded from `layout.ts`
+(`LayoutSubdirContainer.depth`, counted from the `__subdir__<l1>[/<l2>]`
+container id) for group boxes, and from `graph-helpers.ts`'s `makeStub` calls
+(`GraphNode.depth`) for stubs. The border is reduced to a **faint Container
+Rim** (`#3a5170`, width 1) — just enough to keep a box's extent crisp where
+edges crowd it, without the stroke competing as a relationship line (it is
+darker and less saturated than the periwinkle unchanged-edge accent `#8fa8d6`
+and the out-of-scope blue `#5588cc`, the two lines it could be confused with).
+An out-of-scope stub is unaffected — it keeps the out-of-scope palette
+(External Fill / External Accent, width 1.25). The structural fill is exempt
+from proximity dimming for the boundary and the group boxes; an in-scope stub
+still dims to 0.45 when genuinely untouched, same as any other collapsed
+directory node.
+
+*A file's diff state defaults to `unchanged` when unset. A subdirectory
+collapsed because nothing inside it changed does not get a magnitude gradient —
+there's nothing for a gradient to represent, so the flat Container Fill for its
+nesting tier is already the correct, most-informative rendering.*
 
 *Open question, not yet reconciled: the same directory, collapsed for the same
 reason (nothing inside changed), renders with a different fill mechanism
 depending on whether it's Focused view or Collapsed view doing the collapsing
-— flat Directory Fill vs. diff-color fill. The two directory rows above exist
-because the code genuinely renders them differently today — worth deciding
-whether that's intentional.*
+— depth-stepped Container Fill vs. diff-color fill via `aggregateDiff()`. The
+directory rows above exist because the code genuinely renders them differently
+today — worth deciding whether that's intentional.*
 
 ## Table 2: Color palette
 
@@ -128,8 +163,10 @@ whether that's intentional.*
 | `#8fa8d6` | Periwinkle blue | unchanged, accent tone | file stroke, edge stroke, arrowhead (unchanged) — an unchanged edge's stroke *and* its arrowhead render at opacity 0.35 when neither endpoint is a changed node (see Table 1); the SVG `opacity` attribute on a path dims its `marker-end` too, so line and arrowhead recede together; an untouched in-scope/directory/stub node also renders at opacity 0.45 via the `opacity` attribute on its `<g class="node-group">` wrapper | `NODE_STROKE.unchanged` / `EDGE_STROKE.unchanged` / `EDGE_OPACITY_DIMMED` / `NODE_OPACITY_DIMMED` |
 | `#1f3355` | Dark navy | external, fill tone | out-of-scope file fill | `OOS_FILL` |
 | `#5588cc` | Medium blue | external, accent tone | out-of-scope file stroke | `OOS_STROKE` |
-| `#182238` | Near-black navy | directory, fill tone | collapsed-directory fill (Focused view); whole-feature boundary fill | (inline) |
-| `#7ba3d9` | Soft blue | directory, accent tone | collapsed-directory stroke (Focused view); partially-shown-directory stroke; whole-feature boundary stroke | (inline) |
+| `#1c3352` | Deep navy | structural container fill, tier 0 | whole-feature boundary fill | `CONTAINER_FILL_BY_DEPTH[0]` |
+| `#2a4569` | Dark navy-blue | structural container fill, tier 1 | level-1 subdirectory group box fill; in-scope stub fill (level-1) | `CONTAINER_FILL_BY_DEPTH[1]` |
+| `#4a72a4` | Slate blue | structural container fill, tier 2 | level-2 subdirectory group box fill; in-scope stub fill (level-2) | `CONTAINER_FILL_BY_DEPTH[2]` |
+| `#3a5170` | Muted steel blue | structural container rim | faint stroke (width 1) on the whole-feature boundary, every subdirectory group box, and every in-scope stub — a boundary cue, not a relationship line, so it sits well below the periwinkle/OOS blues in contrast | `CONTAINER_STROKE` |
 | `#ffffff` | White | label text | file and directory labels | `TEXT_COLOR` |
 | `#a9c1e8` | Pale blue | subtitle/meta text | out-of-scope file subtitle; whole-feature boundary label | `META_COLOR` |
 | `#d3e2f7` | Near-white blue | directory label text | partially-shown-directory label; whole-feature-boundary-adjacent subdirectory group box label | `STUB_TEXT` |
@@ -137,11 +174,14 @@ whether that's intentional.*
 | `#06b6d4` | Cyan | has-test | test-coverage dot | `TEST_DOT` |
 | `#0a0f1c` | Canvas black | page background | fills the entire SVG, behind every other element | (inline) |
 
-*The Directory color family (fill + accent) is shared, unchanged, across every
-directory-related element — collapsed boxes, the partially-shown wrapper, and
-the whole-feature boundary all draw from it. Edges reuse the file Diff Accent
-tones exactly. The Diff Fill family (deep tones) has no edge equivalent — edges
-have no fill at all.*
+*The structural-container family is a three-step fill ramp (tiers 0–2) plus one
+faint shared rim, applied to every purely-structural directory element in
+Focused and Expanded views — the whole-feature boundary, the subdirectory group
+boxes, and the in-scope stubs. It is deliberately NOT reused for Collapsed-view
+directory boxes, which carry a real `aggregateDiff()` color and gradient (that
+colour is signal, not chrome). Edges reuse the file Diff Accent tones exactly.
+The Diff Fill family (deep tones) has no edge equivalent — edges have no fill at
+all.*
 
 ## Table 3: Typography / labels
 

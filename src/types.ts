@@ -28,6 +28,14 @@ export interface GraphNode {
 	 */
 	magnitude?: number;
 	/**
+	 * Nesting tier of a fully-collapsed in-scope subdirectory stub below the
+	 * whole-feature boundary: 1 for a level-1 subdirectory, 2 for a level-2
+	 * subdirectory. Set only by makeStub for in-scope stubs (Focused view), so
+	 * render.ts can pick the depth-stepped structural container fill. Absent on
+	 * files, out-of-scope stubs, and collapsed-view directory nodes.
+	 */
+	depth?: number;
+	/**
 	 * Internal only: the file's raw text, used by diffGraphs to detect content
 	 * changes. Never serialized — stripped from graph.json before it's written.
 	 */

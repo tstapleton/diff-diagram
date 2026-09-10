@@ -49,8 +49,12 @@ export interface LayoutContainer {
 }
 
 // One box per in-scope subdirectory, up to 2 levels deep (issue #28).
+// `depth` is the nesting tier below the whole-feature boundary: 1 for a
+// level-1 subdirectory box, 2 for a level-2 one — render.ts uses it to pick
+// the depth-stepped structural container fill.
 export interface LayoutSubdirContainer extends LayoutContainer {
 	label: string;
+	depth: number;
 }
 
 export interface Layout {
@@ -388,12 +392,19 @@ export async function computeLayout(
 			const absY = offsetY + (child.y ?? 0);
 			const label = labelByContainerId.get(child.id);
 			if (label !== undefined) {
+				// child.id is `__subdir__<level1>` or `__subdir__<level1>/<level2>`
+				// (subdirContainerId) — the number of path segments after the
+				// prefix is the nesting tier (1 or 2).
+				const depth = child.id
+					.slice(SUBDIR_CONTAINER_PREFIX.length)
+					.split("/").length;
 				subdirContainers.push({
 					x: absX,
 					y: absY,
 					width: child.width ?? 0,
 					height: child.height ?? 0,
 					label,
+					depth,
 				});
 				walk(child, absX, absY);
 			} else {
