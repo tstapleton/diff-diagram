@@ -41,6 +41,7 @@ function toPositionedNode(
 		...(gn.hasTests ? { hasTests: true } : {}),
 		...(gn.hasStories ? { hasStories: true } : {}),
 		...(gn.magnitude !== undefined ? { magnitude: gn.magnitude } : {}),
+		...(gn.depth !== undefined ? { depth: gn.depth } : {}),
 	};
 }
 

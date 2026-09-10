@@ -102,6 +102,7 @@ export function computeViewNodes(
 				path.join(scopeDir, subdir),
 				"in-scope",
 				nodes.length,
+				1,
 			);
 			outputNodes.push(stub);
 			for (const n of nodes) collapsedMap.set(n.id, stub.id);
@@ -149,6 +150,7 @@ export function computeViewNodes(
 					path.join(scopeDir, subdir, level2),
 					"in-scope",
 					level2Nodes.length,
+					2,
 				);
 				outputNodes.push(stub);
 				for (const n of level2Nodes) collapsedMap.set(n.id, stub.id);
@@ -469,6 +471,7 @@ function makeStub(
 	file: string,
 	scope: "in-scope" | "out-of-scope",
 	total: number,
+	depth?: number,
 ): GraphNode {
 	return {
 		id,
@@ -477,6 +480,7 @@ function makeStub(
 		type: "stub",
 		scope,
 		diff: "unchanged",
+		...(depth !== undefined ? { depth } : {}),
 	};
 }
 

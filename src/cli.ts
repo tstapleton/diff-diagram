@@ -131,6 +131,7 @@ interface ModeData {
 		hasStories?: boolean;
 		linesChanged?: number;
 		magnitude?: number;
+		depth?: number;
 	}>;
 	edges: Array<{
 		from: string;
@@ -147,6 +148,7 @@ interface ModeData {
 		width: number;
 		height: number;
 		label: string;
+		depth: number;
 	}>;
 }
 
@@ -180,6 +182,7 @@ function buildModeData(
 				? { linesChanged: gn.linesChanged }
 				: {}),
 			...(gn?.magnitude !== undefined ? { magnitude: gn.magnitude } : {}),
+			...(gn?.depth !== undefined ? { depth: gn.depth } : {}),
 		};
 	});
 

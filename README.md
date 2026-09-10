@@ -26,9 +26,9 @@ Files and the arrows between them share one color key:
 
 #### Containers
 
-- **Outlined box around every file in the feature directory** — the feature directory itself, labeled with its name in the top-left corner
-- **Subtle box inside it** — files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); files at the feature root, or directly in a first-level subdirectory, get no box for that level
-- **Darker box outside the feature container** — a dependency from outside the feature directory, with its path shown underneath
+- **Tinted box around every file in the feature directory** — the feature directory itself, labeled with its name in the top-left corner. It's a filled region, not an outline — a filled area reads as "a group" without needing a border that competes with the edges routed through it
+- **A step-lighter box inside it** — files grouped by subdirectory, up to 2 levels deep (e.g. `user-list/`, with a nested box for `data-access/store/`); each level of nesting is a step lighter, so a subdirectory is tellable from a sub-subdirectory. Files at the feature root, or directly in a first-level subdirectory, get no box for that level
+- **Box with a blue border, outside the feature container** — a dependency from outside the feature directory, with its path shown underneath
 
 #### Indicators
 
