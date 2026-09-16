@@ -23,10 +23,11 @@ npm run build   # compiles TypeScript → dist/
 | `npm test` | Unit + integration tests |
 | `npm run test:visual` | Visual regression tests (pixel-level SVG comparison) |
 | `npm run test:visual:approve` | Update visual snapshots after intentional rendering changes |
-| `npm run verify` | Full check: build + lint + unit tests + visual tests + sample drift check (runs on pre-commit) |
+| `npm run verify` | Full check: build + lint + fallow audit + unit tests + visual tests + sample drift check (runs on pre-commit) |
 | `npm run docs:sample:check-drift` | Regenerate `docs/sample-focused.svg` and `docs/sample-expanded.svg` to a scratch dir and fail if either differs from the committed files |
 | `npm run lint` | Lint with Biome |
 | `npm run format` | Format with Biome |
+| `npm run check:fallow` | Gate changed files against dead code, circular deps, duplication, complexity, and (via `--type-aware`) private-type-leak findings introduced by this branch ([fallow](https://github.com/fallow-rs/fallow) `audit`, scoped to the diff vs `origin/main`) |
 
 ## Running the CLI
 
@@ -84,7 +85,7 @@ Integration tests run the full CLI pipeline with `--base-repo-root fixtures/inte
 
 **If a gate fails, change approach — do not skip.**
 
-- Gate 1: `npm run verify` — build, lint, unit tests, visual tests, and the sample drift check all pass
+- Gate 1: `npm run verify` — build, lint, fallow audit, unit tests, visual tests, and the sample drift check all pass
 - Gate 2: `node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users` — runs without error, produces `dist/diagram-focused.svg`, `dist/diagram-expanded.svg`, and `dist/diagram.html`
 - Gate 3 (visual, user): open `dist/diagram.html` — both view modes render, hover highlights edges, diff colors correct
 - Gate 4 (visual, user): open `dist/diagram-focused.svg` — real graph layout with edges, not a list of boxes
