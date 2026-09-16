@@ -7,25 +7,29 @@ import { formatDirLabel } from "./dir-label.js";
 // Returns nodes and edges for a given view mode.
 //
 // 'expanded' → all nodes and edges, no collapsing
-// 'focused'  → a node is shown on its own if it changed itself
-//   (added/modified/removed) or is touched (as either endpoint) by an
-//   added/removed/modified edge; otherwise it's folded into its subdirectory's
-//   collapse. Applied per in-scope subdirectory and per out-of-scope parent
-//   directory:
-//   • No member visible → one closed stub for the whole subdir
-//   • Every member visible → shown individually, indistinguishable from
-//     'expanded' for that subdir
-//   • Some visible, some not → "partial": only the visible members are shown;
-//     the rest are dropped entirely (no stand-in node), which is lossless
-//     because a hidden member has, by construction, zero diff-relevant
-//     changes of its own or edges touching it
-//   • Stubs inherit edges (edges to collapsed nodes redirect to stub)
-//
-// Out-of-scope grouping uses the same isVisible check as in-scope grouping
-// (any member changed itself or is touched by a changed edge keeps the whole
-// group visible), but doesn't yet support the partial case — an out-of-scope
-// group is all-or-nothing; only in-scope subdirectories get the full
-// open/partial/closed split.
+// 'focused'  → applies two different collapse rules:
+//   • In-scope: a node is shown on its own if it changed itself
+//     (added/modified/removed) or is touched (as either endpoint) by an
+//     added/removed/modified edge; otherwise it's folded into its
+//     subdirectory's collapse.
+//       - No member visible → one closed stub for the whole subdir
+//       - Every member visible → shown individually, indistinguishable from
+//         'expanded' for that subdir
+//       - Some visible, some not → "partial": only the visible members are
+//         shown; the rest are dropped entirely (no stand-in node), which is
+//         lossless because a hidden member has, by construction, zero
+//         diff-relevant changes of its own or edges touching it
+//       - Stubs inherit edges (edges to collapsed nodes redirect to stub)
+//   • Out-of-scope: every capped-depth directory always collapses to one
+//     aggregate node, regardless of diff state — same treatment 'collapsed'
+//     mode already gives out-of-scope directories (see computeClusteredNodes
+//     below). A group's node still reflects real change: its diff/magnitude
+//     aggregate from its members (via makeDirNode), and any changed edge
+//     that survives the redirect-and-dedup pass below keeps it at full
+//     opacity at render time, same as an in-scope directory box. What it no
+//     longer does is name which individual out-of-scope file changed —
+//     that's the deliberate tradeoff for a calmer diagram with fewer loose
+//     out-of-scope nodes and deduped edges.
 
 export function computeViewNodes(
 	graph: Graph,
@@ -174,7 +178,15 @@ export function computeViewNodes(
 		groupTotals.set(subdir, nodes.length);
 	}
 
-	// ── Group out-of-scope nodes by capped-depth directory ────────────────────
+	// ── Group out-of-scope nodes by capped-depth directory, always collapsed ──
+	// Unlike in-scope subdirectories, an out-of-scope directory always
+	// collapses to one aggregate node here — the same treatment
+	// computeClusteredNodes below gives it for 'collapsed' mode — rather than
+	// expanding to show individual members when one of them is visible. A
+	// group's own diff/magnitude still aggregate from its members, and a
+	// changed edge into/out of the group still survives the redirect-and-dedup
+	// pass below, so the box still reads as "touched" at render time; it just
+	// no longer names which specific member changed.
 	const oosGroups = new Map<string, GraphNode[]>();
 	for (const node of oosNodes) {
 		const key = oosGroupDir(node.file, sourceRoot);
@@ -182,29 +194,16 @@ export function computeViewNodes(
 	}
 
 	for (const [dir, nodes] of oosGroups) {
-		// Same isVisible check the in-scope loop above uses: a group shows
-		// individually if any member changed itself OR is touched by a
-		// changed edge — not just "changed itself" (issue #89). An
-		// out-of-scope node's own diff is null in single-branch mode, but a
-		// real added/modified/unchanged value once diffed against a base
-		// (see diffGraphs) — either way, a content-unchanged member that
-		// just gained a new edge (e.g. an existing shared file with a
-		// brand-new caller) still deserves to stay visible, the same reason
-		// this matters for in-scope members.
-		if (nodes.some(isVisible)) {
-			for (const n of nodes) outputNodes.push(n);
-		} else {
-			const sourceKey = `oos:${dir}`;
-			const stub = makeStub(
-				dedupeId(`stub_oos_${sanitize(dir)}`, sourceKey, stubIdSources),
-				path.basename(dir),
-				dir,
-				"out-of-scope",
-				nodes.length,
-			);
-			outputNodes.push(stub);
-			for (const n of nodes) collapsedMap.set(n.id, stub.id);
-		}
+		const sourceKey = `oos:${dir}`;
+		const dirNode = makeDirNode(
+			dedupeId(`dir_oos_${sanitize(dir)}`, sourceKey, stubIdSources),
+			path.basename(dir),
+			dir,
+			"out-of-scope",
+			nodes,
+		);
+		outputNodes.push(dirNode);
+		for (const n of nodes) collapsedMap.set(n.id, dirNode.id);
 	}
 
 	// ── Remap edges to stubs, dedup ──────────────────────────────────────────
