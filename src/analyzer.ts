@@ -161,6 +161,7 @@ export async function analyze(
 		`!${path.join(scopeDir, "**/node_modules/**")}`,
 		`!${path.join(scopeDir, "**/__fixtures__/**")}`,
 		`!${path.join(scopeDir, "**/__mocks__/**")}`,
+		`!${path.join(scopeDir, "**/integration/**")}`,
 	]);
 
 	const nodes: GraphNode[] = [];

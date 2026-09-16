@@ -139,6 +139,14 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 			path.join(mocksDir, "api.service.ts"),
 			"export class ApiService {}",
 		);
+
+		// Should be excluded: files inside an integration directory
+		const integrationDir = path.join(scopeDir, "integration");
+		mkdirSync(integrationDir, { recursive: true });
+		writeFileSync(
+			path.join(integrationDir, "users.integration.ts"),
+			'describe("users integration", () => {});',
+		);
 	});
 
 	afterAll(() => {
@@ -191,6 +199,12 @@ describe("analyze (integration)", { timeout: 15000 }, () => {
 		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
 		const files = graph.nodes.map((n) => n.file);
 		expect(files.every((f) => !f.includes("__mocks__"))).toBe(true);
+	});
+
+	it("excludes files inside an integration directory", async () => {
+		const graph = await analyze(scopeDir, { repoRoot: tmpRoot });
+		const files = graph.nodes.map((n) => n.file);
+		expect(files.every((f) => !f.includes("/integration/"))).toBe(true);
 	});
 });
 
