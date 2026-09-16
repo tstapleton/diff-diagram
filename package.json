@@ -11,11 +11,12 @@
 		"lint": "biome lint",
 		"lint:fix": "biome lint --write --unsafe",
 		"format": "biome format --write",
+		"check:fallow": "fallow audit --type-aware",
 		"diagram:sample": "node dist/cli.js --repo-root fixtures/sample-app --base-repo-root fixtures/sample-app-base src/app/features/dashboard",
 		"diagram:fixtures": "node dist/cli.js --repo-root fixtures/integration-app --base-repo-root fixtures/integration-app-base src/app/features/users",
 		"docs:sample:generate": "npm run diagram:sample && cp dist/diagram-focused.svg docs/sample-focused.svg && cp dist/diagram-expanded.svg docs/sample-expanded.svg && cp dist/diagram-collapsed.svg docs/sample-collapsed.svg",
 		"docs:sample:check-drift": "node dist/cli.js --repo-root fixtures/sample-app --base-repo-root fixtures/sample-app-base --out-dir dist/sample-check src/app/features/dashboard && (diff docs/sample-focused.svg dist/sample-check/diagram-focused.svg && diff docs/sample-expanded.svg dist/sample-check/diagram-expanded.svg && diff docs/sample-collapsed.svg dist/sample-check/diagram-collapsed.svg || (echo 'docs/sample-*.svg is stale — run npm run docs:sample:generate and commit the result' >&2 && exit 1))",
-		"verify": "npm run build && biome check && npm run test && npm run test:visual && npm run docs:sample:check-drift",
+		"verify": "npm run build && biome check && npm run check:fallow && npm run test && npm run test:visual && npm run docs:sample:check-drift",
 		"prepare": "husky"
 	},
 	"dependencies": {
@@ -31,6 +32,7 @@
 		"@types/node": "25.9.3",
 		"@types/pixelmatch": "5.2.6",
 		"@types/pngjs": "6.0.5",
+		"fallow": "3.26.0",
 		"happy-dom": "20.10.6",
 		"husky": "9.1.7",
 		"pixelmatch": "7.2.0",
