@@ -410,7 +410,7 @@ describe("computeViewNodes 'diff-focused' — level-2 granularity within a parti
 // ─── collapse rules — out-of-scope ──────────────────────────────────────────
 
 describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
-	it("collapses an unchanged OOS parent dir to a stub", () => {
+	it("always collapses an OOS parent dir to one directory node, even when every member is unchanged", () => {
 		const n1 = node(
 			"oos_a",
 			"src/app/shared/services/auth.service.ts",
@@ -426,12 +426,13 @@ describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 		const g = makeGraph([n1, n2]);
 		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(1);
-		expect(nodes[0].type).toBe("stub");
+		expect(nodes[0].type).toBe("directory");
 		expect(nodes[0].scope).toBe("out-of-scope");
+		expect(nodes[0].diff).toBe("unchanged");
 		expect(nodes[0].label).toBe(formatDirLabel("closed", "services", 2));
 	});
 
-	it("expands OOS group when any node is added", () => {
+	it("still collapses the OOS group to one directory node when a member is added, reflecting the change in its aggregated diff instead of showing that member individually", () => {
 		const n1 = node(
 			"oos_a",
 			"src/app/shared/services/auth.service.ts",
@@ -446,8 +447,12 @@ describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 		);
 		const g = makeGraph([n1, n2]);
 		const { nodes } = computeViewNodes(g, "focused");
-		expect(nodes).toHaveLength(2);
-		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].type).toBe("directory");
+		// Mixed unchanged + added isn't unanimous, so it aggregates to
+		// 'modified' (aggregateDiff) rather than overstating the whole group
+		// as 'added'.
+		expect(nodes[0].diff).toBe("modified");
 	});
 
 	it("collapses different OOS parent dirs independently", () => {
@@ -466,7 +471,7 @@ describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 		const g = makeGraph([n1, n2]);
 		const { nodes } = computeViewNodes(g, "focused");
 		expect(nodes).toHaveLength(2);
-		expect(nodes.every((n) => n.type === "stub")).toBe(true);
+		expect(nodes.every((n) => n.type === "directory")).toBe(true);
 	});
 
 	it("consolidates a deeply-nested OOS cluster into one depth-capped group instead of fragmenting per exact directory", () => {
@@ -545,7 +550,7 @@ describe("computeViewNodes 'focused' — out-of-scope collapse", () => {
 // ─── edge preservation ────────────────────────────────────────────────────────
 
 describe("computeViewNodes 'focused' — edge preservation", () => {
-	it("redirects edges from collapsed nodes to stubs", () => {
+	it("redirects edges from collapsed OOS members to their directory node", () => {
 		const inNode = node(
 			"in",
 			`${SCOPE}/user-list/users-list.component.ts`,
@@ -569,11 +574,11 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
 		const { nodes, edges } = computeViewNodes(g, "focused");
 
-		const stub = nodes.find((n) => n.type === "stub");
-		expect(stub).toBeDefined();
-		expect(edges).toHaveLength(1); // both edges dedup to one stub edge
+		const oosDir = nodes.find((n) => n.scope === "out-of-scope");
+		expect(oosDir).toBeDefined();
+		expect(edges).toHaveLength(1); // both edges dedup to one directory edge
 		expect(edges[0].from).toBe("in");
-		expect(edges[0].to).toBe(stub?.id);
+		expect(edges[0].to).toBe(oosDir?.id);
 	});
 
 	it("deduplicates edges that collapse to the same stub→stub", () => {
@@ -621,13 +626,16 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		expect(edges).toHaveLength(0);
 	});
 
-	it("opens the whole out-of-scope group instead of collapsing to a stub when one content-unchanged member is touched by a changed edge (issue #89)", () => {
+	it("keeps a changed edge's diff on the collapsed OOS directory node even though the touched member no longer renders individually (issue #89 follow-up)", () => {
 		// oos_a and oos_b are both content-unchanged, but oos_b just gained a
-		// brand-new caller (an added edge) — the group must not collapse to a
-		// stub that hides this: allUnchanged(nodes) alone would have said
-		// yes (both nodes' own diff is "unchanged"), missing the touched
-		// edge entirely, same bug the in-scope loop already guards against
-		// via isVisible/touchedIds.
+		// brand-new caller (an added edge). The group still collapses to one
+		// directory node — out-of-scope groups always collapse now — but the
+		// added edge must survive the redirect-and-dedup pass with its diff
+		// intact, so a genuinely new dependency isn't silently lost even
+		// though the specific member that gained it is no longer named
+		// individually. Same underlying concern issue #89 raised when the
+		// group could wrongly collapse to a stub that hid a changed edge
+		// entirely.
 		const inNode = node(
 			"in",
 			`${SCOPE}/user-list/users-list.component.ts`,
@@ -651,45 +659,17 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		const g = makeGraph([inNode, oos1, oos2], [unchangedEdge, addedEdge]);
 		const { nodes, edges } = computeViewNodes(g, "focused");
 
-		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
-		expect(nodes.find((n) => n.id === "oos_a")).toBeDefined();
-		expect(nodes.find((n) => n.id === "oos_b")).toBeDefined();
-		expect(edges).toHaveLength(2);
-		expect(edges.find((e) => e.to === "oos_b")?.diff).toBe("added");
-	});
-
-	it("still collapses an out-of-scope group to a stub when every member is genuinely untouched, at either the file or edge level", () => {
-		const inNode = node(
-			"in",
-			`${SCOPE}/user-list/users-list.component.ts`,
-			"in-scope",
-			"unchanged",
-		);
-		const oos1 = node(
-			"oos_a",
-			"src/app/shared/services/auth.service.ts",
-			"out-of-scope",
-			"unchanged",
-		);
-		const oos2 = node(
-			"oos_b",
-			"src/app/shared/services/cache.service.ts",
-			"out-of-scope",
-			"unchanged",
-		);
-		const e1 = edge("in", "oos_a", "unchanged");
-		const e2 = edge("in", "oos_b", "unchanged");
-		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
-		const { nodes, edges } = computeViewNodes(g, "focused");
-
-		const stub = nodes.find((n) => n.type === "stub");
-		expect(stub).toBeDefined();
+		expect(nodes.filter((n) => n.scope === "out-of-scope")).toHaveLength(1);
 		expect(nodes.find((n) => n.id === "oos_a")).toBeUndefined();
 		expect(nodes.find((n) => n.id === "oos_b")).toBeUndefined();
-		expect(edges).toHaveLength(1); // both unchanged edges dedup to one stub edge
+		// Both edges collapse onto the same (in, oosDir) pair; dedup keeps
+		// the higher-priority 'added' diff rather than letting 'unchanged'
+		// silently win.
+		expect(edges).toHaveLength(1);
+		expect(edges[0].diff).toBe("added");
 	});
 
-	it("assigns distinct stub ids to OOS parent dirs that sanitize to the same string (BUG-11)", () => {
+	it("assigns distinct directory node ids to OOS parent dirs that sanitize to the same string (BUG-11)", () => {
 		// "src/app/shared/api" and "src/app/shared-api" both sanitize to
 		// "src_app_shared_api" under naive character replacement.
 		const inNode = node(
@@ -715,15 +695,15 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		const g = makeGraph([inNode, oos1, oos2], [e1, e2]);
 		const { nodes, edges } = computeViewNodes(g, "focused");
 
-		const stubs = nodes.filter((n) => n.type === "stub");
-		expect(stubs).toHaveLength(2);
-		expect(stubs[0].id).not.toBe(stubs[1].id);
+		const dirs = nodes.filter((n) => n.scope === "out-of-scope");
+		expect(dirs).toHaveLength(2);
+		expect(dirs[0].id).not.toBe(dirs[1].id);
 
-		const stubIds = new Set(stubs.map((n) => n.id));
+		const dirIds = new Set(dirs.map((n) => n.id));
 		expect(edges).toHaveLength(2);
 		for (const e of edges) {
 			expect(e.from).toBe("in");
-			expect(stubIds.has(e.to)).toBe(true);
+			expect(dirIds.has(e.to)).toBe(true);
 		}
 		expect(new Set(edges.map((e) => e.to)).size).toBe(2);
 	});
@@ -744,7 +724,8 @@ describe("computeViewNodes 'focused' — edge preservation", () => {
 		const e = edge("in", "oos", "added");
 		const g = makeGraph([inNode, oos], [e]);
 		const { nodes, edges } = computeViewNodes(g, "focused");
-		// analytics is 'added', so its OOS group expands — no stub
+		// The OOS group still collapses to a directory node, not a stub —
+		// 'stub' is now exclusively an in-scope collapse artifact.
 		expect(nodes.find((n) => n.type === "stub")).toBeUndefined();
 		expect(edges[0].diff).toBe("added");
 	});
